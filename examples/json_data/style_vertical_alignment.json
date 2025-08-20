@@ -1,0 +1,77 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kLeft"
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "text",
+                    "style": {
+                        "font_size": 20
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "subscript",
+                    "style": {
+                        "font_size": 20,
+                        "vertical_alignment": "kSubScript"
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "superscript",
+                    "style": {
+                        "font_size": 20,
+                        "vertical_alignment": "kSuperScript"
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "\n"
+                },
+            ]
+        },
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "|",
+                    "style": {
+                        "text_size": 40
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "top ",
+                    "style": {
+                        "vertical_alignment": "kTop"
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "middle ",
+                    "style": {
+                        "vertical_alignment": "kMiddle"
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "baseline ",
+                    "style": {
+                        "vertical_alignment": "kBaseLine"
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "bottom ",
+                    "style": {
+                        "vertical_alignment": "kBottom"
+                    }
+                }
+            ]
+        }
+    ]
+}

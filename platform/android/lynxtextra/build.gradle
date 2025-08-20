@@ -1,0 +1,75 @@
+plugins {
+    id 'com.android.library'
+}
+
+android {
+    ndkVersion rootProject.ext.ndkVersion
+
+    defaultConfig {
+        minSdkVersion 16
+        compileSdk rootProject.ext.compileSdkVersion
+        versionCode 1
+        versionName "1.0"
+        consumerProguardFiles "consumer-rules.pro"
+        buildFeatures {
+            prefabPublishing true
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++17 -DLOCAL_ARM_NEON=TRUE -Wl,-ldl -Wno-unused-command-line-argument"
+                arguments "-DANDROID_TOOLCHAIN=clang",
+                        "-DFLAVOR_NAME=lite"
+                abiFilters = rootProject.ext.abiList
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            externalNativeBuild {
+                cmake {
+                    cppFlags '-DDEBUG=1 -DPERFLOG=1 '
+                    arguments '-DBUILD_TYPE=debug', '-DANDROID_STL=c++_shared'
+                    targets "lynxtextra"
+                }
+            }
+            minifyEnabled false
+            jniDebuggable true
+            debuggable true
+        }
+        release {
+            externalNativeBuild {
+                cmake {
+                    cppFlags '-DPERFLOG=0'
+                    arguments '-DBUILD_TYPE=release', '-DANDROID_STL=c++_shared'
+                    targets "lynxtextra"
+                }
+            }
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+            version CMAKE_VERSION
+        }
+    }
+    prefab {
+        lynxtextra {
+            headers "../../../public"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    packagingOptions {
+        exclude '**/libc++_shared.so'
+    }
+
+}
+
+dependencies {
+    testImplementation 'androidx.test.ext:junit:1.1.2'
+}

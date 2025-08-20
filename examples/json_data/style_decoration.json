@@ -1,0 +1,74 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kLeft"
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "underline",
+                    "style": {
+                        "decoration_type": "kUnderLine",
+                        "decoration_style": "kSolid",
+                        "decoration_color": "#FF000000"
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "\n"
+                },
+                {
+                    "type": "text",
+                    "content": "underline (thicker)",
+                    "style": {
+                        "decoration_type": "kUnderLine",
+                        "decoration_style": "kSolid",
+                        "decoration_color": "#FF000000",
+                        "decoration_thickness_multiplier": 2.0
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "\n"
+                },
+                {
+                    "type": "text",
+                    "content": "underline (dashed)",
+                    "style": {
+                        "decoration_type": "kUnderLine",
+                        "decoration_style": "kDashed",
+                        "decoration_color": "#FF000000"
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "\n"
+                },
+                {
+                    "type": "text",
+                    "content": "strikethrough",
+                    "style": {
+                        "decoration_type": "kLineThrough",
+                        "decoration_style": "kSolid",
+                        "decoration_color": "#FF000000"
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "\n"
+                },
+                {
+                    "type": "text",
+                    "content": "strikethrough (blue)",
+                    "style": {
+                        "decoration_type": "kLineThrough",
+                        "decoration_style": "kSolid",
+                        "decoration_color": "#FF0000FF",
+                        "decoration_thickness_multiplier": 2.0
+                    }
+                }
+            ]
+        }
+    ]
+}

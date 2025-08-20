@@ -1,0 +1,23 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "spacing": {
+                    "line_space_before_px": 30.0
+                }
+            },
+            "layout_configuration": {
+                "skip_spacing_before_first_line": true
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "skip_spacing_before_first_line = true means the first line of a paragraph will not have line_space_before_px"
+                }
+            ]
+        }
+    ],
+    "debug_settings": {
+        "draw_line_rectangle": true
+    }
+}

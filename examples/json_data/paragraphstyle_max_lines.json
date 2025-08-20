@@ -1,0 +1,29 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kLeft",
+                "max_lines": 2
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "This is a long paragraph that demonstrates max_lines = 2. When the text exceeds the maximum number of lines specified, it will be truncated. Only the first two lines will be shown and any remaining text will be cut off.",
+                    "style": {
+                        "text_size": 30
+                    }
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 600.0,
+                "height": 200.0,
+                "width_mode": "kDefinite",
+                "height_mode": "kAtMost"
+            }
+        ]
+    }
+} 

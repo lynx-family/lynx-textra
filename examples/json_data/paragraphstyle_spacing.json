@@ -1,0 +1,28 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "spacing": {
+                    "line_rule": "kExact",
+                    "line_px": 27.0,
+                }
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "You can specify the line spacing between the first line and\n the second line."
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 900,
+                "height": 300,
+                "width_mode": "kAtMost",
+                "height_mode": "kAtMost"
+            }
+        ]
+    }
+}

@@ -1,0 +1,36 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+import("//config.gni")
+
+shared_library("lynxtextra") {
+  output_name = "lynxtextra"
+  deps = [ "../../../src:textlayout" ]
+  libs = [ "log" ]
+  include_dirs = [
+    "src/main/jni/include",
+    "//third_party/icu/source/common",
+  ]
+  sources = []
+  ldflags = [
+    "-fuse-ld=lld",
+    "-Xlinker",
+    "-Map=output.map",
+  ]
+  if (enable_16kb_align &&
+      (android_app_abi == "arm64-v8a" || android_app_abi == "x86_64")) {
+    ldflags += [ "-Wl,-z,max-page-size=16384" ]
+  }
+}
+
+source_set("lynxtextra_static") {
+  output_name = "lynxtextra_static"
+  deps = [ "../../../src:textlayout" ]
+  libs = [ "log" ]
+  include_dirs = [
+    "src/main/jni/include",
+    "//third_party/icu/source/common",
+  ]
+  sources = []
+}

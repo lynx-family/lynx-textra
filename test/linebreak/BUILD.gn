@@ -1,0 +1,34 @@
+# Copyright 2024 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+import("//config.gni")
+
+executable("linebreak_test") {
+  sources = [
+    "//public/textlayout/u_8_string.h",
+    "//src/textlayout/internal/boundary_analyst.cc",
+    "//src/textlayout/internal/boundary_analyst.h",
+    "//src/textlayout/utils/u_8_string.cc",
+    "line_break_test.cc",
+  ]
+  include_dirs = [
+    "//public/textlayout",
+    "//src/textlayout/internal",
+  ]
+  if (boundary_analyst == "icu") {
+    defines = [
+      "BOUNDARY_ANALYST_ICU",
+      "USE_LIBLINEBREAK",
+    ]
+    deps =
+        [ "//src/textlayout/icu_substitute/linebreak/libunibreak:libunibreak" ]
+    sources += [ "//src/textlayout/utils/icu_wrapper_static.cc" ]
+    include_dirs +=
+        [ "//src/textlayout/icu_substitute/linebreak/libunibreak/src" ]
+  }
+  cflags_cc = [
+    "-Wno-unused-function",
+    "-Wno-unused-private-field",
+  ]
+}

@@ -1,0 +1,24 @@
+# Copyright 2024 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+if (is_android) {
+  import("//build/config/android/config.gni")
+}
+if (target_cpu == "arm" || target_cpu == "arm64") {
+  import("//build/config/arm.gni")
+}
+
+# global configs
+declare_args() {
+  use_lru_cache = true
+
+  enable_unittests = false
+
+  # select linebreak mode between "simple" and "icu"
+  boundary_analyst = "simple"
+  enable_16kb_align = false
+  
+  # Whether to dynamically load (dlopen) Harfbuzz .so
+  dynamic_load_harfbuzz = false
+}

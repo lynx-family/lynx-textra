@@ -1,0 +1,393 @@
+# Copyright 2017 Google Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//config.gni")
+
+declare_args() {
+  prj_root = rebase_path("..")
+  enable_javashaper = is_android
+  enable_skshaper = is_android || is_mac || is_harmony
+  enable_ctshaper = is_ios
+  enable_harmony = is_harmony
+  enable_minikin = false
+}
+
+# print("=========== tttext build config ===========")
+# print("prj_root:", prj_root)
+# print("tttext_enable_javashaper:", enable_javashaper)
+# print("tttext_enable_skshaper:", enable_skshaper)
+# print("tttext_enable_ctshaper:", enable_ctshaper)
+# print("tttext_enable_harmony:", enable_harmony)
+# print("is_android:", is_android)
+# print("is_mac:", is_mac)
+# print("is_ios:", is_ios)
+# print("is_linux:", is_linux)
+# print("is_harmony:", is_harmony)
+# print("target_cpu:", target_cpu)
+# print("root_out_dir:", root_out_dir)
+# print("===========================================")
+
+config("textlayout_public") {
+  cflags_cc = []
+  include_dirs = [
+    ".",
+    "$prj_root/public",
+  ]
+  defines = []
+  if (is_debug) {
+    defines += [ "TTTEXT_DEBUG" ]
+  }
+}
+config("textlayout_internal") {
+  visibility = [ ":*" ]
+  cflags = [ "-Wshorten-64-to-32" ]
+  cflags_cc = [ "-Wshorten-64-to-32" ]
+  include_dirs = [
+    "$prj_root",
+    "$prj_root/public",
+    "$prj_root/src/textlayout",
+    "$prj_root/src/ports",
+  ]
+  defines = []
+  if (use_lru_cache) {
+    defines += [ "USE_LRU_CACHE=1" ]
+  }
+  if (is_ios) {
+    defines += [ "TTTEXT_OS_IOS" ]
+  }
+  if (is_mac) {
+    defines += [ "TTTEXT_OS_MAC" ]
+  }
+  if (is_android) {
+    defines += [ "TTTEXT_OS_ANDROID" ]
+  }
+  if (is_harmony) {
+    defines += [ "TTTEXT_OS_OH" ]
+  }
+}
+
+config("icu") {
+  include_dirs = [ "//third_party/icu/source/common" ]
+  libs = []
+  defines = [
+    "USE_ICU",
+    "ICU_I18N_LIB=\"libicui18n.so\"",
+    "ICU_UC_LIB=\"libicuuc.so\"",
+    "ICU_DATA_FOLDER=\"/system/usr/icu\"",
+  ]
+  if (boundary_analyst == "icu") {
+    defines += [ "BOUNDARY_ANALYST_ICU" ]
+  }
+}
+config("icu_static") {
+  include_dirs = [ "//third_party/icu/source/common" ]
+  defines = [
+    "USE_ICU",
+    #    "U_DISABLE_RENAMING",
+    #    "ICU_DATA_FOLDER=\"$icudata_path\"",
+  ]
+}
+
+textlayout_public_headers = [
+  "$prj_root/public/textra/macro.h",
+  "$prj_root/public/textra/font_info.h",
+  "$prj_root/public/textra/icu_wrapper.h",
+  "$prj_root/public/textra/i_canvas_helper.h",
+  "$prj_root/public/textra/i_font_manager.h",
+  "$prj_root/public/textra/i_typeface_helper.h",
+  "$prj_root/public/textra/layout_definition.h",
+  "$prj_root/public/textra/layout_drawer.h",
+  "$prj_root/public/textra/layout_drawer_listener.h",
+  "$prj_root/public/textra/layout_page_listener.h",
+  "$prj_root/public/textra/layout_region.h",
+  "$prj_root/public/textra/painter.h",
+  "$prj_root/public/textra/paragraph.h",
+  "$prj_root/public/textra/paragraph_style.h",
+  "$prj_root/public/textra/run_delegate.h",
+  "$prj_root/public/textra/style.h",
+  "$prj_root/public/textra/text_layout.h",
+  "$prj_root/public/textra/text_line.h",
+  "$prj_root/public/textra/tt_color.h",
+  "$prj_root/public/textra/tttext_context.h",
+  "$prj_root/public/textra/fontmgr_collection.h",
+  "$prj_root/public/textra/platform/ios/ios_canvas_base.h",
+  "$prj_root/public/textra/platform/ios/ios_font_manager.h",
+  "$prj_root/public/textra/platform/ios/typeface_coretext.h",
+  "$prj_root/public/textra/platform/skity/skity_canvas_helper.h",
+  "$prj_root/public/textra/platform/skity/skity_font_manager_coretext.h",
+  "$prj_root/public/textra/platform/skity/skity_font_manager.h",
+  "$prj_root/public/textra/platform/skity/skity_typeface_helper.h",
+  "$prj_root/public/textra/platform/java/java_canvas_helper.h",
+  "$prj_root/public/textra/platform/java/buffer_output_stream.h",
+  "$prj_root/public/textra/platform/java/tttext_jni_proxy.h",
+  "$prj_root/public/textra/platform/java/java_font_manager.h",
+  "$prj_root/public/textra/platform/java/java_typeface.h",
+  "$prj_root/public/textra/platform_helper.h",
+  "$prj_root/public/textra/tt_path.h",
+]
+
+static_library("lynxtextra_static") {
+  output_name = "lynxtextra_static"
+  public_configs = [ ":textlayout_public" ]
+  configs += [ ":textlayout_internal" ]
+  deps = [ ":textlayout" ]
+  public = textlayout_public_headers
+}
+
+shared_library("lynxtextra_shared") {
+  output_name = "lynxtextra_shared"
+  public_configs = [ ":textlayout_public" ]
+  configs += [ ":textlayout_internal" ]
+  deps = [ ":textlayout" ]
+  public = textlayout_public_headers
+}
+
+source_set("textlayout") {
+  defines = []
+  deps = []
+  include_dirs = []
+  cflags_cc = [ "-Wno-unused-function" ]
+
+  configs += [ ":textlayout_internal" ]
+  public_configs = [ ":textlayout_public" ]
+  public = textlayout_public_headers
+
+  sources = []
+  if (is_mac || is_linux) {
+    public_configs += [ ":icu_static" ]
+    sources += [ "$prj_root/src/textlayout/utils/icu_wrapper_static.cc" ]
+    deps += [ "//third_party/icu" ]
+  }
+
+  sources += textlayout_public_headers
+  sources += [
+    "$prj_root/src/ports/platform_helper.cc",
+    "$prj_root/src/textlayout/font_info.cc",
+    "$prj_root/src/textlayout/fontmgr_collection.cc",
+    "$prj_root/src/textlayout/internal/boundary_analyst.cc",
+    "$prj_root/src/textlayout/internal/boundary_analyst.h",
+    "$prj_root/src/textlayout/internal/line_range.h",
+    "$prj_root/src/textlayout/internal/run_range.h",
+    "$prj_root/src/textlayout/layout_drawer.cc",
+    "$prj_root/src/textlayout/layout_measurer.cc",
+    "$prj_root/src/textlayout/layout_measurer.h",
+    "$prj_root/src/textlayout/layout_position.h",
+    "$prj_root/src/textlayout/layout_region.cc",
+    "$prj_root/src/textlayout/paragraph_impl.cc",
+    "$prj_root/src/textlayout/paragraph_impl.h",
+    "$prj_root/src/textlayout/run/base_run.cc",
+    "$prj_root/src/textlayout/run/base_run.h",
+    "$prj_root/src/textlayout/run/ghost_run.h",
+    "$prj_root/src/textlayout/run/layout_metrics.h",
+    "$prj_root/src/textlayout/run/object_run.h",
+    "$prj_root/src/textlayout/shape_cache.h",
+    "$prj_root/src/textlayout/style/paragraph_style.cc",
+    "$prj_root/src/textlayout/style/style.cc",
+    "$prj_root/src/textlayout/style/style_manager.cc",
+    "$prj_root/src/textlayout/style/style_manager.h",
+    "$prj_root/src/textlayout/style/tt_color.cc",
+    "$prj_root/src/textlayout/style_attributes.h",
+    "$prj_root/src/textlayout/text_layout.cc",
+    "$prj_root/src/textlayout/text_layout_impl.cc",
+    "$prj_root/src/textlayout/text_layout_impl.h",
+    "$prj_root/src/textlayout/text_line_impl.cc",
+    "$prj_root/src/textlayout/text_line_impl.h",
+    "$prj_root/src/textlayout/tt_shaper.cc",
+    "$prj_root/src/textlayout/tt_shaper.h",
+    "$prj_root/src/textlayout/tttext_context.cc",
+    "$prj_root/src/textlayout/utils/float_comparison.h",
+    "$prj_root/src/textlayout/utils/log_util.h",
+    "$prj_root/src/textlayout/utils/tt_point.cc",
+    "$prj_root/src/textlayout/utils/tt_point.h",
+    "$prj_root/src/textlayout/utils/tt_range.cc",
+    "$prj_root/src/textlayout/utils/tt_range.h",
+    "$prj_root/src/textlayout/utils/tt_rangef.cc",
+    "$prj_root/src/textlayout/utils/tt_rangef.h",
+    "$prj_root/src/textlayout/utils/tt_rect.h",
+    "$prj_root/src/textlayout/utils/tt_rectf.cc",
+    "$prj_root/src/textlayout/utils/tt_rectf.h",
+    "$prj_root/src/textlayout/utils/tt_size.h",
+    "$prj_root/src/textlayout/utils/tt_string.cc",
+    "$prj_root/src/textlayout/utils/tt_string.h",
+    "$prj_root/src/textlayout/utils/tt_string_piece.cc",
+    "$prj_root/src/textlayout/utils/tt_string_piece.h",
+    "$prj_root/src/textlayout/utils/u_8_string.cc",
+    "$prj_root/src/textlayout/utils/u_8_string.h",
+    "$prj_root/src/textlayout/utils/value_utils.h",
+  ]
+
+  if (enable_javashaper) {
+    deps += [ ":javashaper" ]
+  }
+
+  if (enable_skshaper) {
+    deps += [ ":skshaper" ]
+  }
+
+  if (enable_ctshaper) {
+    configs += [ ":ctshaper_public" ]
+    include_dirs += [
+      "//ROOT",
+      "$prj_root/src/ports/platform/ios/",
+      "$prj_root/src/ports/shaper/coretext/",
+    ]
+
+    sources += [
+      "$prj_root/src/ports/shaper/coretext/shaper_core_text.h",
+      "$prj_root/src/ports/shaper/coretext/shaper_core_text.mm",
+    ]
+
+    cflags_objc = [ "-fobjc-arc" ]
+    cflags_objcc = [ "-fobjc-arc" ]
+  }
+
+  if (enable_harmony) {
+    configs += [ ":harmony_public" ]
+    include_dirs += [ "$prj_root/src/ports/shaper/harmony" ]
+    sources += [
+      "$prj_root/src/ports/renderer/ark_graphics/ag_canvas_helper.h",
+      "$prj_root/src/ports/renderer/ark_graphics/ag_typeface_helper.h",
+      "$prj_root/src/ports/shaper/ark_graphics/shaper_ark_graphics.cc",
+      "$prj_root/src/ports/shaper/ark_graphics/shaper_ark_graphics.h",
+    ]
+  }
+
+  if (enable_minikin) {
+    include_dirs += [ "$prj_root/src/ports/shaper/minikin" ]
+    sources += [
+      "$prj_root/src/ports/shaper/minikin/font/font_helper.cc",
+      "$prj_root/src/ports/shaper/minikin/font/font_helper.h",
+      "$prj_root/src/ports/shaper/minikin/font/font_manager.cc",
+      "$prj_root/src/ports/shaper/minikin/font/font_manager.h",
+      "$prj_root/src/ports/shaper/minikin/lib/CmapCoverage.cpp",
+      "$prj_root/src/ports/shaper/minikin/lib/CmapCoverage.h",
+      "$prj_root/src/ports/shaper/minikin/lib/Emoji.cpp",
+      "$prj_root/src/ports/shaper/minikin/lib/Emoji.h",
+      "$prj_root/src/ports/shaper/minikin/lib/FontCollection.cpp",
+      "$prj_root/src/ports/shaper/minikin/lib/FontCollection.h",
+      "$prj_root/src/ports/shaper/minikin/lib/FontFamily.cpp",
+      "$prj_root/src/ports/shaper/minikin/lib/FontFamily.h",
+      "$prj_root/src/ports/shaper/minikin/lib/FontUtils.cpp",
+      "$prj_root/src/ports/shaper/minikin/lib/FontUtils.h",
+      "$prj_root/src/ports/shaper/minikin/lib/LayoutCore.cpp",
+      "$prj_root/src/ports/shaper/minikin/lib/LayoutCore.h",
+      "$prj_root/src/ports/shaper/minikin/lib/Locale.cpp",
+      "$prj_root/src/ports/shaper/minikin/lib/Locale.h",
+      "$prj_root/src/ports/shaper/minikin/lib/LocaleListCache.cpp",
+      "$prj_root/src/ports/shaper/minikin/lib/LocaleListCache.h",
+      "$prj_root/src/ports/shaper/minikin/lib/MinikinFont.h",
+      "$prj_root/src/ports/shaper/minikin/lib/MinikinInternal.cpp",
+      "$prj_root/src/ports/shaper/minikin/lib/MinikinInternal.h",
+      "$prj_root/src/ports/shaper/minikin/lib/SparseBitSet.cpp",
+      "$prj_root/src/ports/shaper/minikin/lib/SparseBitSet.h",
+      "$prj_root/src/ports/shaper/minikin/lib/SystemFonts.cpp",
+      "$prj_root/src/ports/shaper/minikin/lib/SystemFonts.h",
+      "$prj_root/src/ports/shaper/minikin/shaper_minikin.cc",
+      "$prj_root/src/ports/shaper/minikin/shaper_minikin.h",
+    ]
+  }
+}
+
+config("javashaper_public") {
+  include_dirs = [
+    "$prj_root/src/ports/shaper/java",
+    "$prj_root/public/textra",
+    "$prj_root/",
+  ]
+  defines = [ "ENABLE_JAVASHAPER" ]
+}
+source_set("javashaper") {
+  public_configs = [
+    ":javashaper_public",
+    ":icu",
+  ]
+  configs += [ ":textlayout_internal" ]
+  deps = []
+  sources = [
+    "$prj_root/src/ports/shaper/java/java_font_manager.cc",
+    "$prj_root/src/ports/shaper/java/java_shaper.cc",
+    "$prj_root/src/ports/shaper/java/java_shaper.h",
+    "$prj_root/src/ports/shaper/java/java_shaper_result.h",
+    "$prj_root/src/ports/shaper/java/java_typeface.cc",
+    "$prj_root/src/ports/shaper/java/tttext_jni_proxy.cc",
+    "$prj_root/src/textlayout/utils/icu_wrapper.cc",
+  ]
+}
+
+config("skshaper_public") {
+  include_dirs = [
+    "$prj_root/src/ports/shaper/skshaper/",
+    "$prj_root/public/textra",
+    "$prj_root/",
+  ]
+  defines = [ "ENABLE_SKSHAPER" ]
+}
+source_set("skshaper") {
+  public_configs = [ ":skshaper_public" ]
+
+  include_dirs = [
+    "$prj_root/public/textra",
+    #    "$prj_root/src/ports/shaper/skshaper/",
+    #    "$prj_root/thirdparty/externals/harfbuzz/src",
+    #    "//ROOT",
+  ]
+  configs += [ ":textlayout_internal" ]
+  defines = []
+  deps = []
+
+  sources = [
+    "$prj_root/src/ports/shaper/skshaper/font.h",
+    "$prj_root/src/ports/shaper/skshaper/one_line_shaper.cc",
+    "$prj_root/src/ports/shaper/skshaper/one_line_shaper.h",
+    "$prj_root/src/ports/shaper/skshaper/run.cc",
+    "$prj_root/src/ports/shaper/skshaper/run.h",
+    "$prj_root/src/ports/shaper/skshaper/shaper_skshaper.cc",
+    "$prj_root/src/ports/shaper/skshaper/shaper_skshaper.h",
+    "$prj_root/src/ports/shaper/skshaper/sk_shaper.cc",
+    "$prj_root/src/ports/shaper/skshaper/sk_shaper.h",
+    "$prj_root/src/textlayout/utils/mutex.h",
+  ]
+
+  sources += [
+    "$prj_root/src/ports/shaper/skshaper/harfbuzz_lib.cc",
+    "$prj_root/src/ports/shaper/skshaper/sk_shaper_harfbuzz.cc",
+  ]
+  defines += [
+    "SK_SHAPER_HARFBUZZ_AVAILABLE",
+    "HAVE_PTHREADS",
+  ]
+  if (dynamic_load_harfbuzz) {
+    sources += [
+      "$prj_root/src/ports/shaper/skshaper/harfbuzz_lib_runtime.cc",
+      "$prj_root/src/ports/shaper/skshaper/sk_shaper_platform.cc",
+    ]
+    public_configs += [ "//third_party/harfbuzz:harfbuzz_config" ]
+  } else {
+    sources += [
+      "$prj_root/src/ports/shaper/skshaper/harfbuzz_lib_builtin.cc",
+      "$prj_root/src/ports/shaper/skshaper/sk_shaper_platform_dummy.cc",
+    ]
+    deps += [ "//third_party/harfbuzz" ]
+  }
+}
+
+config("ctshaper_public") {
+  include_dirs = [ "$prj_root/src/ports/shaper/coretext/" ]
+  defines = [ "ENABLE_CTSHAPER" ]
+}
+
+config("harmony_public") {
+  include_dirs = [ "$prj_root/src/ports/shaper/harmony" ]
+  defines = [ "ENABLE_OHOS" ]
+}

@@ -1,0 +1,26 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "ellipsis": "...",
+                "max_lines": 1
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "This is a long sentence which is too long to fit in one line."
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 640.0,
+                "height": 200.0,
+                "width_mode": "kDefinite",
+                "height_mode": "kAtMost"
+            }
+        ]
+    }
+} 

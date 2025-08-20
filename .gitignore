@@ -1,0 +1,32 @@
+*.DS_Store
+*.iml
+.idea/
+.vscode/
+**/build/**
+**/.gradle/
+**/.cxx/
+**/.externalNativeBuild/
+third_party/
+*DerivedData*
+tools/android_tools/*
+*oh-package-lock.json5
+*oh_modules/
+*.hvigor/
+*golden_check/
+.cache/
+**CMakeLists_impl**
+out/*
+compile_commands.json
+tools/gn_tools/*
+
+# CMake
+cmake-build-*/
+
+Pods
+!Podfile
+Podfile.lock
+Gemfile.lock
+
+# OpenHarmony
+**/harmony/**/.preview/
+**/harmony/**/BuildProfile.ets

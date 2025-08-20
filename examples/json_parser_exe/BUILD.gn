@@ -1,0 +1,16 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+executable("json_to_image_app") {
+  output_name = "json_to_image_app"
+  project_root = rebase_path("../../")
+  defines = [ "FONT_ROOT=\"$project_root/fonts/\"" ]
+  sources = [ "main.cc" ]
+  deps = [ "//examples/json_parser:json_parser" ]
+  include_dirs = [
+    "//public/textlayout",
+    "//third_party/skity/include/",
+    "//third_party/skity/third_party/glm",
+  ]
+}

@@ -1,0 +1,29 @@
+{
+    "paragraphs": [
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "red ",
+                    "style": {
+                        "background_color": "#ffff0000"
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "green ",
+                    "style": {
+                        "background_color": "#ff00ff00"
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "blue",
+                    "style": {
+                        "background_color": "#ff0000ff"
+                    }
+                }
+            ]
+        }
+    ]
+}

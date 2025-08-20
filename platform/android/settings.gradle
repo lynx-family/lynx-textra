@@ -1,0 +1,2 @@
+include ':lynxtextra'
+project(":lynxtextra").projectDir = new File("lynxtextra")

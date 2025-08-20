@@ -1,0 +1,46 @@
+# Copyright 2020 The Lynx Authors. All rights reserved.
+
+import("//config.gni")
+
+group("default") {
+  if (is_android) {
+    deps = [
+      "examples/json_parser:json_parser",
+      "platform/android/lynxtextra:lynxtextra",
+    ]
+  }
+  if (is_mac) {
+    deps = [
+      "demos/darwin/macos/glfw:gl_app_demo",
+      "demos/darwin/macos/mtl:mtl_app_demo",
+      "demos/darwin/macos/skia_app_demo:skia_app_demo",
+      "demos/darwin/macos/ttreaderdemo:ttreaderdemo",
+      "examples/json_parser:json_parser",
+      "examples/json_parser_exe:json_to_image_app",
+    ]
+  }
+  if (is_ios) {
+    deps = [
+      "examples/json_parser:json_parser",
+      "platform/iOS/LynxTextra",
+    ]
+  }
+  if (is_harmony) {
+    deps = [ "platform/harmony/lynxtextra:lynxtextra" ]
+  }
+}
+
+group("test") {
+  testonly = true
+  deps = [
+    "//test",
+    "//test/linebreak:linebreak_test",
+  ]
+}
+
+# Empty target,
+# used to extract basic compiler flags and linker flags;
+# this target only acts on the gn_to_cmake by now.
+source_set("gen_basic_compiler_flags") {
+  sources = []
+}

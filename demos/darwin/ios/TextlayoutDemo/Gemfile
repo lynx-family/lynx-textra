@@ -1,0 +1,9 @@
+source 'https://rubygems.org'
+
+gem "cocoapods", '1.10.1'
+
+# code coverage
+gem "xcodeproj", '1.21.0'
+
+# log
+gem "logger", '1.4.2'

@@ -1,0 +1,53 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+declare_args() {
+  mtl_app_root = rebase_path("../../../..")
+}
+print(mtl_app_root)
+executable("mtl_app_demo") {
+  output_name = "mtl_app_demo"
+
+  cflags_cc = [
+    "-Wno-unused-private-field",
+    "-Wno-unused-variable",
+  ]
+  ldflags = []
+
+  defines = [ "FONT_ROOT=\"$mtl_app_root/fonts/\"" ]
+  include_dirs = [
+    "$mtl_app_root/demos/darwin/macos/mtl",
+    "$mtl_app_root/demos/darwin/macos/glfw",
+    "$mtl_app_root/third_party/glfw/include",
+    "$mtl_app_root/third_party/skity/module/codec/include",
+    "$mtl_app_root/",
+    "$mtl_app_root/src/ports",
+  ]
+
+  deps = [
+    "$mtl_app_root/src:lynxtextra_static",
+    "$mtl_app_root/third_party/glfw",
+  ]
+
+  frameworks = [
+    "CoreText.framework",
+    "Metal.framework",
+    "MetalKit.framework",
+    "AppKit.framework",
+    "QuartzCore.framework",
+    "IOKit.framework",
+  ]
+
+  sources = [
+    "$mtl_app_root/demos/darwin/macos/glfw/skity_adaptor.h",
+    "$mtl_app_root/demos/darwin/macos/mtl/mtl_app.h",
+    "$mtl_app_root/demos/darwin/macos/mtl/mtl_app.mm",
+    "$mtl_app_root/demos/darwin/macos/mtl/mtl_app_demo_skity.mm",
+    "$mtl_app_root/demos/darwin/macos/ttreaderdemo/paragraph_test.cc",
+    "$mtl_app_root/demos/darwin/macos/ttreaderdemo/paragraph_test.h",
+    "$mtl_app_root/public/textlayout/platform/skity/skity_canvas_helper.h",
+    "$mtl_app_root/public/textlayout/platform/skity/skity_font_manager.h",
+    "$mtl_app_root/public/textlayout/platform/skity/skity_typeface_helper.h",
+  ]
+}

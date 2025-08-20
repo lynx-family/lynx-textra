@@ -1,0 +1,13 @@
+# Copyright 2020 The Lynx Authors. All rights reserved.
+script_executable = "python3"
+
+buildconfig = "//build/config/BUILDCONFIG.gn"
+
+secondary_source = "//build/secondary/"
+
+default_args = {
+  # Default to not using the skity image library. Image comparison tests can
+  # enable it on an as-needed basis.
+  skity_use_libpng_encode = false
+  skity_use_libjpeg_turbo_decode = false
+}

@@ -1,0 +1,5 @@
+solutions = [{
+    'name': '.',
+    'deps_file': 'DEPS.ci',
+    'url': 'git@github.com:lynx-family/lynx-textra.git'
+}]

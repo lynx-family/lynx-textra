@@ -1,0 +1,50 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kLeft",
+                "line_height_override": false,
+                "spacing": {
+                    "line_space_after_px": 20.0
+                }
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "The quick brown fox jumps over the lazy dog (false)",
+                    "style": {
+                        "background_color": "#FFE0E0E0"
+                    }
+                }
+            ]
+        },
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kLeft",
+                "line_height_override": true,
+                "spacing": {
+                    "line_space_after_px": 20.0
+                }
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "The quick brown fox jumps over the lazy dog (true)",
+                    "style": {
+                        "background_color": "#FFE0E0E0"
+                    }
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 800.0,
+                "height": 300.0,
+                "width_mode": "kAtMost",
+                "height_mode": "kAtMost"
+            }
+        ]
+    }
+} 

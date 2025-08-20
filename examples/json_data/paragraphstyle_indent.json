@@ -1,0 +1,53 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "indent": {
+                    "first_line": 20.0
+                }
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "The quick brown fox jumps over the lazy dog."
+                }
+            ]
+        },
+        {
+            "paragraph_style": {
+                "indent": {
+                    "hanging": 20.0
+                }
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "The quick brown fox jumps over the lazy dog."
+                }
+            ]
+        },
+        {
+            "paragraph_style": {
+                "indent": {
+                    "end": 40.0
+                }
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "The quick brown fox jumps over the lazy dog."
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 600,
+                "height": 300,
+                "width_mode": "kDefinite",
+                "height_mode": "kAtMost"
+            }
+        ]
+    }
+}

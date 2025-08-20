@@ -1,0 +1,41 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "overflow_wrap": "kAnywhere",
+                "horizontal_alignment": "kLeft"
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                }
+            ]
+        },
+        {
+            "paragraph_style": {
+                "overflow_wrap": "kNormal",
+                "horizontal_alignment": "kLeft",
+                "spacing": {
+                    "line_space_before_px": 10.0
+                }
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 450,
+                "height": 200,
+                "width_mode": "kDefinite",
+                "height_mode": "kAtMost"
+            }
+        ]
+    }
+}

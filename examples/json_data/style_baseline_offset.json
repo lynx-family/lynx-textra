@@ -1,0 +1,29 @@
+{
+    "paragraphs": [
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "baseline ",
+                    "style": {
+                        "baseline_offset": 0
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "offset=20 ",
+                    "style": {
+                        "baseline_offset": 20
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "offset=-20",
+                    "style": {
+                        "baseline_offset": -20
+                    }
+                }
+            ]
+        }
+    ]
+}

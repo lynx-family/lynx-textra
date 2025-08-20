@@ -1,0 +1,58 @@
+{
+    "paragraphs": [
+{
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "Text without shadow"
+                }
+            ]
+        },
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "Text with shadow (blue, r=1)",
+                    "style": {
+                        "text_shadow_list": [
+                            {
+                                "color": "#EE0000EE",
+                                "blur_radius": 2
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "Text with multiple shadows (red, r=2), (blue, r=3)",
+                    "style": {
+                        "text_shadow_list": [
+                            {
+                                "color": "#FF00FF00",
+                                "blur_radius": 2.0
+                            },
+                            {
+                                "color": "#FFFF0000",
+                                "blur_radius": 3.0
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 800,
+                "height": 300,
+                "width_mode": "kAtMost",
+                "height_mode": "kAtMost"
+            }
+        ]
+    }
+} 

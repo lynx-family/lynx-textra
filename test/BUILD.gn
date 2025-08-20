@@ -1,0 +1,67 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+import("//config.gni")
+
+group("test") {
+  testonly = true
+  deps = [ ":TextLayoutLiteTest" ]
+}
+
+executable("TextLayoutLiteTest") {
+  output_name = "TextLayoutLiteTest"
+  testonly = true
+  sources = [
+    "//demos/darwin/macos/ttreaderdemo/paragraph_test.cc",
+    "boundary_analyst_test.cc",
+    "inline_block_test.cc",
+    "layout_drawer_test.cc",
+    "layout_region_test.cc",
+    "paragraph_image_test.cc",
+    "paragraph_style_test.cc",
+    "paragraph_test.cc",
+    "run_test.cc",
+    "shape_cache_test.cc",
+    "shape_test.cc",
+    "style_manager_test.cc",
+    "style_test.cc",
+    "test_src.cc",
+    "test_src.h",
+    "test_utils.h",
+    "text_layout_test.cc",
+    "text_test.cc",
+    "tt_shaper_test.cc",
+    "tttext_context_test.cc",
+  ]
+
+  include_dirs = [
+    "//",
+    "//public/textlayout",
+  ]
+
+  deps = [
+    "//src:textlayout",
+    "//third_party/googletest:gmock",
+    "//third_party/googletest:gtest",
+    "//third_party/googletest:gtest_main",
+  ]
+
+  frameworks = [
+    "AppKit.framework",
+    "CoreText.framework",
+  ]
+
+  project_root = rebase_path("..")
+  golden_images_dir = rebase_path("golden_images")
+  defines = [
+    "ENABLE_GTEST=1",
+    "FONT_ROOT=\"$project_root/fonts/\"",
+    "GOLDEN_IMAGES_DIR=\"$golden_images_dir/\"",
+  ]
+
+  cflags_cc = [
+    "-Wno-unused-function",
+    "-Wno-unused-private-field",
+  ]
+}

@@ -1,0 +1,44 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kLeft",
+                "allow_break_around_punctuation": false
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "(1) (2) (3) (4) (5) (6) (7) {false}",
+                    "style": {
+                        "text_size": 30,
+                    }
+                }
+            ]
+        },
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kLeft",
+                "allow_break_around_punctuation": true
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "(1) (2) (3) (4) (5) (6) (7) {true}",
+                    "style": {
+                        "text_size": 30,
+                    }
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 300.0,
+                "height": 400.0,
+                "width_mode": "kAtMost",
+                "height_mode": "kAtMost"
+            }
+        ]
+    },
+} 

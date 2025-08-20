@@ -1,0 +1,26 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "write_direction": "kLTR"
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "Hello 你好 مرحبا 123",
+                }
+            ]
+        },
+        {
+            "paragraph_style": {
+                "write_direction": "kRTL"
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "Hello 你好 مرحبا 123",
+                }
+            ]
+        }
+    ]
+}

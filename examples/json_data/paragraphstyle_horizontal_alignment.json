@@ -1,0 +1,47 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kLeft",
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "left align"
+                }
+            ]
+        },
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kCenter",
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "center align"
+                }
+            ]
+        },
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kRight",
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "right align"
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 300,
+                "height": 400,
+                "width_mode": "kDefinite",
+                "height_mode": "kAtMost"
+            }
+        ]
+    }
+}
