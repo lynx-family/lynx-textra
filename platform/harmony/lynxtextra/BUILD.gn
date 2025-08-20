@@ -1,0 +1,44 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+import("//config.gni")
+
+shared_library("lynxtextra") {
+  output_name = "lynxtextra"
+  deps = [ "../../../src:textlayout" ]
+  libs = [
+    "libace_napi.z.so",
+    "libace_ndk.z.so",
+    "libnative_drawing.so",
+    "libnative_display_manager.so",
+  ]
+  include_dirs = [
+    "src/main/jni/include",
+    "//third_party/icu/source/common",
+  ]
+  sources = [
+    "src/main/cpp/arkui_base_node.h",
+    "src/main/cpp/arkui_node.h",
+    "src/main/cpp/harmony_run_delegate.h",
+    "src/main/cpp/i_document_view.h",
+    "src/main/cpp/napi_init.cc",
+    "src/main/cpp/native_module.h",
+    "src/main/cpp/native_paragraph.cc",
+    "src/main/cpp/native_paragraph.h",
+    "src/main/cpp/native_text_node.cc",
+    "src/main/cpp/native_text_node.h",
+    "src/main/cpp/tt_text_view.cc",
+    "src/main/cpp/tt_text_view.h",
+  ]
+  ldflags = [
+    "-fuse-ld=lld",
+    "-Xlinker",
+    "-Map=output.map",
+  ]
+
+  #   if (enable_16kb_align &&
+  #       (android_app_abi == "arm64-v8a" || android_app_abi == "x86_64")) {
+  #     ldflags += [ "-Wl,-z,max-page-size=16384" ]
+  #   }
+}

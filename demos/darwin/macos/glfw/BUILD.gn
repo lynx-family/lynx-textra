@@ -1,0 +1,53 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+declare_args() {
+  gl_app_root = rebase_path("../../../..")
+}
+print(gl_app_root)
+executable("gl_app_demo") {
+  output_name = "gl_app_demo"
+
+  cflags_cc = [
+    "-Wno-unused-private-field",
+    "-Wno-unused-variable",
+  ]
+
+  defines = [
+    "SKITY_TEST",
+    "FONT_ROOT=\"$gl_app_root/fonts/\"",
+  ]
+  include_dirs = [
+    "$gl_app_root/demos/darwin/macos/glfw",
+    "$gl_app_root/third_party/skity/third_party/glad/include",
+    "$gl_app_root/third_party/glfw/include",
+    "$gl_app_root/third_party/skity/module/codec/include",
+    "$gl_app_root/",
+    "$gl_app_root/src/ports",
+  ]
+
+  deps = [
+    "$gl_app_root/src:lynxtextra_static",
+    "$gl_app_root/third_party/glfw:glfw",
+  ]
+
+  frameworks = [
+    "AppKit.framework",
+    "CoreText.framework",
+    "OPENGL.framework",
+  ]
+
+  sources = [
+    "$gl_app_root/demos/darwin/macos/glfw/gl_app/gl_app.cc",
+    "$gl_app_root/demos/darwin/macos/glfw/gl_app/gl_app.hpp",
+    "$gl_app_root/demos/darwin/macos/glfw/gl_app_demo_skity.cc",
+    "$gl_app_root/demos/darwin/macos/glfw/gl_app_demo_skity.h",
+    "$gl_app_root/demos/darwin/macos/glfw/skity_adaptor.h",
+    "$gl_app_root/demos/darwin/macos/ttreaderdemo/paragraph_test.cc",
+    "$gl_app_root/demos/darwin/macos/ttreaderdemo/paragraph_test.h",
+    "$gl_app_root/public/textlayout/platform/skity/skity_canvas_helper.h",
+    "$gl_app_root/public/textlayout/platform/skity/skity_font_manager.h",
+    "$gl_app_root/public/textlayout/platform/skity/skity_typeface_helper.h",
+  ]
+}

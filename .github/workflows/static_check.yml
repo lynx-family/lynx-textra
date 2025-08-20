@@ -1,0 +1,55 @@
+name: Lynx Textra Static Check
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**"
+
+jobs:
+  static-check:
+    runs-on: lynx-ubuntu-22.04-medium
+    timeout-minutes: 30
+    steps:
+      - name: Python Setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install Common Dependencies
+        uses: ./.github/actions/common-deps
+        with:
+          target: ci
+      - name: Run file type check
+        run: |
+          source tools/envsetup.sh
+          python3 tools_shared/git_lynx.py check --checkers file-type
+      - name: Run cpplint check
+        run: |
+          source tools/envsetup.sh
+          python3 tools_shared/git_lynx.py check --checkers cpplint
+      - name: Run java-lint check
+        run: |
+          source tools/envsetup.sh
+          python3 tools_shared/git_lynx.py check --checkers java-lint
+      - name: Run commit-message check
+        run: |
+          source tools/envsetup.sh
+          python3 tools_shared/git_lynx.py check --checkers commit-message
+      - name: Run coding-style check
+        run: |
+          source tools/envsetup.sh
+          python3 tools_shared/git_lynx.py check --checkers coding-style
+      - name: Run android-check-style check
+        run: |
+          source tools/envsetup.sh
+          python3 tools_shared/git_lynx.py check --checkers android-check-style

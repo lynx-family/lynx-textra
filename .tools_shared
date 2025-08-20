@@ -1,0 +1,38 @@
+checker-config:
+  file-type-checker:
+    binary-files-allow-list:
+      - "demos/*"
+      - "platform/android/gradle/wrapper/gradle-wrapper.jar"
+
+  coding-style-checker:
+    ignore-suffixes:
+      - "Podfile.yml"
+      - ".d.ts"
+      - ".r.ts"
+      - ".gni"
+    ignore-dirs:
+      - "^third_party/*"
+      - ".github/*"
+      - "src/ports/shaper/minikin/*"
+      - "src/textlayout/icu_substitute/linebreak/*"
+
+  cpplint-checker:
+    ignore-suffixes:
+      - ".gn"
+    ignore-dirs:
+      - ".github/*"
+      - "third_party/*"
+      - "tools/*"
+      - "test/*"
+      - "build/*"
+      - "buildtools/*"
+      - "tools/*"
+      - "tools_shared/*"
+      - "src/textlayout/icu_substitute/linebreak/libunibreak"
+      - "src/textlayout/icu_substitute/bidi/algorithm"
+      - "src/ports/shaper/minikin"
+      - "platform/iOS/LynxTextra"
+      - "platform/harmony/lynxtextra"
+      - "demos/darwin/macos/demo/demo/"
+      - "demos/darwin/ios/"
+      - "demos/android/"

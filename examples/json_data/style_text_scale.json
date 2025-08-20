@@ -1,0 +1,39 @@
+{
+    "paragraphs": [
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "scale=1.0\n",
+                    "style": {
+                        "text_scale": 1.0
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "scale=2.0\n",
+                    "style": {
+                        "text_scale": 2.0
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "scale=3.0",
+                    "style": {
+                        "text_scale": 3.0
+                    }
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 400.0,
+                "height": 100.0,
+                "width_mode": "kAtMost",
+                "height_mode": "kAtMost"
+            }
+        ]
+    }
+}

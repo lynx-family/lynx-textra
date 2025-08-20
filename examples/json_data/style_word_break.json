@@ -1,0 +1,36 @@
+{
+    "paragraphs": [
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "kNormal: supercalifragilisticexpialidocious",
+                    "style": {
+                        "word_break": "kNormal"
+                    }
+                }
+            ]
+        },
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "kBreakAll: supercalifragilisticexpialidocious",
+                    "style": {
+                        "word_break": "kBreakAll"
+                    }
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 520,
+                "height": 1000,
+                "width_mode": "kAtMost",
+                "height_mode": "kAtMost"
+            }
+        ]
+    }
+} 

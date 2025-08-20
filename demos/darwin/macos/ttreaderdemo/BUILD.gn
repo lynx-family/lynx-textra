@@ -1,0 +1,32 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+declare_args() {
+  demo_root = rebase_path("../../../..")
+}
+
+executable("ttreaderdemo") {
+  output_name = "ttreaderdemo"
+  deps = [ "//src/:textlayout" ]
+  lib_dirs = [ "//thirdparty/skia/out/Static" ]
+  defines = [
+    "SKIA_TEST",
+    "FONT_ROOT=\"$demo_root/fonts/\"",
+  ]
+  libs = [
+    "skia",
+    "z",
+  ]
+
+  include_dirs = [
+    "//thirdparty/skia",
+    "//thirdparty/skia/include",
+  ]
+  sources = [
+    "//demos/darwin/macos/ttreaderdemo/TTReaderDemo.cc",
+    "//demos/darwin/macos/ttreaderdemo/TTReaderDemo.h",
+    "//demos/darwin/macos/ttreaderdemo/paragraph_test.cc",
+    "//demos/darwin/macos/ttreaderdemo/paragraph_test.h",
+  ]
+}

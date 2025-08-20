@@ -1,0 +1,153 @@
+set(_ROOT ${TEXTLAYOUT_DIRECTORY})
+add_library(textlayout STATIC
+        # textlayout
+        ${_ROOT}/src/textlayout/attributes.cc
+        ${_ROOT}/src/textlayout/font_info.cc
+        ${_ROOT}/src/textlayout/internal/boundary_analyst.cc
+        ${_ROOT}/src/textlayout/internal/breakable_runs.cc
+        ${_ROOT}/src/textlayout/internal/line_range.cc
+        ${_ROOT}/src/textlayout/internal/run_range.cc
+        ${_ROOT}/src/textlayout/internal/drawer_piece.cc
+        ${_ROOT}/src/textlayout/layout_drawer.cc
+        ${_ROOT}/src/textlayout/layout_measurer.cc
+        ${_ROOT}/src/textlayout/layout_region.cc
+        ${_ROOT}/src/textlayout/paragraph.cc
+        ${_ROOT}/src/textlayout/run/base_run.cc
+        ${_ROOT}/src/textlayout/run/ghost_run.cc
+        ${_ROOT}/src/textlayout/run/object_run.cc
+        ${_ROOT}/src/textlayout/shape_cache.cc
+        ${_ROOT}/src/textlayout/style/indent.cc
+        ${_ROOT}/src/textlayout/style/margin.cc
+        ${_ROOT}/src/textlayout/style/num_pr.cc
+        ${_ROOT}/src/textlayout/style/paragraph_style.cc
+        #        ${_ROOT}/src/textlayout/style/spacing.cc
+        ${_ROOT}/src/textlayout/style/style.cc
+        ${_ROOT}/src/textlayout/style/style_manager.cc
+        #        ${_ROOT}/src/textlayout/style/tab.cc
+        #        ${_ROOT}/src/textlayout/style/tabs.cc
+        ${_ROOT}/src/textlayout/style/text_shadow.cc
+        ${_ROOT}/src/textlayout/style/tt_color.cc
+        ${_ROOT}/src/textlayout/text_layout_impl.cc
+        ${_ROOT}/src/textlayout/text_layout_impl.h
+        ${_ROOT}/src/textlayout/text_layout.cc
+        ${_ROOT}/src/textlayout/text_line.cc
+        ${_ROOT}/src/textlayout/tt_shaper.cc
+        ${_ROOT}/src/textlayout/tttext_context.cc
+        ${_ROOT}/src/textlayout/utils/tt_point.cc
+        ${_ROOT}/src/textlayout/utils/tt_range.cc
+        ${_ROOT}/src/textlayout/utils/tt_rangef.cc
+        ${_ROOT}/src/textlayout/utils/tt_rect.cc
+        ${_ROOT}/src/textlayout/utils/tt_rectf.cc
+        ${_ROOT}/src/textlayout/utils/tt_string.cc
+        ${_ROOT}/src/textlayout/utils/tt_string_piece.cc
+        ${_ROOT}/src/textlayout/utils/u_8_string.cc
+)
+if (MIN_SIZE)
+    target_compile_definitions(textlayout PUBLIC MINSIZE TT_DISABLE_HYPHENATE)
+else ()
+    target_sources(textlayout PRIVATE
+            # hyphenator
+            ${_ROOT}/src/textlayout/hyphenator/hyphen_resource.cc
+            ${_ROOT}/src/textlayout/hyphenator/hyphen_resource.h
+            ${_ROOT}/src/textlayout/hyphenator/hyphen_trie.cc
+            ${_ROOT}/src/textlayout/hyphenator/hyphen_trie.h
+            ${_ROOT}/src/textlayout/hyphenator/hyphen_util.cc
+            ${_ROOT}/src/textlayout/hyphenator/hyphen_util.h
+            ${_ROOT}/src/textlayout/hyphenator/pre_processor.cc
+            ${_ROOT}/src/textlayout/hyphenator/pre_processor.h
+
+            # textlayout
+            ${_ROOT}/src/textlayout/block_region.cc
+            ${_ROOT}/src/textlayout/attachment_manager.cc
+            ${_ROOT}/src/textlayout/layout_memory_statistics.cc
+            #            ${_ROOT}/src/textlayout/layout_region_distribute.cc
+            #            ${_ROOT}/src/textlayout/layout_selections.cc
+            ${_ROOT}/src/textlayout/region_position.cc
+            ${_ROOT}/src/textlayout/run/block_end_run.cc
+            ${_ROOT}/src/textlayout/run/block_start_run.cc
+            ${_ROOT}/src/textlayout/style/block_style.cc
+            ${_ROOT}/src/textlayout/style/border.cc
+    )
+endif ()
+
+target_include_directories(textlayout PUBLIC
+        ${_ROOT}
+        ${_ROOT}/public/textlayout
+)
+target_include_directories(textlayout PRIVATE
+        .
+        ${_ROOT}/src/textlayout/ports
+        ${_ROOT}/src/textlayout/icu_substitute/bidi
+        ${_ROOT}/include/icu
+)
+
+if (USE_ICU)
+    target_sources(textlayout PRIVATE
+            ${_ROOT}/src/textlayout/icu_substitute/bidi/bidi_wrapper.cc)
+    target_compile_definitions(textlayout PRIVATE USE_ICU)
+    if (TTUSE_SHARED_ICU)
+        target_sources(textlayout PRIVATE
+                ${_ROOT}/src/textlayout/utils/icu_wrapper.cc
+        )
+        target_compile_definitions(textlayout PRIVATE
+                ICU_I18N_LIB="libicui18n.so"
+                ICU_UC_LIB="libicuuc.so"
+                ICU_DATA_FOLDER="/system/usr/icu"
+        )
+    else ()
+        target_compile_definitions(textlayout PRIVATE ICU_DATA_FOLDER="${_ROOT}/libs")
+        target_sources(textlayout PRIVATE
+                ${_ROOT}/src/textlayout/utils/icu_wrapper_static.cc
+        )
+        target_link_libraries(textlayout PRIVATE
+                libicui18n.a
+                libicuuc.a
+                libicudata.a
+        )
+    endif ()
+else ()
+    target_sources(textlayout PRIVATE
+            ${_ROOT}/src/textlayout/icu_substitute/bidi/algorithm/bidi.cc
+            ${_ROOT}/src/textlayout/icu_substitute/bidi/algorithm/bidi_brackets.cc
+            ${_ROOT}/src/textlayout/icu_substitute/bidi/algorithm/bidi_line.cc
+            ${_ROOT}/src/textlayout/icu_substitute/bidi/algorithm/bidi_mirror.cc
+            ${_ROOT}/src/textlayout/icu_substitute/bidi/algorithm/bidi_writer.cc
+            ${_ROOT}/src/textlayout/icu_substitute/bidi/algorithm/bidi_character.cc
+            ${_ROOT}/src/textlayout/icu_substitute/bidi/algorithm/u_character.h
+            ${_ROOT}/src/textlayout/icu_substitute/bidi/algorithm/ucharacter_enums.h
+    )
+
+    #    target_compile_definitions(textlayout PRIVATE USE_LIBLINEBREAK)
+    #    target_sources(textlayout PRIVATE
+    #            ${_ROOT}/src/textlayout/icu_substitute/linebreak/libunibreak/src/emojidata.c
+    #            ${_ROOT}/src/textlayout/icu_substitute/linebreak/libunibreak/src/emojidef.c
+    #            ${_ROOT}/src/textlayout/icu_substitute/linebreak/libunibreak/src/graphemebreak.c
+    #            ${_ROOT}/src/textlayout/icu_substitute/linebreak/libunibreak/src/linebreak.c
+    #            ${_ROOT}/src/textlayout/icu_substitute/linebreak/libunibreak/src/linebreakdata.c
+    #            ${_ROOT}/src/textlayout/icu_substitute/linebreak/libunibreak/src/linebreakdef.c
+    #            ${_ROOT}/src/textlayout/icu_substitute/linebreak/libunibreak/src/unibreakbase.c
+    #            ${_ROOT}/src/textlayout/icu_substitute/linebreak/libunibreak/src/unibreakdef.c
+    #            ${_ROOT}/src/textlayout/icu_substitute/linebreak/libunibreak/src/wordbreak.c
+    #            )
+
+endif ()
+
+if (TTSHAPER STREQUAL "skshaper")
+    add_subdirectory(${_ROOT}/thirdparty/externals/harfbuzz harfbuzz.out)
+    target_compile_definitions(textlayout PRIVATE SK_SHAPER_HARFBUZZ_AVAILABLE HAVE_PTHREADS)
+    target_sources(textlayout PRIVATE
+            ${_ROOT}/src/ports/shaper/skshaper/shaper_skshaper.cc
+            ${_ROOT}/src/ports/shaper/skshaper/sk_shaper.cc
+            ${_ROOT}/src/ports/shaper/skshaper/sk_shaper_harfbuzz.cc
+            ${_ROOT}/src/ports/shaper/skshaper/font_collection.cc
+            ${_ROOT}/src/ports/shaper/skshaper/run.cc
+            ${_ROOT}/src/ports/shaper/skshaper/one_line_shaper.cc
+    )
+    target_link_libraries(textlayout PUBLIC harfbuzz)
+elseif (TTSHAPER STREQUAL "minikin")
+    message(FATAL_ERROR "minikin shaper not implement.")
+else ()
+endif ()
+
+target_compile_options(textlayout PRIVATE ${ASAN_COMPILE_OPTION})
+

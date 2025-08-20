@@ -1,0 +1,68 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kLeft",
+                "enable_text_bounds": false,
+                "spacing": {
+                    "line_space_after_px": 10
+                }
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "abc ",
+                },
+                {
+                    "type": "text",
+                    "content": "中文 ",
+                },
+                {
+                    "type": "text",
+                    "content": "xyz ",
+                },
+                {
+                    "type": "text",
+                    "content": "(false)",
+                }
+            ]
+        },
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kLeft",
+                "enable_text_bounds": true,
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "abc ",
+                },
+                {
+                    "type": "text",
+                    "content": "中文 ",
+                },
+                {
+                    "type": "text",
+                    "content": "xyz ",
+                },
+                {
+                    "type": "text",
+                    "content": "(true)",
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 600.0,
+                "height": 200.0,
+                "width_mode": "kAtMost",
+                "height_mode": "kAtMost"
+            }
+        ]
+    },
+    "debug_settings": {
+        "draw_line_rectangle": true
+    }
+} 

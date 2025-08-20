@@ -1,0 +1,39 @@
+{
+    "paragraphs": [
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "18",
+                    "style": {
+                        "text_size": 18,
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": " 32 ",
+                    "style": {
+                        "text_size": 32,
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "46",
+                    "style": {
+                        "text_size": 46,
+                    }
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 400.0,
+                "height": 100.0,
+                "width_mode": "kAtMost",
+                "height_mode": "kAtMost"
+            }
+        ]
+    }
+}

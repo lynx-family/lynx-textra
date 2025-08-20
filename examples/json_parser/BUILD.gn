@@ -1,0 +1,34 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+config("json_parser_public") {
+  include_dirs = [
+    ".",
+    "//ROOT",
+  ]
+}
+
+static_library("json_parser") {
+  output_name = "json_parser"
+  public_configs = [ ":json_parser_public" ]
+  public = [ "json_parser.h" ]
+  sources = [ "json_parser.cc" ]
+  deps = [
+    "//src:lynxtextra_static",
+    "//third_party/rapidjson",
+  ]
+
+  metadata = {
+    exclude_files = [ "//third_party/rapidjson/include/rapidjson/msinttypes/*" ]
+  }
+}
+
+# Support converting BUILD.gn to podspec file
+group("json_parser_podspecs_group") {
+  deps = [ ":json_parser" ]
+}
+
+group("json_parser_subspecs_group") {
+  deps = []
+}

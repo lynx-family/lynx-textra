@@ -1,0 +1,105 @@
+# Copyright 2023 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+#
+
+# This gn script is used to test tools of gn_to_cmake and gn_to_podspec
+
+shared_library("gn_testing_shared") {
+  output_name = "gn_testing"
+  defines = [ "GN_TESTING_DEFINE=1" ]
+  public_deps = [
+    ":gn_testing_source",
+    ":gn_testing_sub_shared",
+  ]
+  cflags = [
+    "-fvisibility=hidden",
+    "-fvisibility-inlines-hidden",
+  ]
+  ldflags = [ "-Wl,--exclude-libs,ALL,--gc-sections" ]
+  libs = [
+    "android",
+    "dl",
+    "jnigraphics",
+    "log",
+  ]
+}
+
+shared_library("gn_testing_sub_shared") {
+  sources = []
+  output_name = "gn_testing_sub"
+}
+
+source_set("GNTesting") {
+  include_dirs = [ "//ROOT" ]
+  cflags = [
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+  ]
+  public_deps = [ ":GNTestingSub" ]
+  metadata = {
+    dependencies = [ "Lynx/Framework" ]
+    header_mappings_dir = [ "gn_testing" ]
+  }
+}
+
+source_set("GNTestingSub") {
+  defines = [ "GN_TESTING_DEFINE=1" ]
+  include_dirs = [ "//tools/gn_tools/testing" ]
+  cflags = [
+    "-Wall",
+    "-Wextra",
+  ]
+  public_deps = [ ":gn_testing_source" ]
+  frameworks = [ "Foundation.framework" ]
+  metadata = {
+    dependencies = [ "Lynx/Native" ]
+  }
+}
+
+source_set("gn_testing_source") {
+  include_dirs = [ "." ]
+  sources = [
+    "gn_testing.cc",
+    "gn_testing.h",
+  ]
+  public = [ "gn_testing.h" ]
+
+  public_deps = [ ":gn_testing_action" ]
+}
+
+source_set("gn_testing_sub_source") {
+  sources = [
+    "gn_testing.cc",
+    "gn_testing.h",
+  ]
+  public = [ "gn_testing.h" ]
+}
+
+source_set("gn_testing_base") {
+  sources = []
+}
+
+group("gn_testing_podspec_group") {
+  public_deps = [ ":GNTesting" ]
+
+  metadata = {
+    global_variables = [
+      "\$variable_a = ENV[\"VALUE_A\"]",
+      "\$variable_b = ENV[\"VALUE_B\"]",
+    ]
+  }
+}
+
+group("gn_testing_subspecs_group") {
+  public_deps = [ ":GNTestingSub" ]
+}
+
+action("gn_testing_action") {
+  script = "//tools/gn_tools/testing/gn_testing_action.py"
+  sources = []
+  outputs = [ "$target_gen_dir/action.txt" ]
+  args = []
+}

@@ -1,0 +1,56 @@
+# Copyright 2025 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+
+declare_args() {
+  skia_root = rebase_path("../../../..")
+}
+print(skia_root)
+executable("skia_app_demo") {
+  output_name = "skia_app_demo"
+
+  cflags_cc = [
+    "-Wno-deprecated-declarations",
+    "-Wno-nonportable-include-path",
+  ]
+
+  defines = [
+    "SK_GL",
+    "SK_GANESH",
+    "SK_RELEASE",
+    "SKIA_TEST",
+    "FONT_ROOT=\"$skia_root/fonts/\"",
+  ]
+  include_dirs = [
+    "$skia_root",
+    "//thirdparty/skia",
+    "//thirdparty/skia/include",
+  ]
+
+  deps = [ "$skia_root/src:textlayout" ]
+
+  lib_dirs = [ "//thirdparty/skia/out/Static" ]
+  libs = [
+    "z",
+    "skia",
+    "window",
+  ]
+
+  frameworks = [
+    "AppKit.framework",
+    "CoreData.framework",
+    "CoreTelephony.framework",
+    "GLUT.framework",
+    "OPENGL.framework",
+  ]
+
+  sources = [
+    "$skia_root/demos/darwin/macos/skia_app_demo/SkiaAppDemo.cpp",
+    "$skia_root/demos/darwin/macos/ttreaderdemo/paragraph_test.cc",
+    "//thirdparty/skia/tools/sk_app/Window.cpp",
+    "//thirdparty/skia/tools/sk_app/Window.h",
+    "//thirdparty/skia/tools/sk_app/mac/Window_mac.h",
+    "//thirdparty/skia/tools/sk_app/mac/Window_mac.mm",
+    "//thirdparty/skia/tools/sk_app/mac/main_mac.mm",
+  ]
+}

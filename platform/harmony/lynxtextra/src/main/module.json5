@@ -1,0 +1,11 @@
+{
+  "module": {
+    "name": "lynxtextra",
+    "type": "har",
+    "deviceTypes": [
+      "default",
+      "tablet",
+      "2in1"
+    ]
+  }
+}

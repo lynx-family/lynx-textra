@@ -1,0 +1,41 @@
+{
+    "paragraphs": [
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "normal spacing",
+                    "style": {
+                        "word_spacing": 0,
+                        "letter_spacing": 0
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "\n"
+                },
+                // Note: word spacing is not supported yet
+                // {
+                //     "type": "text",
+                //     "content": "wide word spacing",
+                //     "style": {
+                //         "word_spacing": 20,
+                //         "letter_spacing": 0
+                //     }
+                // },
+                // {
+                //     "type": "text",
+                //     "content": "\n"
+                // },
+                {
+                    "type": "text",
+                    "content": "wide letter spacing",
+                    "style": {
+                        "word_spacing": 0,
+                        "letter_spacing": 5
+                    }
+                }
+            ]
+        }
+    ]
+}

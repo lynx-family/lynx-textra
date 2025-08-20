@@ -1,0 +1,26 @@
+{
+    "paragraphs": [
+        {
+            "paragraph_style": {
+                "horizontal_alignment": "kLeft"
+            },
+            "layout_configuration": {
+                "last_line_can_overflow": true
+            },
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "last_line_can_overflow = true means a paragraph can be partially shown on the last line of a page"
+                }
+            ]
+        }
+    ],
+    "layout_region": {
+        "regions": [
+            {
+                "width": 600.0,
+                "height": 115.0
+            }
+        ]
+    }
+}

@@ -1,0 +1,133 @@
+name: Lynx Textra CI Test
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/**"
+      - "public/**"
+      - "src/**"
+      - "demos/**"
+      - "test/**"
+      - "examples/**"
+      - "BUILD.gn"
+
+jobs:
+  macos-build-check:
+    runs-on: lynx-darwin-14-medium
+    timeout-minutes: 30
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install Common Dependencies
+        uses: ./.github/actions/common-deps
+      - name: Run MacOS Debug build check
+        run: |
+          source tools/envsetup.sh
+          gn gen out/macos_debug --args='is_debug=true use_flutter_cxx=false'
+          ninja -C out/macos_debug lynxtextra_static
+      - name: Run MacOS Release build check
+        run: |
+          source tools/envsetup.sh
+          gn gen out/macos_release --args='is_debug=false use_flutter_cxx=false'
+          ninja -C out/macos_release lynxtextra_static
+
+  macos-example-build-check:
+    runs-on: lynx-darwin-14-medium
+    timeout-minutes: 30
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install Common Dependencies
+        uses: ./.github/actions/common-deps
+      - name: Run macOS build check
+        run: |
+          source tools/envsetup.sh
+          buildtools/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Release -DSKITY_MTL_BACKEND=ON -G Ninja -S . -B cmake-build-release
+          buildtools/cmake/bin/cmake --build cmake-build-release -t mtl_app_demo
+
+  macos-unittest-check:
+    runs-on: lynx-darwin-14-medium
+    timeout-minutes: 30
+    steps:
+      - name: Install Git LFS
+        run: |
+          brew install git-lfs
+          git lfs install --skip-repo
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          lfs: true
+          fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install Common Dependencies
+        uses: ./.github/actions/common-deps
+      - name: Run macOS build check
+        run: |
+          source tools/envsetup.sh
+          buildtools/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Release -DSKITY_MTL_BACKEND=OFF -G Ninja -S . -B cmake-build-test
+          buildtools/cmake/bin/cmake --build cmake-build-test -t TextLayoutLiteTest
+      - name: Run Unittests
+        run: |
+          mkdir golden_check
+          pushd golden_check
+          ../cmake-build-test/test/TextLayoutLiteTest
+          popd
+      - name: Run e2e check
+        continue-on-error: true
+        run: |
+          source tools/envsetup.sh
+          which python3
+          python3 test/compare_images.py --actual-dir=golden_check --golden-dir=test/golden_images
+
+  android-example-build-check:
+    runs-on: lynx-ubuntu-22.04-large
+    timeout-minutes: 60
+    steps:
+      - name: Python Setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+      - name: Install Common Dependencies
+        uses: ./.github/actions/common-deps
+      - name: Build Example App
+        run: |
+          source tools/envsetup.sh
+          pushd demos/android
+          ./gradlew :app:assembleRelease
+          popd
+
+  ios-example-build-check:
+    runs-on: lynx-darwin-14-medium
+    timeout-minutes: 30
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install Common Dependencies
+        uses: ./.github/actions/common-deps
+      - name: Run iOS build check
+        run: |
+          set -e
+          source tools/envsetup.sh
+          export COCOAPODS_CONVERT_GIT_TO_HTTP=false
+          export LANG=en_US.UTF-8
+          export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          python3 tools/ios_tools/generate_ios_podspec_by_gn.py --target LynxTextra json_parser
+          pushd demos/darwin/ios/TextlayoutDemo
+          arch -x86_64 bundle install
+          arch -x86_64 bundle exec pod install
+          xcodebuild -workspace TextlayoutDemo.xcworkspace -scheme LynxTextraDemo -configuration Release -arch arm64 -sdk iphoneos SYMROOT=$(pwd)/build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+          xcodebuild -workspace TextlayoutDemo.xcworkspace -scheme TextlayoutDemo -configuration Release -arch arm64 -sdk iphoneos SYMROOT=$(pwd)/build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO

@@ -1,0 +1,13 @@
+# Font files used by demo app and unit test
+fonts/Noto_Sans_CJK/NotoSansCJK-Regular.ttc filter=lfs diff=lfs merge=lfs -text
+fonts/Noto_Color_Emoji/NotoColorEmoji-Regular.ttf filter=lfs diff=lfs merge=lfs -text
+fonts/Inter/Inter-VariableFont_opsz,wght.ttf filter=lfs diff=lfs merge=lfs -text
+fonts/JetBrains_Mono/JetBrainsMono-VariableFont_wght.ttf filter=lfs diff=lfs merge=lfs -text
+fonts/Noto_Kufi_Arabic/NotoKufiArabic-VariableFont_wght.ttf filter=lfs diff=lfs merge=lfs -text
+fonts/Noto_Nastaliq_Urdu/NotoNastaliqUrdu-VariableFont_wght.ttf filter=lfs diff=lfs merge=lfs -text
+fonts/Noto_Sans_Hebrew/NotoSansHebrew-VariableFont_wdth,wght.ttf filter=lfs diff=lfs merge=lfs -text
+fonts/Noto_Sans_Thai/NotoSansThai-VariableFont_wdth,wght.ttf filter=lfs diff=lfs merge=lfs -text
+fonts/Noto_Sans_SC/NotoSansSC-VariableFont_wght.ttf filter=lfs diff=lfs merge=lfs -text
+# Image-based unit test golden images
+test/golden_images/*.png filter=lfs diff=lfs merge=lfs -text
+examples/demo_images/*.png filter=lfs diff=lfs merge=lfs -text

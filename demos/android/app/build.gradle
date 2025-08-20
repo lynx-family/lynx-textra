@@ -1,0 +1,95 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.lynx.textra.demo'
+    signingConfigs {
+        release {
+            storeFile file('pass.keystore')
+            storePassword '123456'
+            keyPassword '123456'
+            keyAlias = 'key0'
+
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
+    }
+
+    defaultConfig {
+        applicationId "com.lynx.textra.demo"
+        minSdkVersion rootProject.ext.minSdkVersion
+        compileSdk rootProject.ext.compileSdkVersion
+        ndkVersion rootProject.ext.ndkVersion
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++17 -DLOCAL_ARM_NEON=TRUE -Wl,-ldl -Wno-unused-command-line-argument"
+                arguments "-DANDROID_TOOLCHAIN=clang"
+                abiFilters = rootProject.ext.abiList
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            externalNativeBuild {
+                cmake {
+                    cppFlags "-DDEBUG=1"
+                    arguments '-DBUILD_TYPE=debug', '-DANDROID_STL=' + getCppLib()
+                }
+            }
+            minifyEnabled false
+            jniDebuggable true
+            debuggable true
+        }
+        release {
+            externalNativeBuild {
+                cmake {
+                    cppFlags "-DPERFLOG=0"
+                    arguments '-DBUILD_TYPE=release', '-DANDROID_STL=' + getCppLib()
+                }
+            }
+            signingConfig signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "src/main/jni/CMakeLists.txt"
+            version CMAKE_VERSION
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['jni']
+            assets.srcDirs = ['src/main/assets']
+        }
+    }
+    buildFeatures {
+        prefab true
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'com.google.android.material:material:1.2.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    implementation project(path: ':lynxtextra')
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    testImplementation 'junit:junit:4.12'
+}
+
+tasks.configureEach { task ->
+    if (task.name == 'generateJsonModelDebug') {
+        task.dependsOn(':lynxtextra:prefabDebugPackage')
+    } else if (task.name == 'generateJsonModelRelease') {
+        task.dependsOn(':lynxtextra:prefabReleasePackage')
+    }
+}

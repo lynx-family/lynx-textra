@@ -1,0 +1,30 @@
+{
+    "paragraphs": [
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "normal\n",
+                    "style": {
+                        "bold": false,
+                        "italic": false
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "bold\n",
+                    "style": {
+                        "bold": true
+                    }
+                },
+                {
+                    "type": "text",
+                    "content": "italic",
+                    "style": {
+                        "italic": true
+                    }
+                }
+            ]
+        }
+    ]
+}

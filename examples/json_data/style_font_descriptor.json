@@ -1,0 +1,49 @@
+{
+    "paragraphs": [
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "ABC 123 (sans-serif)",
+                    "style": {
+                        "font_descriptor": {
+                            "font_family_list": [
+                                "sans-serif"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "ABC 123 (Inter)",
+                    "style": {
+                        "font_descriptor": {
+                            "font_family_list": [
+                                "Inter"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "runs": [
+                {
+                    "type": "text",
+                    "content": "ABC 123 (Menlo)",
+                    "style": {
+                        "font_descriptor": {
+                            "font_family_list": [
+                                "Menlo"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

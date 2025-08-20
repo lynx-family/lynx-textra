@@ -1,0 +1,62 @@
+import os
+import platform
+
+system = platform.system().lower()
+machine = platform.machine().lower()
+machine = "x86_64" if machine == "amd64" else machine
+
+root_dir = os.getcwd()
+
+deps = {
+    '../tools_shared': {
+        "type": "solution",
+        "url": "https://github.com/lynx-family/tools-shared.git",
+        "commit": "18c1fbff9e74d90567dad87ae422be27d31be278",
+        'deps_file': 'dependencies/DEPS',
+        "ignore_in_git": True,
+    },
+    '../buildtools/gn': {
+        "type": "http",
+        "url": f"https://github.com/lynx-family/buildtools/releases/download/gn-cc28efe6/buildtools-gn-{system}-{machine}.tar.gz",
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows']
+    },
+    '../buildtools/llvm': {
+        "type": "http",
+        'url': f"https://github.com/lynx-family/buildtools/releases/download/llvm-020d2fb7/buildtools-llvm-{system}-{machine}.tar.gz",
+        "ignore_in_git": True,
+        "decompress": True,
+        "condition": system in ['linux', 'darwin'],
+    },
+    '../buildtools/ninja': {
+        "type": "http",
+        "url": {
+            "linux": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip",
+            "darwin": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-mac.zip",
+            "windows": "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip"
+        }.get(system, None),
+        "sha256": {
+            "linux": "b901ba96e486dce377f9a070ed4ef3f79deb45f4ffe2938f8e7ddc69cfb3df77",
+            "darwin": "482ecb23c59ae3d4f158029112de172dd96bb0e97549c4b1ca32d8fad11f873e",
+            "windows": "524b344a1a9a55005eaf868d991e090ab8ce07fa109f1820d40e74642e289abc"
+        }.get(system, None),
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows']
+    },
+    '../buildtools/cmake': {
+        "type": "http",
+        "url": {
+            "linux": f"https://cmake.org/files/v3.18/cmake-3.18.1-Linux-x86_64.tar.gz",
+            "darwin": f"https://dl.google.com/android/repository/ba34c321f92f6e6fd696c8354c262c122f56abf8.cmake-3.18.1-darwin.zip",
+            "windows": f"https://cmake.org/files/v3.18/cmake-3.18.1-win64-x64.zip"
+        }.get(system, None),
+        "sha256": {
+            "linux": "537de8ad3a7fb4ec9b8517870db255802ad211aec00002c651e178848f7a769e",
+            "darwin": "b15d6d7ab5615a48bb14962f5a931be6cd9a0c187f4bd6be404bdd46a7bef60b",
+            "windows": "2c6c06da43c1088fc3a673e4440c8ebb1531bb6511134892c0589aa0b94f11ad"
+        }.get(system, None),
+        "ignore_in_git": True,
+        "condition": system in ['linux', 'darwin', 'windows']
+    },
+
+}

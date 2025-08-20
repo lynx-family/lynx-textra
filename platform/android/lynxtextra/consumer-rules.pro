@@ -1,0 +1,2 @@
+-keep class com.lynx.textra.**{*;}
+-keep class com.lynx.textra.TTTextDefinition$*{*;}

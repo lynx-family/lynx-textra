@@ -1,0 +1,25 @@
+source_set("libunibreak") {
+  sources = [
+    "src/emojidata.c",
+    "src/emojidef.c",
+    "src/emojidef.h",
+    "src/graphemebreak.c",
+    "src/graphemebreak.h",
+    "src/graphemebreakdata.c",
+    "src/graphemebreakdef.h",
+    "src/linebreak.c",
+    "src/linebreak.h",
+    "src/linebreakdata.c",
+    "src/linebreakdef.c",
+    "src/linebreakdef.h",
+    "src/unibreakbase.c",
+    "src/unibreakbase.h",
+    "src/unibreakdef.c",
+    "src/unibreakdef.h",
+    "src/wordbreak.c",
+    "src/wordbreak.h",
+    "src/wordbreakdata.c",
+    "src/wordbreakdef.h",
+  ]
+  cflags_c = [ "-Wno-unused-const-variable" ]
+}

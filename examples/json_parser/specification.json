@@ -1,0 +1,297 @@
+// Copyright 2025 The Lynx Authors. All rights reserved.
+//
+// This specification defines the JSON format for generating TTText C++ objects.
+// Each field in the JSON structure is documented with its type, allowed values,
+// and default values where applicable.
+//
+// Implementation details can be found in ./json_parser.cc
+//
+// Example json file that satisfies the specification:
+// {
+//     "paragraphs": [
+//         {
+//             "paragraph_style": {
+//                 "horizontal_alignment": "kRight"
+//             },
+//             "runs": [
+//                 {
+//                     "type": "text",
+//                     "content": "Hello, world!",
+//                     "style": {
+//                         "text_size": 24
+//                     }
+//                 }
+//             ]
+//         }
+//     ],
+//     "layout_region": {
+//         "regions": [
+//             {
+//                 "width": 100.0,
+//                 "height": 100.0
+//             }
+//         ]
+//     }
+// }
+//
+// Complete specification:
+{
+    // paragraphs
+    // [Array] A list of paragraphs
+    // [Required]
+    "paragraphs": [
+        {
+            // paragraph_style
+            // [Object] 
+            // [Optional] Default: see default value for each field
+            "paragraph_style": {
+                // horizontal_alignment
+                // [String] Allowed values: ["kLeft", "kCenter", "kRight", "kJustify", "kDistributed"]
+                // [Optional] Default: "kLeft"
+                "horizontal_alignment": "kLeft",
+                // vertical_alignment
+                // [String] Allowed values: ["kTop", "kCenter", "kBottom"]
+                // [Optional] Default: "kTop"
+                "vertical_alignment": "kTop",
+                // default_style
+                // [Object] Style object defining default character formatting
+                // [Optional] Default: empty object
+                "default_style": {},
+                // indent
+                // [Object] Defines paragraph indentation properties
+                // [Optional] Default: see default value for each field
+                "indent": {
+                    "start": 0.0, // [Number]  Default: 0.0
+                    "start_chars": 0, // [Integer] Default: 0
+                    "end": 0.0, // [Number]  Default: 0.0
+                    "end_chars": 0, // [Integer] Default: 0
+                    "first_line": 0.0, // [Number]  Default: 0.0
+                    "first_line_chars": 0, // [Integer] Default: 0
+                    "hanging": 0.0, // [Number]  Default: 0.0
+                    "hanging_chars": 0 // [Integer] Default: 0
+                },
+                // spacing
+                // [Object] Defines paragraph spacing properties
+                // [Optional] Default: see default value for each field
+                "spacing": {
+                    "after_auto_spacing": false, // [Boolean] Default: false (not supported)
+                    "before_auto_spacing": false, // [Boolean] Default: false (not supported)
+                    "after_px": 0.0, // [Number] Default: 0.0
+                    "before_px": 0.0, // [Number] Default: 0.0
+                    "after_line_percent": 0.0, // [Number] Default: 0.0
+                    "before_line_percent": 0.0, // [Number] Default: 0.0
+                    "line_px": 0.0, // [Number] Default: 0.0
+                    "line_percent": 1.0, // [Number] Default: 1.0
+                    "line_rule": "kAuto", // [String] Allowed values: ["kAtLeast", "kAuto", "kExact"] Default: "kAuto"
+                    "line_space_before_px": 0.0, // [Number] Default: 0.0
+                    "line_space_after_px": 0.0 // [Number] Default: 0.0
+                },
+                // write_direction
+                // [String] Allowed values: ["kAuto", "kLTR", "kRTL", "kTTB", "kBTT"]
+                // [Optional] Default: "kAuto"
+                "write_direction": "kAuto",
+                // ellipsis
+                // [String] Text to show when content is truncated
+                // [Optional] Default: "..."
+                "ellipsis": "...",
+                // max_lines
+                // [Integer] Maximum number of lines to display
+                // [Optional] Default: 0 (unlimited)
+                "max_lines": 0,
+                // line_height_override
+                // [Boolean] Whether to override line height
+                // [Optional] Default: false
+                "line_height_override": false,
+                // half_leading
+                // [Boolean] Whether to add line height difference to ascent only
+                // [Optional] Default: false
+                "half_leading": false,
+                // enable_text_bounds
+                // [Boolean] Whether to align text with actual glyph bounding boxes
+                // [Optional] Default: false
+                "enable_text_bounds": false,
+                // overflow_wrap
+                // [String] Allowed values: ["kAnywhere", "kBreakWord", "kBreakAll"]
+                // [Optional] Default: "kAnywhere"
+                "overflow_wrap": "kAnywhere",
+                // allow_break_around_punctuation
+                // [Boolean] Whether to allow line breaks around punctuation marks
+                // [Optional] Default: false
+                "allow_break_around_punctuation": false
+            },
+            // Currently, layout_configuration is placed in paragraph, and it can be considered to support configuration in layout_region in the future
+            "layout_configuration": {
+                // last_line_can_overflow
+                // [Boolean] Whether to allow the last line to overflow the page height (last line can be partially shown)
+                // [Optional] Default: true
+                "last_line_can_overflow": true,
+                // skip_spacing_before_first_line
+                // [Boolean] Whether to skip spacing before the first line
+                // [Optional] Default: false
+            },
+            "runs": [
+                {
+                    // Type of run
+                    // [String] Allowed values: ["text"] // It can be considered to support other types in the future
+                    // [Required]
+                    "type": "text",
+                    // Text content
+                    // [String] Text content
+                    // [Required]
+                    "content": "Hello, world!",
+                    // style
+                    // [Object] 
+                    // [Optional] Default: see default value for each field
+                    "style": {
+                        // font_descriptor
+                        // [Object] Font descriptor containing font family, style and platform font
+                        // [Optional] Default: empty object
+                        "font_descriptor": {
+                            // List of font families
+                            // [Array] (Not supported yet)
+                            // [Optional] Default: empty array
+                            "font_family_list": [],
+                            // Font style settings
+                            // [Object] Font style properties
+                            // [Optional] Default: see default value for each field
+                            "font_style": {
+                                // Font weight
+                                // [String] Allowed values: ["kInvisible", "kThin", "kExtraLight", "kLight", "kNormal", "kMedium", "kSemiBold", "kBold", "kExtraBold", "kBlack", "kExtraBlack"]
+                                // [Optional] Default: "kNormal"
+                                "weight": "kNormal",
+                                // Font width
+                                // [String] Allowed values: ["kUltraCondensed", "kExtraCondensed", "kCondensed", "kSemiCondensed", "kNormal", "kSemiExpanded", "kExpanded", "kExtraExpanded", "kUltraExpanded"]
+                                // [Optional] Default: "kNormal"
+                                "width": "kNormal",
+                                // Font slant
+                                // [String] Allowed values: ["kUpright", "kItalic", "kOblique"]
+                                // [Optional] Default: "kUpright"
+                                "slant": "kUpright"
+                            }
+                        },
+                        // Font size in pixels
+                        // [Number] Font size in pixels
+                        // [Optional] Default: 30.0
+                        "text_size": 30.0,
+                        // text_scale
+                        // [Number] Text scaling factor
+                        // [Optional] Default: 1.0
+                        "text_scale": 1.0,
+                        // foreground_color
+                        // [String] Text color in 8-digit hex format (#ARGB)
+                        // [Optional] Default: "#FF000000" (TTColor::BLACK())
+                        "foreground_color": "#FF000000",
+                        // background_color
+                        // [String|null] Background color in 8-digit hex format (#ARGB)
+                        // [Optional] Default: null (TTColor::UNDEFINED())
+                        "background_color": null,
+                        // decoration_color
+                        // [String|null] Decoration color in 8-digit hex format (#ARGB)
+                        // [Optional] Default: null (TTColor{})
+                        "decoration_color": null,
+                        // decoration_type
+                        // [String] Allowed values: ["kNone", "kUnderLine", "kOverline", "kLineThrough"]
+                        // [Optional] Default: "kNone"
+                        "decoration_type": "kNone",
+                        // decoration_style
+                        // [String] Allowed values: ["kNone", "kHidden", "kSolid", "kDotted", "kDashed", "kDouble", "kInset", "kOutset", "kGroove", "kRidge", "kWavy"]
+                        // [Optional] Default: "kSolid"
+                        "decoration_style": "kSolid",
+                        // decoration_thickness_multiplier
+                        // [Number] Multiplier for decoration line thickness
+                        // [Optional] Default: 1.0
+                        "decoration_thickness_multiplier": 1.0,
+                        // bold
+                        // [Boolean] Whether text is bold
+                        // [Optional] Default: false
+                        "bold": false,
+                        // italic
+                        // [Boolean] Whether text is italic
+                        // [Optional] Default: false
+                        "italic": false,
+                        // vertical_alignment
+                        // [String] Allowed values: ["kTop", "kSuperScript", "kMiddle", "kBaseLine", "kSubScript", "kBottom"]
+                        // [Optional] Default: "kBaseLine"
+                        "vertical_alignment": "kBaseLine",
+                        // word_spacing
+                        // [Number] Space between words in pixels
+                        // [Optional] Default: 0.0
+                        "word_spacing": 0.0,
+                        // letter_spacing
+                        // [Number] Space between letters in pixels
+                        // [Optional] Default: 0.0
+                        "letter_spacing": 0.0,
+                        // foreground_painter (Not supported yet)
+                        "foreground_painter": null,
+                        // background_painter (Not supported yet)
+                        "background_painter": null,
+                        // word_break
+                        // [String] Allowed values: ["kNormal", "kBreakAll", "kKeepAll"]
+                        // [Optional] Default: "kNormal"
+                        "word_break": "kNormal",
+                        // Baseline offset
+                        // [Number] Baseline offset in pixels
+                        // [Optional] Default: 0.0
+                        "baseline_offset": 0.0,
+                        // text_shadow_list
+                        // [Array] List of text shadow effects
+                        // [Optional] Default: empty array
+                        "text_shadow_list": [
+                            {
+                                // Shadow color in 8-digit hex format (#ARGB)
+                                // [String] Shadow color
+                                // [Required]
+                                "color": "#80000000",
+                                // Shadow offset in pixels
+                                // [Array of 2 floats] [x_offset, y_offset]
+                                // [Optional] Default: [0.0, 0.0]
+                                "offset": [0.0, 0.0],
+                                // Shadow blur radius
+                                // [Number] Blur radius in pixels
+                                // [Required] Default: 0.0
+                                "blur_radius": 0.0
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            // Paragraph 2 ...
+        }
+    ],
+    // layout_region
+    // [Object] 
+    // [Optional] Default: use default layout region defined in json_parser.cc
+    "layout_region": {
+        // regions
+        // [Array] A list of layout regions (Note: Currently only one region is supported)
+        // [Required]
+        "regions": [
+            {
+                // width
+                // [Number] 
+                // [Required]
+                "width": 100.0,
+                // height
+                // [Number] 
+                // [Required]
+                "height": 100.0,
+                // width_mode
+                // [String] Allowed values: ["kIndefinite", "kDefinite", "kAtMost"]
+                // [Optional] Default: "kDefinite"
+                "width_mode": "kDefinite",
+                // height_mode
+                // [String] Allowed values: ["kIndefinite", "kDefinite", "kAtMost"]
+                // [Optional] Default: "kDefinite"
+                "height_mode": "kDefinite"
+            }
+        ]
+    },
+    "debug_settings": {
+        // Whether to draw line rectangles
+        // [Boolean] Whether to draw line rectangles
+        // [Optional] Default: false
+        "draw_line_rectangle": false
+    }
+}
