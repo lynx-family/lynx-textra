@@ -154,10 +154,11 @@ Pod::Spec.new do |s|
                                 "src/textlayout/utils/value_utils.h"
 
     sp.pod_target_xcconfig    = {
-                                  "GCC_PREPROCESSOR_DEFINITIONS" => "TTTEXT_OS_IOS",
+                                  "GCC_PREPROCESSOR_DEFINITIONS" => "ENABLE_CTSHAPER TTTEXT_OS_IOS",
                                   "HEADER_SEARCH_PATHS" => "\"${PODS_TARGET_SRCROOT}/\" \
                                                         \"${PODS_TARGET_SRCROOT}/public/\" \
-                                                        \"${PODS_TARGET_SRCROOT}/src/\"",
+                                                        \"${PODS_TARGET_SRCROOT}/src/\" \
+                                                        \"${PODS_TARGET_SRCROOT}/src/ports/shaper/coretext/\"",
                                   "CLANG_CXX_LANGUAGE_STANDARD" => "c++17"
                                 }
 

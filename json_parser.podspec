@@ -66,11 +66,11 @@ Pod::Spec.new do |s|
     sp.exclude_files          = "third_party/rapidjson/include/rapidjson/msinttypes/*"
 
     sp.pod_target_xcconfig    = {
-                                  "GCC_PREPROCESSOR_DEFINITIONS" => "RAPIDJSON_HAS_CXX11_RANGE_FOR \
-                                                                 RAPIDJSON_HAS_STDSTRING \
-                                                                 RAPIDJSON_HAS_CXX11_TYPETRAITS \
+                                  "GCC_PREPROCESSOR_DEFINITIONS" => "RAPIDJSON_HAS_STDSTRING \
+                                                                 RAPIDJSON_HAS_CXX11_RVALUE_REFS \
                                                                  RAPIDJSON_HAS_CXX11_NOEXCEPT \
-                                                                 RAPIDJSON_HAS_CXX11_RVALUE_REFS",
+                                                                 RAPIDJSON_HAS_CXX11_TYPETRAITS \
+                                                                 RAPIDJSON_HAS_CXX11_RANGE_FOR",
                                   "HEADER_SEARCH_PATHS" => "\"${PODS_TARGET_SRCROOT}/\" \
                                                         \"${PODS_TARGET_SRCROOT}/examples/json_parser/\" \
                                                         \"${PODS_TARGET_SRCROOT}/public/\" \

@@ -35,7 +35,7 @@ class SkityFontManagerCoreText : public SkityFontManager {
             typeface);
     CTFontRef ct_font = skity::TypefaceCT::CTFontFromTypeface(
         skity_typeface_helper->GetTypeface());
-    return reinterpret_cast<void*>(ct_font);
+    return (void*)(ct_font);  // NOLINT
   }
 
  private:

@@ -236,7 +236,7 @@ source_set("textlayout") {
   }
 
   if (enable_ctshaper) {
-    configs += [ ":ctshaper_public" ]
+    public_configs += [ ":ctshaper_public" ]
     include_dirs += [
       "//ROOT",
       "$prj_root/src/ports/platform/ios/",
