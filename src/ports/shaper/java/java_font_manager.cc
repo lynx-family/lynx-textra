@@ -6,6 +6,8 @@
 #include <textra/platform/java/java_typeface.h>
 #include <textra/platform/java/tttext_jni_proxy.h>
 
+#include "src/ports/shaper/java/java_utils.h"
+
 namespace ttoffice {
 namespace tttext {
 JavaFontManager::JavaFontManager() {
@@ -14,6 +16,9 @@ JavaFontManager::JavaFontManager() {
   auto inst = env->NewObject(
       static_cast<jclass>(proxy.JavaFontManager_class_->get()),
       proxy.JavaFontManager_method_init_, reinterpret_cast<uint64_t>(this));
+  if (ClearException(env)) {
+    return;
+  }
   java_instance_ = std::make_unique<ScopedGlobalRef>(env, inst);
   BindJavaHandler();
   env->DeleteLocalRef(inst);

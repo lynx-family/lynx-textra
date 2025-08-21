@@ -11,6 +11,7 @@
 #include <memory>
 
 #include "src/ports/shaper/java/java_shaper_result.h"
+#include "src/ports/shaper/java/java_utils.h"
 #include "src/textlayout/run/base_run.h"
 #include "src/textlayout/style/style_manager.h"
 
@@ -27,6 +28,9 @@ JavaShaper::JavaShaper(const FontmgrCollection& font_collection)
   auto inst =
       env->NewObject(reinterpret_cast<jclass>(proxy.JavaShaper_class_->get()),
                      proxy.JavaShaper_method_init_, font_mgr->GetInstance());
+  if (ClearException(env)) {
+    return;
+  }
   java_instance_ = std::make_unique<ScopedGlobalRef>(env, inst);
 }
 void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
@@ -68,6 +72,7 @@ void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
   reader.text_count_ = char_count;
   if (info_list == nullptr) {
     // maybe encounter java exception
+    ClearException(env);
     std::vector<float> advances(glyph_count, 0);
     reader.advances_.insert(reader.advances_.begin(), advances.begin(),
                             advances.end());

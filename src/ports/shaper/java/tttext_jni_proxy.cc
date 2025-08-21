@@ -7,6 +7,7 @@
 #include <textra/platform/java/java_typeface.h>
 #include <textra/platform/java/tttext_jni_proxy.h>
 
+#include "src/ports/shaper/java/java_utils.h"
 #include "utils/u_8_string.h"
 
 namespace ttoffice {
@@ -58,47 +59,49 @@ JNIEnv* TTTextJNIProxy::GetCurrentJNIEnv() {
 }
 void TTTextJNIProxy::InitialJNI(JNIEnv* env) {
   env->GetJavaVM(&java_vm_);
-  auto clzz_java_shape_result = env->FindClass(CLASS_JAVA_SHAPERESULT);
+  auto clzz_java_shape_result = GetClass(env, CLASS_JAVA_SHAPERESULT);
   JavaShapeResult_field_glyph_count_ =
-      env->GetFieldID(clzz_java_shape_result, "glyph_count_", "I");
+      GetField(env, clzz_java_shape_result, "glyph_count_", "I");
   JavaShapeResult_field_glyphs_ =
-      env->GetFieldID(clzz_java_shape_result, "glyphs_", "[S");
+      GetField(env, clzz_java_shape_result, "glyphs_", "[S");
   JavaShapeResult_field_advances_ =
-      env->GetFieldID(clzz_java_shape_result, "advance_", "[F");
+      GetField(env, clzz_java_shape_result, "advance_", "[F");
   JavaShapeResult_field_position_x_ =
-      env->GetFieldID(clzz_java_shape_result, "position_x_", "[F");
+      GetField(env, clzz_java_shape_result, "position_x_", "[F");
   JavaShapeResult_field_position_y_ =
-      env->GetFieldID(clzz_java_shape_result, "position_y_", "[F");
+      GetField(env, clzz_java_shape_result, "position_y_", "[F");
   JavaShapeResult_field_typeface_instance_ =
-      env->GetFieldID(clzz_java_shape_result, "typeface_instance_", "[J");
+      GetField(env, clzz_java_shape_result, "typeface_instance_", "[J");
   env->DeleteLocalRef(clzz_java_shape_result);
-  auto clzz_java_shaper = env->FindClass(CLASS_JAVA_SHAPER);
+  auto clzz_java_shaper = GetClass(env, CLASS_JAVA_SHAPER);
   JavaShaper_class_ = std::make_unique<ScopedGlobalRef>(env, clzz_java_shaper);
-  JavaShaper_method_init_ = env->GetMethodID(
-      clzz_java_shaper, "<init>", "(Lcom/lynx/textra/JavaFontManager;)V");
-  JavaShaper_method_OnShapeText_ = env->GetMethodID(
-      clzz_java_shaper, "OnShapeText",
+  JavaShaper_method_init_ =
+      GetMethod(env, clzz_java_shaper, MethodType::INSTANCE_METHOD, "<init>",
+                "(Lcom/lynx/textra/JavaFontManager;)V");
+  JavaShaper_method_OnShapeText_ = GetMethod(
+      env, clzz_java_shaper, MethodType::INSTANCE_METHOD, "OnShapeText",
       "(Ljava/lang/String;Lcom/lynx/textra/JavaTypeface;FZZ)[F");
-  JavaShaper_method_OnShapeTextNew_ = env->GetMethodID(
-      clzz_java_shaper, "OnShapeTextNew",
+  JavaShaper_method_OnShapeTextNew_ = GetMethod(
+      env, clzz_java_shaper, MethodType::INSTANCE_METHOD, "OnShapeTextNew",
       "(Ljava/lang/String;Lcom/lynx/textra/JavaTypeface;FZZ)Lcom/"
       "lynx/textra/JavaShapeResult;");
   env->DeleteLocalRef(clzz_java_shaper);
-  auto clzz_font_manager = env->FindClass(CLASS_JAVA_FONTMANAGER);
+  auto clzz_font_manager = GetClass(env, CLASS_JAVA_FONTMANAGER);
   JavaFontManager_class_ =
       std::make_unique<ScopedGlobalRef>(env, clzz_font_manager);
   JavaFontManager_method_init_ =
-      env->GetMethodID(clzz_font_manager, "<init>", "(J)V");
-  JavaFontManager_method_onMatchFamilyStyle_ = env->GetMethodID(
-      clzz_font_manager, "onMatchFamilyStyle", "(Ljava/lang/String;IZJ)J");
-  JavaFontManager_method_onMatchTypefaceIndex_ =
-      env->GetMethodID(clzz_font_manager, "onMatchTypefaceIndex", "(J)J");
+      GetMethod(env, clzz_font_manager, INSTANCE_METHOD, "<init>", "(J)V");
+  JavaFontManager_method_onMatchFamilyStyle_ =
+      GetMethod(env, clzz_font_manager, INSTANCE_METHOD, "onMatchFamilyStyle",
+                "(Ljava/lang/String;IZJ)J");
+  JavaFontManager_method_onMatchTypefaceIndex_ = GetMethod(
+      env, clzz_font_manager, INSTANCE_METHOD, "onMatchTypefaceIndex", "(J)J");
   env->DeleteLocalRef(clzz_font_manager);
-  auto clzz_JavaTypeface = env->FindClass(CLASS_JAVA_TYPEFACE);
-  JavaTypeface_method_GetFontMetrics =
-      env->GetMethodID(clzz_JavaTypeface, "GetFontMetrics", "(F)[F");
-  JavaTypeface_method_GetTextBounds =
-      env->GetMethodID(clzz_JavaTypeface, "GetTextBounds", "([CF)[F");
+  auto clzz_JavaTypeface = GetClass(env, CLASS_JAVA_TYPEFACE);
+  JavaTypeface_method_GetFontMetrics = GetMethod(
+      env, clzz_JavaTypeface, INSTANCE_METHOD, "GetFontMetrics", "(F)[F");
+  JavaTypeface_method_GetTextBounds = GetMethod(
+      env, clzz_JavaTypeface, INSTANCE_METHOD, "GetTextBounds", "([CF)[F");
   env->DeleteLocalRef(clzz_JavaTypeface);
 }
 jstring TTTextJNIProxy::CreateJavaStringFromU32(JNIEnv* env,
@@ -134,21 +137,21 @@ void WarmICU() {
 }
 
 extern "C" JNIEXPORT void JNICALL
-JavaTypefaceBindNativeInstance(JNIEnv* env, jclass clazz, long native_handler,
+JavaTypefaceBindNativeInstance(JNIEnv* env, jobject thiz, jlong native_handler,
                                jobject java_instance, jint index) {
   auto typeface = reinterpret_cast<tttext::JavaTypeface*>(native_handler);
   typeface->BindJavaHandler(java_instance, index);
 }
 
 extern "C" JNIEXPORT void JNICALL JavaFontManagerBindNativeInstance(
-    JNIEnv* env, jclass clazz, long native_handler, jobject java_instance) {
+    JNIEnv* env, jobject thiz, jlong native_handler, jobject java_instance) {
   auto font_manager =
       reinterpret_cast<tttext::JavaFontManager*>(native_handler);
   font_manager->BindJavaHandler();
 }
 
 extern "C" JNIEXPORT jlong JNICALL JavaFontManagerCreateNativeTypeface(
-    JNIEnv* env, jclass clazz, long native_handler) {
+    JNIEnv* env, jobject thiz, jlong native_handler) {
   auto font_manager =
       reinterpret_cast<tttext::JavaFontManager*>(native_handler);
   return (jlong)font_manager->CreateNativeTypeface().get();
