@@ -4,6 +4,8 @@
 
 #include <textra/platform/java/java_typeface.h>
 #include <textra/platform/java/tttext_jni_proxy.h>
+
+#include "src/ports/shaper/java/java_utils.h"
 namespace ttoffice {
 namespace tttext {
 JavaTypeface::JavaTypeface(uint32_t unique_id) : ITypefaceHelper(unique_id) {}
@@ -34,6 +36,7 @@ void JavaTypeface::GetWidthBounds(float* rect_ltrb, GlyphID glyphs[],
       java_instance_->get(), proxy.JavaTypeface_method_GetTextBounds,
       jchar_array, font_size);
   if (jrect_ltrb == nullptr) {
+    ClearException(env);
     std::memset(rect_ltrb, 0, 4 * sizeof(float));
     return;
   }
@@ -60,6 +63,7 @@ void JavaTypeface::OnCreateFontInfo(FontInfo* info, float font_size) const {
       java_instance_->get(), proxy.JavaTypeface_method_GetFontMetrics,
       font_size);
   if (metrics == nullptr) {
+    ClearException(env);
     info->SetAscent(0);
     info->SetDescent(0);
     info->SetFontSize(font_size);
