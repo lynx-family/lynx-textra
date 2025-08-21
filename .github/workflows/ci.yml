@@ -5,7 +5,8 @@ on:
     branches:
       - main
     paths:
-      - ".github/**"
+      - ".github/workflows/**"
+      - ".github/actions/**"
       - "public/**"
       - "src/**"
       - "demos/**"
