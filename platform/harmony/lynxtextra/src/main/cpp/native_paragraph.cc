@@ -78,10 +78,13 @@ napi_value NAPI_Global_addTextRun(napi_env env, napi_callback_info info) {
   std::string content;
   JsValueHelperGetStringValue(env, args[1], content);
 
+  auto content_len = static_cast<uint32_t>(content.length());
+  while (content[content_len - 1] == 0) content_len--;
+
   Style run_style;
   JsObjToRunStyle(env, args[2], run_style);
-  native_paragraph->paragraph_->AddTextRun(
-      &run_style, content.c_str(), static_cast<uint32_t>(content.length()));
+  native_paragraph->paragraph_->AddTextRun(&run_style, content.c_str(),
+                                           content_len);
   return nullptr;
 }
 
