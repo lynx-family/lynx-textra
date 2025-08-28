@@ -20,7 +20,7 @@ message(STATUS ${PROJ_ROOT})
 message(STATUS "BuildType: ${CMAKE_BUILD_TYPE}")
 
 set(FLAVOR "flavor")
-set(GN_ARGS "enable_lto=true,use_flutter_cxx=false,flavor_name=${FLAVOR}")
+set(GN_ARGS "enable_lto=true,use_flutter_cxx=false,flavor_name=${FLAVOR},enable_16kb_align=true")
 set(GN_TARGET "//platform/android/lynxtextra:lynxtextra")
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
