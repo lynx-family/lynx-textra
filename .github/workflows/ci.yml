@@ -12,6 +12,7 @@ on:
       - "demos/**"
       - "test/**"
       - "examples/**"
+      - "platform/**"
       - "BUILD.gn"
 
 jobs:
