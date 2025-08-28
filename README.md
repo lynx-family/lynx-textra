@@ -66,9 +66,7 @@ Please refer to our [contributing guide][contributing] for details.
 
 Bugs and feature requests are filed in [Github Issues](https://github.com/lynx-family/lynx-textra/issues)
 
-Large discussions and proposals are discussed in [Github Discussions](https://github.com/lynx-family/lynx-textra/discussions)
-
-You are always very welcome to join the [Discord Channel](https://discord.gg/mXk7jqdDXk) and meet others who are enthusiastic about making LynxTextra great.
+You are always very welcome to join the [Discord Channel](https://discord.com/channels/1345754526174543964/1410368926969237685) and meet others who are enthusiastic about making LynxTextra great.
 
 ## Credits
 
