@@ -21,10 +21,17 @@ struct DebugSettings {
   bool draw_line_rectangle_ = false;
 };
 
+struct ModifyHAlignParams {
+  int32_t region_index_{0};
+  int32_t line_index_{0};
+  ParagraphHorizontalAlignment alignment_{ParagraphHorizontalAlignment::kLeft};
+};
+
 struct JsonDocumentContent {
   std::vector<std::unique_ptr<Paragraph>> paragraphs_;
   std::vector<std::unique_ptr<LayoutRegion>> layout_regions_;
   std::unique_ptr<TTTextContext> tttext_context_;
+  std::vector<ModifyHAlignParams> modify_align_params_;
   DebugSettings debug_settings_;
 };
 
