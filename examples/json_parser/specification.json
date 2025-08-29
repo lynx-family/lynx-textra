@@ -288,6 +288,19 @@
             }
         ]
     },
+    // other extra modifiers
+    "modifiers": [
+        {
+            // [String] type of modifier, supported values: ["ModifyLineHAlign"]
+            "type": "ModifyLineHAlign",
+            // [Number] which region, Default 0,
+            "region_index": 0,
+            // [Number] which line, Default 0,
+            "line_index": 0,
+            // [String] h-align that apply to the line
+            "value": "kLeft"
+        }
+    ],
     "debug_settings": {
         // Whether to draw line rectangles
         // [Boolean] Whether to draw line rectangles

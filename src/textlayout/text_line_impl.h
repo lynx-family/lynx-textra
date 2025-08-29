@@ -64,6 +64,8 @@ class TextLineImpl : public TextLine {
   }
   void UpdateXMax(float width) override;
   void ApplyAlignment() override;
+  void ApplyAlignment(ParagraphHorizontalAlignment h_align);
+  void ModifyHorizontalAlignment(ParagraphHorizontalAlignment h_align) override;
   bool StripContentByWidth(float space);
   void AppendGhostRun(std::unique_ptr<BaseRun> ghost_run);
   TTStringPiece GetText() const;
