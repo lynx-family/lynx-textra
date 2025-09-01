@@ -129,6 +129,8 @@ ParagraphTest::GetTestCases() {
           {"TestItalicFont", &ParagraphTest::TestItalicFont},
           {"TestCJKBreak", &ParagraphTest::TestCJKBreak},
           {"TestAlignWithBBox", &ParagraphTest::TestAlignWithBBox},
+          {"TestModifyHAlignAfterLayout",
+           &ParagraphTest::TestModifyHAlignAfterLayout},
       };
   return kTestCases;
 }
@@ -1457,4 +1459,38 @@ void ParagraphTest::TestAlignWithBBox(ICanvasHelper* canvas,
   DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
                 LayoutMode::kIndefinite);
 }
+void ParagraphTest::TestModifyHAlignAfterLayout(ICanvasHelper* canvas,
+                                                float width) const {
+  Style style;
+  style.SetTextSize(24);
+  auto para = Paragraph::Create();
+  para->GetParagraphStyle().SetDefaultStyle(style);
+  para->AddTextRun(nullptr, "一段文本");
+  Style y_offset = style;
+  y_offset.SetBaselineOffset(10);
+  para->AddTextRun(&y_offset, "一段文本");
+  para->AddTextRun(nullptr,
+                   "一段文本一段文本一段文本一段文本一段文本一段文本一段文本"
+                   "一段文本一段文本一段文本一段文本一段文本");
+  DrawParagraph(canvas, *para, width, LayoutMode::kDefinite,
+                LayoutMode::kIndefinite);
+  canvas->Translate(0, 200);
+  TextLayout layout(font_collection_, shaper_type_);
+  auto page_ptr = std::make_unique<LayoutRegion>(
+      width, 500, LayoutMode::kDefinite, LayoutMode::kAtMost);
+  TTTextContext context;
+  context.SetSkipSpacingBeforeFirstLine(false);
+  context.SetLastLineCanOverflow(false);
+  auto& page = *page_ptr;
+  layout.Layout(para.get(), &page, context);
+  page.GetLine(0)->ModifyHorizontalAlignment(
+      ParagraphHorizontalAlignment::kJustify);
+  page.GetLine(1)->ModifyHorizontalAlignment(
+      ParagraphHorizontalAlignment::kCenter);
+  page.GetLine(2)->ModifyHorizontalAlignment(
+      ParagraphHorizontalAlignment::kRight);
+  LayoutDrawer drawer(canvas);
+  drawer.DrawLayoutPage(&page);
+}
+
 #pragma clang diagnostic pop

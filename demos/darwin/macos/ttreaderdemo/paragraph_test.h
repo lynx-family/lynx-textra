@@ -150,6 +150,7 @@ class ParagraphTest {
   void TestItalicFont(ICanvasHelper* canvas, float width) const;
   void TestCJKBreak(ICanvasHelper* canvas, float width) const;
   void TestAlignWithBBox(ICanvasHelper* canvas, float width) const;
+  void TestModifyHAlignAfterLayout(ICanvasHelper* canvas, float width) const;
 
  private:
   uint32_t test_width = 490;

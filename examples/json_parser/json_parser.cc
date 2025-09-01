@@ -765,6 +765,40 @@ DebugSettings ParseDebugSettings(const Value& data) {
   }
   return debug_settings;
 }
+
+void ParseModifiers(const Value& data,
+                    std::vector<ModifyHAlignParams>& modify_align) {
+  if (!HasOptionalField(data, "modifiers")) {
+    return;
+  }
+  const auto& modifiers = data["modifiers"];
+  if (!modifiers.IsArray()) {
+    return;
+  }
+  for (auto& item : modifiers.GetArray()) {
+    auto type = GetRequiredField<std::string>(item, "type");
+    if (type == "ModifyLineHAlign") {
+      auto region_index = GetRequiredField<int32_t>(item, "region_index");
+      auto line_index = GetRequiredField<int32_t>(item, "line_index");
+      auto value = GetRequiredField<std::string>(item, "value");
+      auto align = ParagraphHorizontalAlignment::kLeft;
+      if (value == "kRight") {
+        align = ParagraphHorizontalAlignment::kRight;
+      } else if (value == "kCenter") {
+        align = ParagraphHorizontalAlignment::kCenter;
+      } else if (value == "kJustify") {
+        align = ParagraphHorizontalAlignment::kJustify;
+      } else if (value == "kDistributed") {
+        align = ParagraphHorizontalAlignment::kDistributed;
+      }
+      modify_align.emplace_back(ModifyHAlignParams{
+          .region_index_ = region_index,
+          .line_index_ = line_index,
+          .alignment_ = align,
+      });
+    }
+  }
+}
 }  // namespace
 
 // Parse JSON string into TTText C++ objects
@@ -779,11 +813,14 @@ std::unique_ptr<JsonDocumentContent> ParseJsonStringIntoTTTextObject(
   auto layout_regions = ParseLayoutRegions(doc);
   auto debug_settings = ParseDebugSettings(doc);
 
+  std::vector<ModifyHAlignParams> modify_align;
+  ParseModifiers(doc, modify_align);
   // Return result
   auto result = std::make_unique<JsonDocumentContent>(
       JsonDocumentContent{.paragraphs_ = std::move(paragraphs),
                           .layout_regions_ = std::move(layout_regions),
                           .tttext_context_ = std::move(tttext_context),
+                          .modify_align_params_ = std::move(modify_align),
                           .debug_settings_ = debug_settings});
   return result;
 }
@@ -843,6 +880,20 @@ std::unique_ptr<LayoutRegion> LayoutJsonDocument(
       new_context.ResetLayoutPosition({0, 0});
     }
     region = std::move(new_layout_region);
+  }
+
+  if (!json_doc->modify_align_params_.empty()) {
+    for (auto& modify : json_doc->modify_align_params_) {
+      if (modify.region_index_ != 0) {
+        continue;
+      }
+      if (modify.line_index_ < 0 ||
+          modify.line_index_ >= region->GetLineCount()) {
+        continue;
+      }
+      region->GetLine(modify.line_index_)
+          ->ModifyHorizontalAlignment(modify.alignment_);
+    }
   }
 
   return region;

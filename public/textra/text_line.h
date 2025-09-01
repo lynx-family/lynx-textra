@@ -99,6 +99,13 @@ class L_EXPORT TextLine {
   float GetStartIndent() const { return start_indent_; }
   float GetEndIndent() const { return end_indent_; }
 
+  /**
+   * Modify HorizontalAlignment of this line, must be called **AFTER** layout.
+   * @param h_align target alignment
+   */
+  virtual void ModifyHorizontalAlignment(
+      ParagraphHorizontalAlignment h_align) = 0;
+
  protected:
   float line_top_ = 0;
   float max_ascent_ = 0;   // distance from linetop to baseline

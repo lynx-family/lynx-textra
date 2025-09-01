@@ -235,8 +235,22 @@ void TextLineImpl::AppendGhostRun(std::unique_ptr<BaseRun> ghost_run) {
   extra_contents_.emplace_back(std::move(ghost_run));
 }
 
+void TextLineImpl::ModifyHorizontalAlignment(
+    ParagraphHorizontalAlignment h_align) {
+  if (h_align == ParagraphHorizontalAlignment::kJustify &&
+      paragraph_->GetParagraphStyle().GetHorizontalAlign() !=
+          ParagraphHorizontalAlignment::kJustify) {
+    CreateDrawerPiece();
+  }
+  ApplyAlignment(h_align);
+}
+
 void TextLineImpl::ApplyAlignment() {
-  const auto align = paragraph_->GetParagraphStyle().GetHorizontalAlign();
+  ApplyAlignment(paragraph_->GetParagraphStyle().GetHorizontalAlign());
+}
+
+void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
+  const auto align = h_align;
   auto drawer_iter_begin = drawer_list_.begin();
   while (drawer_iter_begin != drawer_list_.end()) {
     const auto* line_range = (*drawer_iter_begin)->GetParent();
