@@ -170,12 +170,6 @@ static JNINativeMethod java_font_manager_methods[] = {
      reinterpret_cast<void*>(JavaFontManagerCreateNativeTypeface)},
 };
 
-extern "C" JNIEXPORT void JNICALL TTTextNativeInitial(JNIEnv* env,
-                                                      jclass clazz) {
-  tttext::TTTextJNIProxy::GetInstance().Initial();
-  WarmICU();
-}
-
 extern "C" JNIEXPORT jobject JNICALL
 TTTextNativeGetDefaultFontManager(JNIEnv* env, jclass clazz) {
   auto font_manager =
@@ -184,7 +178,6 @@ TTTextNativeGetDefaultFontManager(JNIEnv* env, jclass clazz) {
 }
 
 static JNINativeMethod tttext_methods[] = {
-    {"nativeInitialCache", "()V", reinterpret_cast<void*>(TTTextNativeInitial)},
     {"nativeGetDefaultFontManager", "()Lcom/lynx/textra/JavaFontManager;",
      reinterpret_cast<void*>(TTTextNativeGetDefaultFontManager)},
 };
@@ -215,6 +208,12 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     return -1;
   }
 
+  // return the used JNI version
+  return JNI_VERSION_1_6;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_lynx_textra_TTText_nativeInitialCache(JNIEnv* env, jclass clzz) {
   RegisterJNIMethods(env, "com/lynx/textra/JavaTypeface", java_typeface_methods,
                      std::size(java_typeface_methods));
 
@@ -226,6 +225,6 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
                      std::size(tttext_methods));
 
   tttext::TTTextJNIProxy::InitialJNI(env);
-  // return the used JNI version
-  return JNI_VERSION_1_6;
+  tttext::TTTextJNIProxy::GetInstance().Initial();
+  WarmICU();
 }
