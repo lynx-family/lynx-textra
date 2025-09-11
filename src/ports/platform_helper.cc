@@ -5,8 +5,8 @@
 #include <textra/platform_helper.h>
 
 #ifdef TTTEXT_OS_OH
-#include "src/ports/renderer/ark_graphics/ag_canvas_helper.h"
-#include "src/ports/renderer/ark_graphics/ag_font_manager.h"
+#include <textra/platform/ark_graphics/ag_canvas_helper.h>
+#include <textra/platform/ark_graphics/ag_font_manager.h>
 #endif
 namespace ttoffice {
 namespace tttext {

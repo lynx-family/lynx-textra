@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef SRC_PORTS_RENDERER_ARK_GRAPHICS_AG_TYPEFACE_HELPER_H_
-#define SRC_PORTS_RENDERER_ARK_GRAPHICS_AG_TYPEFACE_HELPER_H_
+#ifndef PUBLIC_TEXTRA_PLATFORM_ARK_GRAPHICS_AG_TYPEFACE_HELPER_H_
+#define PUBLIC_TEXTRA_PLATFORM_ARK_GRAPHICS_AG_TYPEFACE_HELPER_H_
 
 #include <native_drawing/drawing_font.h>
 #include <native_drawing/drawing_types.h>
@@ -69,4 +69,4 @@ class AGTypefaceHelper : public ITypefaceHelper {
 }  // namespace tttext
 }  // namespace ttoffice
 
-#endif  // SRC_PORTS_RENDERER_ARK_GRAPHICS_AG_TYPEFACE_HELPER_H_
+#endif  // PUBLIC_TEXTRA_PLATFORM_ARK_GRAPHICS_AG_TYPEFACE_HELPER_H_

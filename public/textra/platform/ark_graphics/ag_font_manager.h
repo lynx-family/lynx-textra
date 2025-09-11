@@ -2,13 +2,12 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef SRC_PORTS_RENDERER_ARK_GRAPHICS_AG_FONT_MANAGER_H_
-#define SRC_PORTS_RENDERER_ARK_GRAPHICS_AG_FONT_MANAGER_H_
+#ifndef PUBLIC_TEXTRA_PLATFORM_ARK_GRAPHICS_AG_FONT_MANAGER_H_
+#define PUBLIC_TEXTRA_PLATFORM_ARK_GRAPHICS_AG_FONT_MANAGER_H_
 #include <textra/i_font_manager.h>
+#include <textra/platform/ark_graphics/ag_typeface_helper.h>
 
 #include <memory>
-
-#include "src/ports/renderer/ark_graphics/ag_typeface_helper.h"
 
 namespace ttoffice {
 namespace tttext {
@@ -52,4 +51,4 @@ class AGFontManager : public IFontManager {
 };
 }  // namespace tttext
 }  // namespace ttoffice
-#endif  // SRC_PORTS_RENDERER_ARK_GRAPHICS_AG_FONT_MANAGER_H_
+#endif  // PUBLIC_TEXTRA_PLATFORM_ARK_GRAPHICS_AG_FONT_MANAGER_H_

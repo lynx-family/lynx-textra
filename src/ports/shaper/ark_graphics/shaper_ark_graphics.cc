@@ -12,12 +12,11 @@
 #include <native_drawing/drawing_text_run.h>
 #include <native_drawing/drawing_text_typography.h>
 #include <textra/i_typeface_helper.h>
+#include <textra/platform/ark_graphics/ag_typeface_helper.h>
 
 #include <cstdint>
 #include <memory>
 #include <vector>
-
-#include "src/ports/renderer/ark_graphics/ag_typeface_helper.h"
 
 namespace ttoffice {
 namespace tttext {
