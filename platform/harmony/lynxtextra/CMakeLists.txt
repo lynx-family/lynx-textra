@@ -1,8 +1,7 @@
 # the minimum version of CMake.
 cmake_minimum_required(VERSION 3.10)
 
-#include($ENV{HARMONY_HOME}/sdk/default/openharmony/native/build/cmake/ohos.toolchain.cmake)
-
+#include($ENV{HARMONY_HOME}/default/openharmony/native/build/cmake/ohos.toolchain.cmake)
 
 project(lynxtextra)
 

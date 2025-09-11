@@ -1,0 +1,49 @@
+{
+  "apiType": "stageMode",
+  "buildOption": {
+    "nativeLib": {
+      "headerPath": [
+        "./src/main/cpp"
+      ]
+    },
+    "externalNativeOptions": {
+      "path": "CMakeLists.txt",
+      "arguments": "",
+      "cppFlags": ""
+    },
+    "resOptions": {
+      "copyCodeResource": {
+        "enable": false
+      }
+    }
+  },
+  "buildOptionSet": [
+    {
+      "name": "release",
+      "arkOptions": {
+        "obfuscation": {
+          "ruleOptions": {
+            "enable": false,
+            "files": [
+              "./obfuscation-rules.txt"
+            ]
+          }
+        }
+      },
+      "nativeLib": {
+        "debugSymbol": {
+          "strip": false,
+          "exclude": []
+        }
+      }
+    },
+  ],
+  "targets": [
+    {
+      "name": "default"
+    },
+    {
+      "name": "ohosTest",
+    }
+  ]
+}
