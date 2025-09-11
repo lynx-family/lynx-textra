@@ -44,12 +44,10 @@ TEST(LayoutDrawer, DrawTextLine) {
   drawer.DrawTextLine(text_line, 0, text_length);
   Mock::VerifyAndClearExpectations(&canvas_helper);
 
-  // TODO: Fix DrawTextLine(_, char_start_in_line, char_end_in_line) not working
-  // EXPECT_CALL(canvas_helper,
-  //             DrawGlyphs(_, 1, _, StrEq("H"), 1, _, _, _, _, _))
-  //     .Times(1);
-  // drawer.DrawTextLine(text_line, 0, 1);
-  // Mock::VerifyAndClearExpectations(&canvas_helper);
+  EXPECT_CALL(canvas_helper, DrawGlyphs(_, 1, _, nullptr, 0, _, _, _, _, _))
+      .Times(1);
+  drawer.DrawTextLine(text_line, 0, 1);
+  Mock::VerifyAndClearExpectations(&canvas_helper);
 }
 
 TEST(LayoutDrawer, DrawLayoutPage_Text) {

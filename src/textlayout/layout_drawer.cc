@@ -69,6 +69,9 @@ void LayoutDrawer::DrawTextLine(TextLine* i_line, uint32_t char_start_in_line,
       DrawDrawerPiece(line, drawer_piece.get(), draw_start - piece_start,
                       draw_end - piece_start);
       not_ghost_content_drawed = true;
+      if (draw_end < piece_end) {
+        break;
+      }
     }
   }
   DrawLineDecoration(line, char_start_in_para, char_end_in_para);
@@ -257,7 +260,8 @@ void LayoutDrawer::DrawDrawerPiece(const TextLine* line,
       xx -= min_x;
     }
 
-    DrawTextRun(run, piece_start, piece_end, run_range->GetXOffset(), y,
+    DrawTextRun(run, piece_start + char_start_in_piece,
+                piece_start + char_end_in_piece, run_range->GetXOffset(), y,
                 pos_x.data(), pos_y.data(),
                 background_rect.ToArrayLTWH().data());
     background_rect.SetLeft(background_rect.GetRight());
