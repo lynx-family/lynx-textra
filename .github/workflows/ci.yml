@@ -83,7 +83,6 @@ jobs:
           ../cmake-build-test/test/TextLayoutLiteTest
           popd
       - name: Run e2e check
-        continue-on-error: true
         run: |
           source tools/envsetup.sh
           which python3
