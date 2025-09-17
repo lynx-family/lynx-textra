@@ -65,6 +65,12 @@ class L_EXPORT Paragraph {
   // This method is used after layout and can not recognise ideographic words.
   virtual std::pair<uint32_t, uint32_t> GetWordBoundary(
       uint32_t offset) const = 0;
+  /**
+   * @brief Query character style by char index
+   * @param char_idx the index of character in paragraph
+   * @param style A Style object to store the query result
+   */
+  virtual void QueryStyle(uint32_t char_idx, Style* style) = 0;
 
  public:
   static std::unique_ptr<Paragraph> Create();

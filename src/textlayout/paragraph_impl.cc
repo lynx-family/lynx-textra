@@ -436,6 +436,18 @@ std::pair<uint32_t, uint32_t> ParagraphImpl::GetWordBoundary(
   return {start, end};
 }
 
+void ParagraphImpl::QueryStyle(uint32_t char_idx, Style* style) {
+  if (style == nullptr) return;
+  style->Reset();
+  for (auto& run : run_lst_) {
+    if (run->GetStartCharPos() <= char_idx &&
+        run->GetEndCharPos() >= char_idx) {
+      *style = run->GetLayoutStyle();
+      return;
+    }
+  }
+}
+
 RunDelegate* ParagraphImpl::GetRunDelegateForChar(uint32_t char_index) const {
   auto pos = CharPosToLayoutPosition(char_index);
   auto run = GetRun(pos.GetRunIdx());

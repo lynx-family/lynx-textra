@@ -102,6 +102,8 @@ class ParagraphImpl : public Paragraph {
 
   std::pair<uint32_t, uint32_t> GetWordBoundary(uint32_t offset) const override;
 
+  void QueryStyle(uint32_t char_idx, Style* style) override;
+
  public:
   TTStringPiece GetContent(
       CharPos start_char = 0,
