@@ -29,9 +29,12 @@
           ]
         }
       },
+      "externalNativeOptions": {
+        "arguments": ["-DCMAKE_BUILD_TYPE=RelWithDebInfo"],
+      },
       "nativeLib": {
         "debugSymbol": {
-          "strip": true,
+          "strip": false,
           "exclude": []
         }
       }

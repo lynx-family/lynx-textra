@@ -14,9 +14,6 @@
 #include <native_drawing/drawing_text_declaration.h>
 #include <native_drawing/drawing_text_typography.h>
 #include <native_drawing/drawing_types.h>
-#include <textra/layout_region.h>
-#include <textra/paragraph.h>
-#include <textra/text_layout.h>
 
 #include <cinttypes>
 #include <string>
@@ -38,6 +35,8 @@ static napi_value Init(napi_env env, napi_value exports) {
        nullptr, napi_default, nullptr},
       {"initLayoutContext", nullptr, NAPI_Global_initLayoutContext, nullptr,
        nullptr, nullptr, napi_default, nullptr},
+      {"appendContent", nullptr, NAPI_Global_appendContent, nullptr, nullptr,
+       nullptr, napi_default, nullptr},
   };
 
   napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
@@ -67,7 +66,9 @@ extern "C" __attribute__((constructor)) void RegisterNativeTextModule(void) {
 void OHBuildParagraph(OHContext* context, const std::string& content);
 void OHLayoutParagraph(OHContext* context, double width);
 void OHDrawParagraph(OHContext* context, OH_Drawing_Canvas* canvas);
-using BuildParagraphFunc = void (*)(void* context, const std::string& content);
+using BuildParagraphFunc = void (*)(void* context);
+using AppendContentFunc = void (*)(void* context, const std::string& text,
+                                   uint32_t font_size, uint32_t color);
 using LayoutParagraphFunc = void (*)(void* context, double width);
 using DrawParagraphFunc = void (*)(void* context, OH_Drawing_Canvas* canvas);
 
@@ -78,17 +79,23 @@ struct LayoutContext {
   std::unique_ptr<OHNewContext> oh_new_context_ = nullptr;
   void* context_ = nullptr;
   BuildParagraphFunc build_paragraph_func_ = nullptr;
+  AppendContentFunc append_content_func_ = nullptr;
   LayoutParagraphFunc layout_paragraph_func_ = nullptr;
   DrawParagraphFunc draw_paragraph_func_ = nullptr;
 };
 
+static int32_t HINT_LAYOUT_CONTEXT = 0;
+static int32_t HINT_CONTENT_STYLE = 1;
+
 static void NAPI_Deref(napi_env env, void* data, void* hint) {
   OH_LOG_INFO(LOG_APP, "LayoutCost NAPI_Deref");
-  auto context = static_cast<LayoutContext*>(data);
-  if (context && context->bitmap_) {
-    OH_Drawing_BitmapDestroy(context->bitmap_);
+  if (hint == &HINT_LAYOUT_CONTEXT) {
+    auto context = static_cast<LayoutContext*>(data);
+    if (context && context->bitmap_) {
+      OH_Drawing_BitmapDestroy(context->bitmap_);
+    }
+    delete context;
   }
-  delete context;
 }
 
 napi_value NAPI_Global_initLayoutContext(napi_env env,
@@ -104,22 +111,25 @@ napi_value NAPI_Global_initLayoutContext(napi_env env,
     context->textra_context_ = std::make_unique<TextraContext>();
     context->context_ = context->textra_context_.get();
     context->build_paragraph_func_ = &TextraBuildParagraph;
+    context->append_content_func_ = &TextraAppendContent;
     context->layout_paragraph_func_ = &TextraLayoutParagraph;
     context->draw_paragraph_func_ = &TextraDrawParagraph;
   } else if (mode == 1) {
     context->oh_context_ = std::make_unique<OHContext>();
     context->context_ = context->oh_context_.get();
     context->build_paragraph_func_ = &OHBuildParagraph;
+    context->append_content_func_ = &OHAppendContent;
     context->layout_paragraph_func_ = &OHLayoutParagraph;
     context->draw_paragraph_func_ = &OHDrawParagraph;
   } else if (mode == 2) {
     context->oh_new_context_ = std::make_unique<OHNewContext>();
     context->context_ = context->oh_new_context_.get();
     context->build_paragraph_func_ = &OHNewBuildParagraph;
+    context->append_content_func_ = &OHNewAppendContent;
     context->layout_paragraph_func_ = &OHNewLayoutParagraph;
     context->draw_paragraph_func_ = &OHNewDrawParagraph;
   }
-  napi_wrap(env, argv[0], context, NAPI_Deref, nullptr, nullptr);
+  napi_wrap(env, argv[0], context, NAPI_Deref, &HINT_LAYOUT_CONTEXT, nullptr);
   return nullptr;
 }
 
@@ -148,8 +158,25 @@ napi_value NAPI_Global_buildCanvas(napi_env env, napi_callback_info info) {
 }
 
 napi_value NAPI_Global_buildParagraph(napi_env env, napi_callback_info info) {
-  size_t argc = 2;
-  napi_value argv[2] = {nullptr, nullptr};
+  size_t argc = 1;
+  napi_value argv[1] = {nullptr};
+  napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+  void* temp = nullptr;
+  auto status = napi_unwrap(env, argv[0], &temp);
+  if (status != napi_ok) {
+    return nullptr;
+  }
+  auto* context = reinterpret_cast<LayoutContext*>(temp);
+
+  if (context && context->build_paragraph_func_)
+    context->build_paragraph_func_(context->context_);
+  return nullptr;
+}
+
+napi_value NAPI_Global_appendContent(napi_env env, napi_callback_info info) {
+  size_t argc = 4;
+  napi_value argv[4] = {nullptr, nullptr, nullptr, nullptr};
   napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
 
   void* temp = nullptr;
@@ -163,12 +190,19 @@ napi_value NAPI_Global_buildParagraph(napi_env env, napi_callback_info info) {
   napi_get_value_string_utf8(env, argv[1], nullptr, 0, &str_len);
   std::string test_content;
   test_content.resize(str_len + 1);
-  napi_get_value_string_utf8(env, argv[1], test_content.data(), str_len,
+  napi_get_value_string_utf8(env, argv[1], test_content.data(), str_len + 1,
                              nullptr);
-  test_content[str_len] = 0;
+  test_content.resize(str_len);
 
-  if (context && context->build_paragraph_func_)
-    context->build_paragraph_func_(context->context_, test_content);
+  int32_t font_size;
+  napi_get_value_int32(env, argv[2], &font_size);
+
+  int32_t color;
+  napi_get_value_int32(env, argv[3], &color);
+
+  if (context && context->append_content_func_)
+    context->append_content_func_(context->context_, test_content, font_size,
+                                  color);
   return nullptr;
 }
 

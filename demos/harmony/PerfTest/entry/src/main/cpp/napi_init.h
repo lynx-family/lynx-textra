@@ -11,6 +11,7 @@ static void NAPI_Deref(napi_env env, void* data, void* hint);
 napi_value NAPI_Global_initLayoutContext(napi_env env, napi_callback_info info);
 napi_value NAPI_Global_buildCanvas(napi_env env, napi_callback_info info);
 napi_value NAPI_Global_buildParagraph(napi_env env, napi_callback_info info);
+napi_value NAPI_Global_appendContent(napi_env env, napi_callback_info info);
 napi_value NAPI_Global_layoutParagraph(napi_env env, napi_callback_info info);
 napi_value NAPI_Global_drawParagraph(napi_env env, napi_callback_info info);
 #endif  // DEMOS_HARMONY_PERFTEST_ENTRY_SRC_MAIN_CPP_NAPI_INIT_H_

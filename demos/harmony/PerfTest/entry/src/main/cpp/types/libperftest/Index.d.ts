@@ -9,7 +9,9 @@ export const initLayoutContext: (layoutContext: object, type: number) => void;
 
 export const buildCanvas: (layoutContext: object, width: number, height: number) => void;
 
-export const buildParagraph: (layoutContext: object, content: string) => void;
+export const buildParagraph: (layoutContext: object) => void;
+
+export const appendContent:(layoutContext:object, content:string, font_size:number, color:number) => void;
 
 export const layoutParagraph: (layoutContext: object, width: number) => void;
 

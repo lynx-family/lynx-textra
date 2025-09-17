@@ -4,34 +4,44 @@
 
 #include "oh_drawing_test.h"
 
-void OHBuildParagraph(void* ctx, const std::string& content) {
+void OHBuildParagraph(void* ctx) {
   auto* context = (OHContext*)ctx;
   OH_Drawing_TypographyStyle* typoStyle = OH_Drawing_CreateTypographyStyle();
-  OH_Drawing_TextStyle* txtStyle = OH_Drawing_CreateTextStyle();
-  OH_Drawing_SetTextStyleColor(txtStyle,
-                               OH_Drawing_ColorSetArgb(0xFF, 0x00, 0x00, 0xFF));
-  OH_Drawing_SetTextStyleFontSize(txtStyle, 24);
-
   OH_Drawing_FontCollection* fc = OH_Drawing_CreateSharedFontCollection();
   OH_Drawing_TypographyCreate* handler =
       OH_Drawing_CreateTypographyHandler(typoStyle, fc);
-
-  OH_Drawing_TypographyHandlerPushTextStyle(handler, txtStyle);
-  OH_Drawing_TypographyHandlerAddText(handler, content.c_str());
-  OH_Drawing_TypographyHandlerPopTextStyle(handler);
-  OH_Drawing_Typography* typography = OH_Drawing_CreateTypography(handler);
-
-  context->typography_ = typography;
+  context->handler_ = handler;
 
   // 释放内存
   OH_Drawing_DestroyTypographyStyle(typoStyle);
-  OH_Drawing_DestroyTextStyle(txtStyle);
   OH_Drawing_DestroyFontCollection(fc);
-  OH_Drawing_DestroyTypographyHandler(handler);
+}
+void OHAppendContent(void* ctx, const std::string& text, uint32_t font_size,
+                     uint32_t color) {
+  auto* context = (OHContext*)ctx;
+  auto handler = context->handler_;
+  OH_Drawing_TextStyle* txtStyle = OH_Drawing_CreateTextStyle();
+  auto alpha = (color & 0xFF000000) >> 24;
+  auto red = (color & 0x00FF0000) >> 16;
+  auto green = (color & 0x0000FF00) >> 8;
+  auto blue = (color & 0x000000FF);
+  OH_Drawing_SetTextStyleColor(txtStyle,
+                               OH_Drawing_ColorSetArgb(0xFF, red, green, blue));
+  OH_Drawing_SetTextStyleFontSize(txtStyle, font_size);
+
+  OH_Drawing_TypographyHandlerPushTextStyle(handler, txtStyle);
+  OH_Drawing_TypographyHandlerAddEncodedText(handler, text.c_str(),
+                                             text.length(), TEXT_ENCODING_UTF8);
+  OH_Drawing_TypographyHandlerPopTextStyle(handler);
+
+  OH_Drawing_DestroyTextStyle(txtStyle);
 }
 void OHLayoutParagraph(void* ctx, double width) {
   auto* context = (OHContext*)ctx;
-  OH_Drawing_TypographyLayout(context->typography_, width);
+  OH_Drawing_Typography* typography =
+      OH_Drawing_CreateTypography(context->handler_);
+  OH_Drawing_TypographyLayout(typography, width);
+  context->typography_ = typography;
 }
 void OHDrawParagraph(void* ctx, OH_Drawing_Canvas* canvas) {
   auto* context = (OHContext*)ctx;

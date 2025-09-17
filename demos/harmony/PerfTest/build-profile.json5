@@ -1,20 +1,5 @@
 {
   "app": {
-    "signingConfigs": [
-      {
-        "name": "default",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "/Users/wenhe/.ohos/config/default_PerfTest_AuhzeHLW2DS9cj85O_-z_bSxF2oVJgszEwWvUPyKffU=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001A72CDBC2CF1C2364D9EA58D4966045A08C252655960B3F1448160CE1A3CCA4A873FE24655B424",
-          "profile": "/Users/wenhe/.ohos/config/default_PerfTest_AuhzeHLW2DS9cj85O_-z_bSxF2oVJgszEwWvUPyKffU=.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "/Users/wenhe/.ohos/config/default_PerfTest_AuhzeHLW2DS9cj85O_-z_bSxF2oVJgszEwWvUPyKffU=.p12",
-          "storePassword": "0000001A6D7C654526D2D6E8044EE0EBEE09223007B9227268962DFEA65351DF2FEEBAE89E04C0EB015C"
-        }
-      }
-    ],
     "products": [
       {
         "name": "default",

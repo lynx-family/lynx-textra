@@ -10,7 +10,7 @@
 #include <textra/style.h>
 #include <textra/tt_color.h>
 
-void TextraBuildParagraph(void* ctx, const std::string& content) {
+void TextraBuildParagraph(void* ctx) {
   auto context = (TextraContext*)ctx;
   context->context_ = std::make_unique<tttext::TTTextContext>();
   auto font_manager =
@@ -19,10 +19,14 @@ void TextraBuildParagraph(void* ctx, const std::string& content) {
   context->layout_ =
       std::make_unique<tttext::TextLayout>(&fc, tttext::ShaperType::kSystem);
   context->paragraph_ = tttext::Paragraph::Create();
+}
+void TextraAppendContent(void* ctx, const std::string& text, uint32_t font_size,
+                         uint32_t color) {
+  auto context = (TextraContext*)ctx;
   tttext::Style style;
-  style.SetTextSize(24);
-  style.SetForegroundColor(tttext::TTColor(0xFFFF0000));
-  context->paragraph_->AddTextRun(&style, content.c_str());
+  style.SetTextSize(font_size);
+  style.SetForegroundColor(tttext::TTColor(color));
+  context->paragraph_->AddTextRun(&style, text.c_str());
 }
 void TextraLayoutParagraph(void* ctx, double width) {
   auto context = (TextraContext*)ctx;

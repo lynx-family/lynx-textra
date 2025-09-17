@@ -29,7 +29,9 @@ class OHContext {
   OH_Drawing_Typography* typography_ = nullptr;
 };
 
-void OHBuildParagraph(void* context, const std::string& content);
+void OHBuildParagraph(void* context);
+void OHAppendContent(void* context, const std::string& text, uint32_t font_size,
+                     uint32_t color);
 void OHLayoutParagraph(void* context, double width);
 void OHDrawParagraph(void* context, OH_Drawing_Canvas* canvas);
 #endif  // DEMOS_HARMONY_PERFTEST_ENTRY_SRC_MAIN_CPP_OH_DRAWING_TEST_H_

@@ -18,7 +18,9 @@ class TextraContext {
   std::unique_ptr<tttext::TextLayout> layout_;
 };
 
-void TextraBuildParagraph(void* context, const std::string& content);
+void TextraBuildParagraph(void* context);
+void TextraAppendContent(void* context, const std::string& text,
+                         uint32_t font_size, uint32_t color);
 void TextraLayoutParagraph(void* context, double width);
 void TextraDrawParagraph(void* context, OH_Drawing_Canvas* canvas);
 #endif  // DEMOS_HARMONY_PERFTEST_ENTRY_SRC_MAIN_CPP_TEXTRA_TEST_H_

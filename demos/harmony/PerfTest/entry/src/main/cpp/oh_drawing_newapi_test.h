@@ -35,7 +35,9 @@ class OHNewContext {
   uint32_t char_count_ = 0;
 };
 
-void OHNewBuildParagraph(void* context, const std::string& content);
+void OHNewBuildParagraph(void* context);
+void OHNewAppendContent(void* context, const std::string& text,
+                        uint32_t font_size, uint32_t color);
 void OHNewLayoutParagraph(void* context, double width);
 void OHNewDrawParagraph(void* context, OH_Drawing_Canvas* canvas);
 

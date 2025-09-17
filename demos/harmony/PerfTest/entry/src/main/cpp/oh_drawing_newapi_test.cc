@@ -21,31 +21,35 @@ inline int CalcCharCount(const char* s, int len) {
   return count;
 }
 
-void OHNewBuildParagraph(void* ctx, const std::string& content) {
+void OHNewBuildParagraph(void* ctx) {
   auto* context = (OHNewContext*)ctx;
   auto shared_font_collection_ = OH_Drawing_CreateSharedFontCollection();
   auto typography_handler = OH_Drawing_CreateTypographyHandler(
       OH_Drawing_CreateTypographyStyle(), shared_font_collection_);
-  auto text_style = OH_Drawing_CreateTextStyle();
-  OH_Drawing_SetTextStyleFontSize(text_style, 24);
-  //  auto &fd = key.style_.GetFontDescriptor();
-  const char** families = new const char*[1];
-  const char* family = "";
-  //  for (int k = 0; k < fd.font_family_list_.size(); k++) {
-  //    families[k] = fd.font_family_list_[k].c_str();
-  //  }
-  OH_Drawing_SetTextStyleFontFamilies(text_style, 1, &family);
-  //  if (fd.font_style_.GetSlant() != FontStyle::kUpright_Slant)
-  //    OH_Drawing_SetTextStyleFontStyle(text_style, FONT_STYLE_ITALIC);
-  OH_Drawing_SetTextStyleFontWeight(text_style, FONT_WEIGHT_400);
-  OH_Drawing_TypographyHandlerPushTextStyle(typography_handler, text_style);
-  OH_Drawing_TypographyHandlerAddEncodedText(typography_handler,
-                                             content.c_str(), content.length(),
-                                             TEXT_ENCODING_UTF8);
 
   context->typography_handler_ = typography_handler;
-  context->content_ = content;
-  context->char_count_ = CalcCharCount(content.c_str(), content.length());
+  context->content_ = "";
+  context->char_count_ = 0;
+}
+void OHNewAppendContent(void* ctx, const std::string& text, uint32_t font_size,
+                        uint32_t color) {
+  auto* context = (OHNewContext*)ctx;
+  auto typography_handler = context->typography_handler_;
+  auto text_style = OH_Drawing_CreateTextStyle();
+  OH_Drawing_SetTextStyleFontSize(text_style, font_size);
+  auto alpha = (color & 0xFF000000) >> 24;
+  auto red = (color & 0x00FF0000) >> 16;
+  auto green = (color & 0x0000FF00) >> 8;
+  auto blue = (color & 0x000000FF);
+  OH_Drawing_SetTextStyleColor(
+      text_style, OH_Drawing_ColorSetArgb(alpha, red, green, blue));
+  OH_Drawing_TypographyHandlerPushTextStyle(typography_handler, text_style);
+  OH_Drawing_TypographyHandlerAddEncodedText(typography_handler, text.c_str(),
+                                             text.length(), TEXT_ENCODING_UTF8);
+  OH_Drawing_TypographyHandlerPopTextStyle(typography_handler);
+  OH_Drawing_DestroyTextStyle(text_style);
+  context->content_ += text;
+  context->char_count_ += CalcCharCount(text.c_str(), text.length());
 }
 void OHNewLayoutParagraph(void* ctx, double width) {
   auto* context = (OHNewContext*)ctx;

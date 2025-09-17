@@ -9,6 +9,7 @@ import util from '@ohos.util';
 import Decimal from '@arkts.math.Decimal';
 import { TextNativeNodeController } from './TextNativeRenderNode';
 import { TextNativeNewNodeController } from './TextNativeNewRenderNode';
+import { BaseRenderNode, RunStyle, RUN_LENGTH, TestCase } from './BaseRenderNode';
 
 @Entry
 @Component
@@ -44,10 +45,9 @@ struct Index {
         })
         .onClick(() => {
           let testCase = this.constructTestCases()
-          // this.textNodeController.startTest(testCase)
-          this.textraNodeController.startTest(testCase)
-          this.textNativeNodeController.startTest(testCase)
-          this.textNativeNewNodeController.startTest(testCase)
+          this.startTest(this.textNativeNewNodeController.renderNode, testCase, "NativeNewText")
+          this.startTest(this.textNativeNodeController.renderNode, testCase, "NativeText")
+          this.startTest(this.textraNodeController.renderNode, testCase, "Textra")
         })
     }
     .height('100%')
@@ -61,23 +61,44 @@ struct Index {
     let content = textDecoder.decodeToString(rawBuffer)
     for (let k = 0; k < content.length; k++) {
       if (content[k] != '\n' && content[k] != '\r') {
-      this.fullContent += content[k];
+        this.fullContent += content[k];
       }
     }
   }
 
-  constructTestCases(): Array<string> {
-    let testCount = 500
+  constructTestCases(): Array<TestCase> {
+    let testCount = 200
     let testLength = 500
-    let testCase: Array<string> = new Array<string>()
+    let testCase: Array<TestCase> = new Array<TestCase>()
     let testContent = this.fullContent
 
     for (let k = 0; k < testCount; k++) {
+      let one_case = new TestCase()
       let start = Decimal.random().mul(testContent.length - testLength).floor().toNumber()
-      let substr = testContent.substring(start, start + testLength);
-      testCase.push(substr)
+      one_case.text = testContent.substring(start, start + testLength);
+      let style_start = 0
+      while (style_start < one_case.text.length) {
+        let run_style = new RunStyle()
+        run_style.font_size = 24 + Decimal.random().mul(24).floor().toNumber();
+        run_style.color = 0xFF000000 + Decimal.random().mul(0x00FFFFFF).floor().toNumber();
+        one_case.styles.push(run_style)
+        style_start += RUN_LENGTH;
+      }
+      testCase.push(one_case)
     }
     return testCase
+  }
+
+  startTest(node:BaseRenderNode, testCases: Array<TestCase>, tag:string) {
+    let testCount = testCases.length;
+    node.initPerf()
+    for (let k = 0; k < testCount; k++) {
+      let content = testCases[k]
+      node.layoutContent(content, node.frame.width);
+      node.drawParagraph()
+    }
+    node.printPerfResult(tag)
+    node.invalidate();
   }
 }
 
