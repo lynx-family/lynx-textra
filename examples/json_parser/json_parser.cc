@@ -300,12 +300,16 @@ Style ParseStyle(const Value& style_data) {
         GetRequiredField<std::string>(style_data, "vertical_alignment");
     if (alignment == "kTop") {
       style.SetVerticalAlignment(CharacterVerticalAlignment::kTop);
+    } else if (alignment == "kTextTop") {
+      style.SetVerticalAlignment(CharacterVerticalAlignment::kTextTop);
     } else if (alignment == "kMiddle") {
       style.SetVerticalAlignment(CharacterVerticalAlignment::kMiddle);
     } else if (alignment == "kBaseLine") {
       style.SetVerticalAlignment(CharacterVerticalAlignment::kBaseLine);
     } else if (alignment == "kBottom") {
       style.SetVerticalAlignment(CharacterVerticalAlignment::kBottom);
+    } else if (alignment == "kTextBottom") {
+      style.SetVerticalAlignment(CharacterVerticalAlignment::kTextBottom);
     } else if (alignment == "kSuperScript") {
       style.SetVerticalAlignment(CharacterVerticalAlignment::kSuperScript);
     } else if (alignment == "kSubScript") {

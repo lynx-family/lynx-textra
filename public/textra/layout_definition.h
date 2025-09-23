@@ -81,10 +81,12 @@ enum class ParagraphVerticalAlignment : uint8_t {
 };
 enum class CharacterVerticalAlignment : uint8_t {
   kTop,
+  kTextTop,
   kSuperScript,
   kMiddle,
   kBaseLine,
   kSubScript,
+  kTextBottom,
   kBottom,
 };
 enum class ScriptType : uint8_t { kNormal, kSuperScript, kSubScript };

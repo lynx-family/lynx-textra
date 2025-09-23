@@ -14,23 +14,6 @@
 #include <textra/macro.h>
 #include <textra/text_layout.h>
 #include <textra/tttext_context.h>
-// #include "layout_memory_statistics.h"
-
-// #ifdef SKITY_TEST
-// #include "demos/darwin/macos/glfw/skity_adaptor.h"
-// #endif
-
-// #ifdef SKIA_TEST
-// #include "demos/darwin/macos/skia_app_demo/SkiaAdaptor.h"
-// #endif
-
-// #ifndef ANDROID
-// // #include "shaper_skshaper.h"
-// #endif
-
-// #if defined(ANDROID) && !defined(SKITY_TEST) && !defined(SKP_TEST)
-// #include "android_adaptor.h"
-// #endif
 
 ParagraphTest::ParagraphTest(ShaperType type,
                              FontmgrCollection* font_collection)
@@ -1299,7 +1282,8 @@ void ParagraphTest::TestCharacterVerticalAlignment(ICanvasHelper* canvas,
   {
     Style style;
     style.SetTextSize(24);
-    style.SetVerticalAlignment(CharacterVerticalAlignment::kTop);
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kTextTop);
     auto para = Paragraph::Create();
     auto shape = std::make_shared<TestShape>(10, 10);
     para->AddShapeRun(&style, shape, false);
@@ -1316,6 +1300,7 @@ void ParagraphTest::TestCharacterVerticalAlignment(ICanvasHelper* canvas,
 
   {
     Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
     auto para = Paragraph::Create();
     style.SetVerticalAlignment(CharacterVerticalAlignment::kMiddle);
     auto shape = std::make_shared<TestShape>(10, 10);
@@ -1333,8 +1318,9 @@ void ParagraphTest::TestCharacterVerticalAlignment(ICanvasHelper* canvas,
 
   {
     Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
     auto para = Paragraph::Create();
-    style.SetVerticalAlignment(CharacterVerticalAlignment::kBottom);
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kTextBottom);
     auto shape = std::make_shared<TestShape>(10, 10);
     para->AddShapeRun(&style, shape, false);
     style.SetTextSize(24);
@@ -1352,68 +1338,72 @@ void ParagraphTest::TestCharacterVerticalAlignment(ICanvasHelper* canvas,
 void ParagraphTest::TestParagraphVerticalAlignment(ICanvasHelper* canvas,
                                                    float width) const {
   draw_page_bound_ = false;
-  {
-    Style style;
-    auto para = Paragraph::Create();
-    style.SetTextSize(24);
-    style.SetVerticalAlignment(CharacterVerticalAlignment::kTop);
-    auto shape = std::make_shared<TestShape>(10, 10);
-    para->AddShapeRun(&style, shape, false);
-    style.SetTextSize(24);
-    para->AddTextRun(&style, "文本内容顶部对齐,");
-    style.SetTextSize(48);
-    para->AddTextRun(&style, "Large Text,");
-    style.SetTextSize(32);
-    para->AddTextRun(&style, "行内顶部对齐,");
-    para->GetParagraphStyle().SetVerticalAlign(
-        ParagraphVerticalAlignment::kTop);
-    para->GetParagraphStyle().SetLineHeightInPxExact(100);
-    para->GetParagraphStyle().SetLineHeightOverride(true);
-    canvas->Translate(0, 50);
-    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
-                  LayoutMode::kIndefinite);
-  }
+  width = 1000;
+  canvas->Translate(0, 10);
+  auto y_step = 80;
+  auto line_height = 50.f;
 
-  {
+  auto _func = [&](ParagraphVerticalAlignment pva) {
+    auto pva_text = "";
+    switch (pva) {
+      case ParagraphVerticalAlignment::kTop:
+        pva_text = "PVA:kTop";
+        break;
+      case ParagraphVerticalAlignment::kCenter:
+        pva_text = "PVA:kCenter";
+        break;
+      case ParagraphVerticalAlignment::kBottom:
+        pva_text = "PVA:kBottom";
+        break;
+    }
     Style style;
     auto para = Paragraph::Create();
-    style.SetVerticalAlignment(CharacterVerticalAlignment::kTop);
+    para->GetParagraphStyle().SetVerticalAlign(pva);
     auto shape = std::make_shared<TestShape>(10, 10);
     para->AddShapeRun(&style, shape, false);
+    style.SetTextSize(18);
+    para->AddTextRun(&style, pva_text);
+    para->AddTextRun(&style, ":");
     style.SetTextSize(24);
-    para->AddTextRun(&style, "文本内容顶部对齐,");
-    style.SetTextSize(48);
-    para->AddTextRun(&style, "Large Text,");
-    style.SetTextSize(32);
-    para->AddTextRun(&style, "行内居中对齐,");
-    para->GetParagraphStyle().SetVerticalAlign(
-        ParagraphVerticalAlignment::kCenter);
-    para->GetParagraphStyle().SetLineHeightInPxExact(100);
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kBaseLine);
+    para->AddTextRun(&style, "LargeText{");
+    style.SetTextSize(12);
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kTop);
+    style.SetBackgroundColor(TTColor(0x0F00FF00));
+    para->AddTextRun(&style, "C:kTop");
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kTextTop);
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    para->AddTextRun(&style, "C:kTextTop");
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kMiddle);
+    style.SetBackgroundColor(TTColor(0x0F00FF00));
+    para->AddTextRun(&style, "C:kMiddle");
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kBaseLine);
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    para->AddTextRun(&style, "C:kBaseLine");
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kTextBottom);
+    style.SetBackgroundColor(TTColor(0x0F00FF00));
+    para->AddTextRun(&style, "C:kTextBottom");
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kBottom);
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    para->AddTextRun(&style, "C:kBottom");
+    style.SetTextSize(24);
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kBaseLine);
+    style.SetBackgroundColor(TTColor(0x00FFFFFF));
+    para->AddTextRun(&style, "}End");
+    para->GetParagraphStyle().SetLineHeightInPxExact(line_height);
     para->GetParagraphStyle().SetLineHeightOverride(true);
-    canvas->Translate(0, 200);
     DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
                   LayoutMode::kIndefinite);
-  }
+  };
 
+  { _func(ParagraphVerticalAlignment::kTop); }
   {
-    Style style;
-    auto para = Paragraph::Create();
-    style.SetVerticalAlignment(CharacterVerticalAlignment::kTop);
-    auto shape = std::make_shared<TestShape>(10, 10);
-    para->AddShapeRun(&style, shape, false);
-    style.SetTextSize(24);
-    para->AddTextRun(&style, "文本内容顶部对齐,");
-    style.SetTextSize(48);
-    para->AddTextRun(&style, "Large Text,");
-    style.SetTextSize(32);
-    para->AddTextRun(&style, "行内底部对齐,");
-    para->GetParagraphStyle().SetVerticalAlign(
-        ParagraphVerticalAlignment::kBottom);
-    para->GetParagraphStyle().SetLineHeightInPxExact(100);
-    para->GetParagraphStyle().SetLineHeightOverride(true);
-    canvas->Translate(0, 200);
-    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
-                  LayoutMode::kIndefinite);
+    canvas->Translate(0, y_step);
+    _func(ParagraphVerticalAlignment::kCenter);
+  }
+  {
+    canvas->Translate(0, y_step);
+    _func(ParagraphVerticalAlignment::kBottom);
   }
 }
 
@@ -1441,23 +1431,102 @@ void ParagraphTest::TestCJKBreak(ICanvasHelper* canvas, float width) const {
 
 void ParagraphTest::TestAlignWithBBox(ICanvasHelper* canvas,
                                       float width) const {
-  Style style;
-  auto para = Paragraph::Create();
-  ParagraphStyle para_style;
-  para_style.EnableTextBounds(true);
-  para->SetParagraphStyle(&para_style);
-  FontDescriptor fd;
-  fd.font_family_list_.push_back("Inter");
-  fd.font_style_ = FontStyle::Normal();
-  style.SetFontDescriptor(fd);
-  style.SetVerticalAlignment(CharacterVerticalAlignment::kMiddle);
-  style.SetTextSize(48);
-  para->AddTextRun(&style, "123");
-  fd.font_family_list_[0] = "NotoSansCJK";
-  style.SetFontDescriptor(fd);
-  para->AddTextRun(&style, "123");
-  DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
-                LayoutMode::kIndefinite);
+  draw_page_bound_ = false;
+  {
+    canvas->Save();
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.EnableTextBounds(true);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_style_ = FontStyle::Normal();
+    fd.font_family_list_.emplace_back("Inter");
+    style.SetFontDescriptor(fd);
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kMiddle);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "123");
+    fd.font_family_list_[0] = "NotoSansCJK";
+    style.SetTextSize(48);
+    style.SetFontDescriptor(fd);
+    para->AddTextRun(&style, "123");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+    canvas->Restore();
+  }
+  {
+    canvas->Save();
+    canvas->Translate(300, 0);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.EnableTextBounds(false);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_family_list_.emplace_back("Inter");
+    fd.font_style_ = FontStyle::Normal();
+    style.SetFontDescriptor(fd);
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kMiddle);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "123");
+    fd.font_family_list_[0] = "NotoSansCJK";
+    style.SetTextSize(48);
+    style.SetFontDescriptor(fd);
+    para->AddTextRun(&style, "123");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+    canvas->Restore();
+  }
+  {
+    canvas->Save();
+    canvas->Translate(0, 100);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.EnableTextBounds(true);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_family_list_.emplace_back("Inter");
+    fd.font_style_ = FontStyle::Normal();
+    style.SetFontDescriptor(fd);
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kTop);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "123");
+    fd.font_family_list_[0] = "NotoSansCJK";
+    style.SetFontDescriptor(fd);
+    style.SetTextSize(48);
+    para->AddTextRun(&style, "123");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+    canvas->Restore();
+  }
+  {
+    canvas->Save();
+    canvas->Translate(300, 100);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.EnableTextBounds(false);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_family_list_.emplace_back("Inter");
+    fd.font_style_ = FontStyle::Normal();
+    style.SetFontDescriptor(fd);
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kTop);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "123");
+    fd.font_family_list_[0] = "NotoSansCJK";
+    style.SetFontDescriptor(fd);
+    style.SetTextSize(48);
+    para->AddTextRun(&style, "123");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+    canvas->Restore();
+  }
 }
 void ParagraphTest::TestModifyHAlignAfterLayout(ICanvasHelper* canvas,
                                                 float width) const {

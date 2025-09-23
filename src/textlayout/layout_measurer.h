@@ -44,15 +44,15 @@ class LayoutMeasurer {
   /**
    * Calculate element baseline offset relative to line top
    * @param v_align
-   * @param line_height > 0
-   * @param line_baseline > 0
+   * @param container_ascent > 0
+   * @param container_descent > 0
    * @param element_ascent < 0
    * @param element_descent > 0
    * @return
    */
   static float CalcElementY(CharacterVerticalAlignment v_align,
-                            float line_content_top, float line_content_bottom,
-                            float line_baseline, const LayoutMetrics& metrics);
+                            float container_ascent, float container_descent,
+                            float element_ascent, float element_descent);
 };
 }  // namespace tttext
 }  // namespace ttoffice

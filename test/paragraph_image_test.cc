@@ -138,6 +138,13 @@ class ParagraphImageTest : public ::testing::Test {
     TestHelper(&ParagraphTest::TestParagraphVerticalAlignment,
                "paragraph_vertical_alignment.png");
   }
+  void TestAlignWithBBox() {
+    TestHelper(&ParagraphTest::TestAlignWithBBox, "align_with_bbox.png");
+  }
+  void TestModifyHAlignAfterLayout() {
+    TestHelper(&ParagraphTest::TestModifyHAlignAfterLayout,
+               "modify_halign_after_layout.png");
+  }
 };
 
 TEST_F(ParagraphImageTest, TestSupSub) { TestSupSub(); }
@@ -174,3 +181,13 @@ TEST_F(ParagraphImageTest, TestWhiteSpaceBreakLine) {
   TestWhiteSpaceBreakLine();
 }
 TEST_F(ParagraphImageTest, TestLayoutedWidth) { TestLayoutedWidth(); }
+TEST_F(ParagraphImageTest, TestCharacterVerticalAlignment) {
+  TestCharacterVerticalAlignment();
+}
+TEST_F(ParagraphImageTest, TestParagraphVerticalAlignment) {
+  TestParagraphVerticalAlignment();
+}
+TEST_F(ParagraphImageTest, TestAlignWithBBox) { TestAlignWithBBox(); }
+TEST_F(ParagraphImageTest, TestModifyHAlignAfterLayout) {
+  TestModifyHAlignAfterLayout();
+}

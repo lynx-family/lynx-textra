@@ -22,6 +22,7 @@
 
 #if defined(TTTEXT_DEBUG)
 // #define DRAW_LINE_BOX
+// #define DRAW_AUXILIARY_LINE
 #endif
 namespace {
 constexpr float kUnderlineDefaultDashLength = 2.5f;
@@ -75,16 +76,17 @@ void LayoutDrawer::DrawTextLine(TextLine* i_line, uint32_t char_start_in_line,
     }
   }
   DrawLineDecoration(line, char_start_in_para, char_end_in_para);
-#if DRAW_AUXILIARY_LINE
-  line->DumpLineInfo();
-  RunPr run_style;
-  Painter painter(&run_style, 0);
-  painter.SetStyle(Style::kStrokeAndFill);
-  painter.SetColor(0xFF00FF00);
-  canvas_->drawLine(static_cast<float>(range.GetXMin()),
-                    static_cast<float>(line->GetLineBottom()),
-                    static_cast<float>(range.GetXMax()),
-                    static_cast<float>(line->GetLineBottom()), &painter);
+#ifdef DRAW_AUXILIARY_LINE
+  auto painter = canvas_->CreatePainter();
+  painter->SetStrokeWidth(1);
+  painter->SetColor(0xFFFF0000);
+  canvas_->DrawLine(0, line->GetContentTop(), 100, line->GetContentTop(),
+                    painter.get());
+  canvas_->DrawLine(0, line->GetContentBottom(), 100, line->GetContentBottom(),
+                    painter.get());
+  painter->SetColor(0xFF00FF00);
+  canvas_->DrawLine(0, line->GetLineBaseLine(), 100, line->GetLineBaseLine(),
+                    painter.get());
 #endif
 }
 /**
@@ -389,7 +391,7 @@ void LayoutDrawer::DrawGlyphsOrText(const BaseRun* run, uint16_t* glyphs,
   while (glyph_count > 0 && glyphs[glyph_count - 1] == 0) glyph_count--;
   /* tricky rtl implemention */
   canvas_->DrawGlyphs(font, glyph_count, glyphs, nullptr, run->IsRtl() ? 1 : 0,
-                      ox, oy + run->baseline_offset_, pos_x, pos_y, p);
+                      ox, oy, pos_x, pos_y, p);
 #if defined(DRAW_LINE_BOX)
   auto painter = canvas_->CreatePainter();
   painter->SetFillStyle(FillStyle::kStroke);

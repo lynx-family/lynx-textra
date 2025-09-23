@@ -133,31 +133,33 @@ float LayoutMeasurer::GetLinePitchSpacing(float single_line_spacing,
   return desire_line_spacing;
 }
 float LayoutMeasurer::CalcElementY(CharacterVerticalAlignment v_align,
-                                   float line_content_top,
-                                   float line_content_bottom,
-                                   float line_baseline,
-                                   const LayoutMetrics& metrics) {
+                                   float container_ascent,
+                                   float container_descent,
+                                   float element_ascent,
+                                   float element_descent) {
   float y = 0;
-  auto element_height = metrics.GetHeight();
+  auto element_height = element_descent - element_ascent;
   switch (v_align) {
     case CharacterVerticalAlignment::kBaseLine:
-      y = line_baseline;
+      y = 0;
       break;
     case CharacterVerticalAlignment::kSuperScript:
     case CharacterVerticalAlignment::kSubScript:
       // TODO(hfuttyh) need to implement
-      y = line_baseline;
+      y = 0;
       break;
+    case CharacterVerticalAlignment::kTextTop:
     case CharacterVerticalAlignment::kTop:
-      y = line_content_top - metrics.GetMaxAscent();
+      y = -(container_ascent + element_ascent);
       break;
+    case CharacterVerticalAlignment::kTextBottom:
     case CharacterVerticalAlignment::kBottom:
-      y = line_content_bottom - metrics.GetMaxDescent();
+      y = container_descent - element_descent;
       break;
     case CharacterVerticalAlignment::kMiddle:
-      y = line_content_top +
-          (line_content_bottom - line_content_top - element_height) / 2 -
-          metrics.GetMaxAscent();
+      y = container_descent -
+          (container_descent + container_ascent - element_height) / 2 -
+          element_descent;
       break;
   }
   return y;

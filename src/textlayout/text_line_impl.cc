@@ -252,6 +252,7 @@ void TextLineImpl::ApplyAlignment() {
 void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
   const auto align = h_align;
   auto drawer_iter_begin = drawer_list_.begin();
+  auto enable_text_bounds = paragraph_->GetParagraphStyle().EnableTextBounds();
   while (drawer_iter_begin != drawer_list_.end()) {
     const auto* line_range = (*drawer_iter_begin)->GetParent();
     auto drawer_iter_end = drawer_iter_begin;
@@ -279,7 +280,11 @@ void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
         word_spacing = available_space / static_cast<float>(drawer_count - 1);
       }
     }
+    auto line_container_ascent = GetLineBaseLine() - GetLineTop();
+    auto line_container_descent = GetLineBottom() - GetLineBaseLine();
     for (; drawer_iter_begin != drawer_iter_end; ++drawer_iter_begin) {
+      auto container_ascent = line_container_ascent;
+      auto container_descent = line_container_descent;
       auto& drawer = *drawer_iter_begin;
       drawer->SetXOffset(start_offset);
       auto* run = drawer->GetRun();
@@ -290,9 +295,24 @@ void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
       } else if (paragraph_->GetDefaultStyle().HasVerticalAlignment()) {
         cva = paragraph_->GetDefaultStyle().GetVerticalAlignment();
       }
-      auto y_offset =
-          LayoutMeasurer::CalcElementY(cva, GetContentTop(), GetContentBottom(),
-                                       GetContentBaseline(), metrics);
+      auto y_offset = GetContentBaseline();
+      auto element_ascent = metrics.GetMaxAscent();
+      auto element_descent = metrics.GetMaxDescent();
+      if (enable_text_bounds) {
+        auto rect = run->GetBounding();
+        element_ascent = rect.GetTop();
+        element_descent = rect.GetBottom();
+      }
+      if (cva == CharacterVerticalAlignment::kTextTop ||
+          cva == CharacterVerticalAlignment::kTextBottom) {
+        container_ascent = GetContentBaseline() - GetContentTop();
+        container_descent = GetContentBottom() - GetContentBaseline();
+      }
+      if (cva != CharacterVerticalAlignment::kBaseLine) {
+        y_offset += LayoutMeasurer::CalcElementY(
+            cva, container_ascent, container_descent, element_ascent,
+            element_descent);
+      }
       drawer->SetYOffsetInLine(y_offset);
       if (drawer->GetRun()->GetType() == RunType::kInlineObject ||
           drawer->GetRun()->GetType() == RunType::kFloatObject) {

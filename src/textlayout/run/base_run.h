@@ -20,6 +20,7 @@
 #include "src/textlayout/run/layout_metrics.h"
 #include "src/textlayout/shape_cache.h"
 #include "src/textlayout/utils/tt_range.h"
+#include "src/textlayout/utils/tt_rectf.h"
 #include "src/textlayout/utils/tt_string.h"
 #include "src/textlayout/utils/u_8_string.h"
 
@@ -163,6 +164,7 @@ class BaseRun {
            prev_run.layout_style_.GetShapeStyle() ==
                layout_style_.GetShapeStyle();
   }
+  RectF GetBounding() const { return glyph_bounds_; }
 
  protected:
   ParagraphImpl* paragraph_{};
@@ -175,7 +177,7 @@ class BaseRun {
   TTString ghost_content_;
   std::shared_ptr<RunDelegate> delegate_{nullptr};
   BoundaryType boundary_type_ = BoundaryType::kNone;
-  float baseline_offset_ = 0;
+  RectF glyph_bounds_ = {};
 #ifdef TTTEXT_DEBUG
 
  public:

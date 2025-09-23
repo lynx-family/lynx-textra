@@ -136,7 +136,7 @@ void BaseRun::Layout() {
 
   if (align_with_bbox) {
     TypefaceRef font = nullptr;
-    RectF bounds;
+    RectF& bounds = glyph_bounds_;
     std::vector<GlyphID> glyphs;
     glyphs.reserve(GetCharCount());
     for (auto k = 0u; k < GetCharCount(); k++) {
@@ -164,8 +164,6 @@ void BaseRun::Layout() {
       if (rect_ltrb[1] < bounds.GetTop()) bounds.SetTop(rect_ltrb[1]);
       if (rect_ltrb[3] > bounds.GetBottom()) bounds.SetBottom(rect_ltrb[3]);
     }
-    auto diff = metrics_.GetHeight() - bounds.GetHeight();
-    baseline_offset_ = metrics_.GetMaxAscent() + diff / 2 - bounds.GetTop();
   }
 }
 void BaseRun::UpdateRunContent() {
