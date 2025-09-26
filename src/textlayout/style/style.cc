@@ -18,8 +18,8 @@ const Style& Style::DefaultStyle() {
       {{}, FontStyle::Normal(), 0},           // FontDescriptorList
       10.f * 96 / 72,                         // TextSize
       1.f,                                    // TextScale
-      TTColor{TTColor::BLACK()},              // FgColor
-      TTColor::UNDEFINED(),                   // BgColor
+      TTColor::BLACK,                         // FgColor
+      TTColor::UNDEFINED,                     // BgColor
       TTColor{},                              // DecorationColor
       DecorationType::kNone,                  // DecorationType
       LineType::kSolid,                       // DecorationStyle
@@ -34,7 +34,7 @@ const Style& Style::DefaultStyle() {
       nullptr,                                // Background Painter
       WordBreakType::kNormal,                 // WordBreakType
       0,                                      // Baseline Offset
-      Style::FullFlag()};
+      Style::FullFlag};
   return DEFAULT_STYLE;
 }
 Style::Style()
@@ -42,7 +42,7 @@ Style::Style()
       text_scale_(1),
       fg_color_(),
       bg_color_(),
-      decoration_color_(TTColor::UNDEFINED()),
+      decoration_color_(TTColor::UNDEFINED),
       decoration_type_(DecorationType::kNone),
       decoration_style_(LineType::kSolid),
       decoration_thickness_multiplier_(1.f),

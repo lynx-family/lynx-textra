@@ -89,7 +89,7 @@ TEST(LayoutDrawer, DrawLayoutPage_TextWithUnderline) {
   style.SetTextSize(1.f);
   style.SetDecorationType(DecorationType::kUnderLine);
   style.SetDecorationStyle(LineType::kSolid);
-  style.SetDecorationColor(TTColor(TTColor::BLACK()));
+  style.SetDecorationColor(TTColor::BLACK);
   para.AddTextRun(&style, "Hello World!");
   TTTextContext context;
   std::unique_ptr<LayoutRegion> page =

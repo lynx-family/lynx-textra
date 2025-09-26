@@ -44,7 +44,9 @@ class TestFontMgr : public IFontManager {
  public:
   explicit TestFontMgr(std::vector<TypefaceRef> typeface_lst)
       : typeface_lst_(std::move(typeface_lst)) {}
-  int countFamilies() const override { return typeface_lst_.size(); }
+  int countFamilies() const override {
+    return static_cast<int>(typeface_lst_.size());
+  }
   TypefaceRef matchFamilyStyle(const char* familyName,
                                const FontStyle& style) override {
     assert(countFamilies() > 0);

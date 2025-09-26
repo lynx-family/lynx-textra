@@ -16,18 +16,17 @@ enum class ColorType : uint8_t;
  */
 class L_EXPORT TTColor {
  public:
-  static constexpr uint32_t RED() { return 0xFFFF0000; }
-  static constexpr uint32_t GREEN() { return 0xFF00FF00; }
-  static constexpr uint32_t BLUE() { return 0xFF0000FF; }
-  static constexpr uint32_t WHITE() { return 0xFFFFFFFF; }
-  static constexpr uint32_t BLACK() { return 0xFF000000; }
-  static constexpr TTColor UNDEFINED() { return {}; }
+  static constexpr uint32_t RED = 0xFFFF0000;
+  static constexpr uint32_t GREEN = 0xFF00FF00;
+  static constexpr uint32_t BLUE = 0xFF0000FF;
+  static constexpr uint32_t WHITE = 0xFFFFFFFF;
+  static constexpr uint32_t BLACK = 0xFF000000;
+  static constexpr uint32_t UNDEFINED = 0x0;
 
  public:
   constexpr TTColor() : value_(0) {}
   TTColor(const TTColor& color) : value_(color.value_) {}
-  explicit constexpr TTColor(uint32_t plain_color) : value_(plain_color) {}
-  TTColor(uint8_t theme_color_id, uint8_t alpha) = delete;
+  TTColor(const uint32_t plain_color) : value_(plain_color) {}  // NOLINT
   ~TTColor() = default;
 
  public:
@@ -41,14 +40,11 @@ class L_EXPORT TTColor {
   void SetThemeIdAndAlpha(uint8_t theme_id, uint8_t alpha) = delete;
 
  public:
-  bool IsThemeColor() const { return false; }
-  bool IsUndefined() const { return false; }
   uint32_t GetPlainColor() const { return value_; }
   uint8_t GetAlpha() const { return value_ >> 24; }
   uint8_t GetRed() const { return (value_ >> 16) & 0xff; }
   uint8_t GetGreen() const { return (value_ >> 8) & 0xff; }
   uint8_t GetBlue() const { return (value_) & 0xff; }
-  uint8_t GetThemeColorId() const = delete;
   std::string ToHexString() const;
 
  public:

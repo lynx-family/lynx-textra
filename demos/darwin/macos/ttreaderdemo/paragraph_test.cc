@@ -52,12 +52,12 @@ void ParagraphTest::DrawParagraph(ICanvasHelper* canvas, Paragraph& paragraph,
   auto layout_width = page.GetLayoutedWidth();
   auto layout_height = page.GetLayoutedHeight();
   if (draw_page_bound_) {
-    paint->SetColor(TTColor::BLACK());
+    paint->SetColor(TTColor::BLACK);
     paint->SetFillStyle(FillStyle::kStroke);
     canvas->DrawRect(0, 0, page_width, page_height, paint.get());
   }
   if (draw_layouted_bound_) {
-    paint->SetColor(TTColor::GREEN());
+    paint->SetColor(TTColor::GREEN);
     paint->SetFillStyle(FillStyle::kStroke);
     canvas->DrawRect(0, 0, layout_width, layout_height, paint.get());
   }
@@ -278,7 +278,8 @@ void ParagraphTest::TestTTParagraph(ICanvasHelper* canvas,
   ppr.SetHorizontalAlign(ParagraphHorizontalAlignment::kLeft);
   Style run_pr;
   run_pr.SetTextSize(20);
-  paragraph->AddTextRun(&run_pr, text.c_str(), text.length());
+  paragraph->AddTextRun(&run_pr, text.c_str(),
+                        static_cast<uint32_t>(text.length()));
 
   // auto start = clock();
   DrawParagraph(canvas, *paragraph, width, LayoutMode::kDefinite,
@@ -314,17 +315,22 @@ void ParagraphTest::TestSupSub(ICanvasHelper* canvas, float width) const {
   float base_size = 12;
   std::string content = "中国中国中国中国";
   run_style.SetTextSize(base_size);
-  paragraph.AddTextRun(&run_style, content.c_str(), content.length());
+  paragraph.AddTextRun(
+      &run_style, content.c_str(),
+      static_cast<uint32_t>(static_cast<uint32_t>(content.length())));
   run_style.SetTextScale(0.58);
   run_style.SetVerticalAlignment(CharacterVerticalAlignment::kSuperScript);
   content = "你好";
-  paragraph.AddTextRun(&run_style, content.c_str(), content.length());
+  paragraph.AddTextRun(&run_style, content.c_str(),
+                       static_cast<uint32_t>(content.length()));
   run_style.SetVerticalAlignment(CharacterVerticalAlignment::kSubScript);
-  paragraph.AddTextRun(&run_style, content.c_str(), content.length());
+  paragraph.AddTextRun(&run_style, content.c_str(),
+                       static_cast<uint32_t>(content.length()));
   run_style.SetTextScale(1.0f);
   run_style.SetVerticalAlignment(CharacterVerticalAlignment::kBaseLine);
   content = "正常正常正常正常正常正常正常正常正常";
-  paragraph.AddTextRun(&run_style, content.c_str(), content.length());
+  paragraph.AddTextRun(&run_style, content.c_str(),
+                       static_cast<uint32_t>(content.length()));
   TextLayout layout(font_collection_, shaper_type_);
   auto page_ptr = std::make_unique<LayoutRegion>(width, 10000);
   auto& page = *page_ptr;
@@ -345,18 +351,18 @@ void ParagraphTest::TestMultiStyleInWord(ICanvasHelper* canvas,
   float base_size = 24;
   run_style.SetTextSize(base_size);
   paragraph.AddTextRun(&run_style, "two egg");
-  TTColor color(TTColor::BLUE());
+  TTColor color(TTColor::BLUE);
   run_style.SetForegroundColor(color);
   run_style.SetDecorationType(DecorationType::kUnderLine);
-  color = TTColor ::RED();
+  color = TTColor ::RED;
   run_style.SetDecorationColor(color);
   paragraph.AddTextRun(&run_style, "s");
-  color.SetColor(TTColor::GREEN());
+  color.SetColor(TTColor::GREEN);
   run_style.SetBackgroundColor(color);
   paragraph.AddTextRun(&run_style, "dse");
   run_style.SetDecorationType(DecorationType::kNone);
   run_style.SetBackgroundColor(TTColor(0));
-  color = TTColor::BLACK();
+  color = TTColor::BLACK;
   run_style.SetForegroundColor(color);
   paragraph.AddTextRun(&run_style, " qwerqwerqwerqwe");
   DrawParagraph(canvas, paragraph, width);
@@ -778,9 +784,12 @@ void ParagraphTest::TestLineBreak(ICanvasHelper* canvas, float width) const {
     string += str;
     string += " ";
   }
-  paragraph.AddTextRun(nullptr, string.c_str(), string.length());
-  paragraph.AddTextRun(nullptr, string.c_str(), string.length());
-  paragraph.AddTextRun(nullptr, string.c_str(), string.length());
+  paragraph.AddTextRun(nullptr, string.c_str(),
+                       static_cast<uint32_t>(string.length()));
+  paragraph.AddTextRun(nullptr, string.c_str(),
+                       static_cast<uint32_t>(string.length()));
+  paragraph.AddTextRun(nullptr, string.c_str(),
+                       static_cast<uint32_t>(string.length()));
   DrawParagraph(canvas, paragraph, width);
 }
 void ParagraphTest::TestLayoutMode(ICanvasHelper* canvas, float width) const {
@@ -1084,8 +1093,8 @@ void ParagraphTest::TestPieceDraw(ICanvasHelper* canvas, float width) const {
   style.SetDecorationStyle(LineType::kSolid);
   style.SetDecorationType(DecorationType::kLineThrough);
   style.SetDecorationThicknessMultiplier(1);
-  style.SetDecorationColor(TTColor(TTColor::BLACK()));
-  style.SetBackgroundColor(TTColor(TTColor::GREEN()));
+  style.SetDecorationColor(TTColor(TTColor::BLACK));
+  style.SetBackgroundColor(TTColor(TTColor::GREEN));
   auto para = Paragraph::Create();
   para->GetParagraphStyle().SetDefaultStyle(style);
   para->AddTextRun(
@@ -1184,7 +1193,8 @@ void ParagraphTest::TestWordBoundary(ICanvasHelper* canvas, float width) const {
       TTASSERT(word.first == 30 && word.second == 31);
     }
     {
-      std::pair<uint32_t, uint32_t> word = para->GetWordBoundary(len - 1);
+      std::pair<uint32_t, uint32_t> word =
+          para->GetWordBoundary(static_cast<uint32_t>(len) - 1);
       TTASSERT(word.first == len - 5 && word.second == len);
     }
   }

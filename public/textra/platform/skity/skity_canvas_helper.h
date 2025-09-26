@@ -105,7 +105,7 @@ class SkityCanvasHelper : public ICanvasHelper {
     const auto& shadow_list = painter->GetShadowList();
     if (!shadow_list.empty()) {
       for (auto& shadow : shadow_list) {
-        paint->SetColor(shadow.color_.GetPlainColor());
+        paint->SetColor(shadow.color_);
         if (shadow.blur_radius_ != 0) {
           std::shared_ptr<skity::MaskFilter> filter =
               skity::MaskFilter::MakeBlur(skity::BlurStyle::kNormal,

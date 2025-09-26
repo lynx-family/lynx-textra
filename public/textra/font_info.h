@@ -61,8 +61,8 @@ class L_EXPORT FontStyle {
   bool operator!=(const FontStyle& rhs) const { return value_ != rhs.value_; }
 
   Weight GetWeight() const { return static_cast<Weight>(value_ & 0xFFFF); }
-  Width GetWidth() const { return static_cast<Width>((value_ >> 16) & 0xFF); }
-  Slant GetSlant() const { return static_cast<Slant>((value_ >> 24) & 0xFF); }
+  Width GetWidth() const { return static_cast<Width>(value_ >> 16 & 0xFF); }
+  Slant GetSlant() const { return static_cast<Slant>(value_ >> 24 & 0xFF); }
 
   static constexpr FontStyle Normal() {
     return {Weight::kNormal_Weight, Width::kNormal_Width,

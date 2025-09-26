@@ -152,7 +152,7 @@ TEST_F(TextLayoutTest, DifferentLayoutModes) {
 
 TEST_F(TextLayoutTest, ParagraphStyle_DefaultStyle) {
   const float text_size = 15.f;
-  const TTColor text_color(TTColor::BLUE());
+  const TTColor text_color(TTColor::BLUE);
   ParagraphStyle para_style;
   Style style;
   style.SetTextSize(text_size);

@@ -142,8 +142,8 @@ void ParagraphImpl::FormatRunList() {
     auto idx = 0u;
     StyleRange style_range;
     while (idx < GetCharCount()) {
-      style_manager_->GetStyleRange(
-          &style_range, idx, Style::BaselineOffsetFlag(), GetCharCount());
+      style_manager_->GetStyleRange(&style_range, idx,
+                                    Style::BaselineOffsetFlag, GetCharCount());
       auto k = style_range.GetRange().GetEnd() - 1;
       boundary_analyst_->UpgradeBoundaryType(Range::MakeLW(k, 1),
                                              BoundaryType::kLineBreakable);

@@ -7,12 +7,10 @@
 #ifdef GTEST
 #include <gtest/gtest.h>
 #endif
-#include <textra/paragraph_style.h>
 #include <textra/style.h>
 #include <textra/tt_color.h>
 
 #include <map>
-#include <memory>
 #include <utility>
 #include <vector>
 
@@ -55,12 +53,10 @@ class AttributesRangeList {
 
  public:
   AttributesRangeList() : merge_range_(true) {}
-  explicit AttributesRangeList(const AttributesRangeList& other) {
-    *this = other;
-  }
+  AttributesRangeList(const AttributesRangeList& other) { *this = other; }
 
  public:
-  void SetMergeRange(bool merge) { merge_range_ = merge; }
+  void SetMergeRange(const bool merge) { merge_range_ = merge; }
   void SetRangeValue(const Range& range, ValueType value);
   void ClearRangeValue(const Range& range) {
     SetRangeValue(range, Undefined());
@@ -77,8 +73,8 @@ class AttributesRangeList {
 
  public:
   AttributesRangeList& operator=(const AttributesRangeList& other) {
-    for (const auto& other_range : other.range_list_) {
-      range_list_.emplace_back(other_range.first, other_range.second);
+    for (const auto& [fst, snd] : other.range_list_) {
+      range_list_.emplace_back(fst, snd);
     }
     merge_range_ = other.merge_range_;
     return *this;
@@ -90,56 +86,28 @@ class AttributesRangeList {
 };
 class StyleManager {
  public:
-  StyleManager() {
-    style_list_[(AttrType)AttributeType::kDecorationType].SetMergeRange(false);
-  }
+  StyleManager() { style_list_[kDecorationType].SetMergeRange(false); }
   StyleManager(const StyleManager& other)
       : extra_style_list_(other.extra_style_list_),
         default_style_(other.default_style_) {
-    for (AttrType k = 0; k < (AttrType)AttributeType::kMaxAttrType; k++) {
+    for (AttrType k = 0; k < kMaxAttrType; k++) {
       style_list_[k] = other.style_list_[k];
     }
   }
 
  private:
   template <class T>
-  inline uint64_t PackValue(const T& t) const {
-    return (uint64_t)t;
+  static uint64_t PackValue(const T& t) {
+    uint64_t ret = 0;
+    memcpy(&ret, &t, sizeof(t));
+    return ret;
   }
 
   template <class T>
-  inline T UnPackValue(uint64_t v) const {
-    return (T)v;
-  }
-  template <>
-  uint64_t PackValue(const float& t) const {
-    uint64_t v;
-    memcpy(&v, &t, sizeof(float));
-    return v;
-  }
-  template <>
-  float UnPackValue(uint64_t v) const {
-    float f;
-    memcpy(&f, &v, sizeof(float));
-    return f;
-  }
-
-#define DEFINE_STYLE_MANAGER_ATTRIBUTE(TYPE_NAME, TYPE_TYPE)                \
- public:                                                                    \
-  void Set##TYPE_NAME(TYPE_TYPE attr, uint32_t start, uint32_t len = 1) {   \
-    PRINTLOG("Set%s range start:%d, len:%d", #TYPE_NAME, start, len);       \
-    auto type_id = (AttrType)AttributeType::k##TYPE_NAME;                   \
-    auto max_end = Range::MaxIndex();                                       \
-    auto end = len > max_end - start ? max_end : start + len;               \
-    style_list_[type_id].SetRangeValue(Range{start, end}, PackValue(attr)); \
-  }                                                                         \
-  TYPE_TYPE Get##TYPE_NAME(uint32_t idx) const {                            \
-    PRINTLOG("Get%s range idx:%d", #TYPE_NAME, idx);                        \
-    auto type_id = (AttrType)AttributeType::k##TYPE_NAME;                   \
-    auto value = style_list_[type_id].GetAttrValue(idx);                    \
-    return value == AttributesRangeList::Undefined()                        \
-               ? (default_style_.Get##TYPE_NAME())                          \
-               : UnPackValue<TYPE_TYPE>(value);                             \
+  T UnPackValue(const uint64_t v) const {
+    T ret;
+    memcpy(&ret, &v, sizeof(T));
+    return ret;
   }
 
  public:
@@ -147,113 +115,188 @@ class StyleManager {
     default_style_ = default_style;
   }
 
- public:
-  void SetForegroundColor(TTColor attr, uint32_t start, uint32_t len = 1) {
-    auto type_id = static_cast<AttrType>(AttributeType::kForegroundColor);
-    auto max_end = Range::MaxIndex();
-    auto end = len > max_end - start ? max_end : start + len;
-    style_list_[type_id].SetRangeValue(Range{start, end}, attr.GetPlainColor());
+  void SetForegroundColor(const TTColor attr, const uint32_t start,
+                          const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kForegroundColor].SetRangeValue(Range{start, end}, attr);
   }
 
-  TTColor GetForegroundColor(uint32_t idx) const {
-    auto type_id = static_cast<AttrType>(AttributeType::kForegroundColor);
-    auto value = style_list_[type_id].GetAttrValue(idx);
+  TTColor GetForegroundColor(const uint32_t idx) const {
+    const auto value = style_list_[kForegroundColor].GetAttrValue(idx);
     return value == AttributesRangeList::Undefined()
-               ? (default_style_.GetForegroundColor())
-               : TTColor(static_cast<uint32_t>(value & 0xFFFFFFFF));
+               ? default_style_.GetForegroundColor()
+               : TTColor(value & 0xFFFFFFFF);
   }
 
- public:
-  void SetBackgroundColor(TTColor attr, uint32_t start, uint32_t len = 1) {
-    auto type_id = (AttrType)AttributeType::kBackgroundColor;
-    auto max_end = Range::MaxIndex();
-    auto end = len > max_end - start ? max_end : start + len;
-    style_list_[type_id].SetRangeValue(Range{start, end}, attr.GetPlainColor());
+  void SetBackgroundColor(const TTColor attr, const uint32_t start,
+                          const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kBackgroundColor].SetRangeValue(Range{start, end}, attr);
   }
 
-  TTColor GetBackgroundColor(uint32_t idx) const {
-    auto type_id = (AttrType)AttributeType::kBackgroundColor;
-    auto value = style_list_[type_id].GetAttrValue(idx);
+  TTColor GetBackgroundColor(const uint32_t idx) const {
+    const auto value = style_list_[kBackgroundColor].GetAttrValue(idx);
     return value == AttributesRangeList::Undefined()
-               ? (default_style_.GetBackgroundColor())
-               : TTColor(static_cast<uint32_t>(value & 0xFFFFFFFF));
+               ? default_style_.GetBackgroundColor()
+               : TTColor(value & 0xFFFFFFFF);
   }
 
- public:
-  void SetDecorationColor(TTColor attr, uint32_t start, uint32_t len = 1) {
-    auto type_id = (AttrType)AttributeType::kDecorationColor;
-    auto max_end = Range::MaxIndex();
-    auto end = len > max_end - start ? max_end : start + len;
-    style_list_[type_id].SetRangeValue(Range{start, end}, attr.GetPlainColor());
+  void SetDecorationColor(const TTColor attr, const uint32_t start,
+                          const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kDecorationColor].SetRangeValue(Range{start, end}, attr);
   }
 
-  TTColor GetDecorationColor(uint32_t idx) const {
-    auto type_id = (AttrType)AttributeType::kDecorationColor;
-    auto value = style_list_[type_id].GetAttrValue(idx);
+  TTColor GetDecorationColor(const uint32_t idx) const {
+    const auto value = style_list_[kDecorationColor].GetAttrValue(idx);
     return value == AttributesRangeList::Undefined()
                ? (default_style_.GetDecorationColor())
-               : TTColor(static_cast<uint32_t>(value & 0xFFFFFFFF));
+               : TTColor(value & 0xFFFFFFFF);
   }
-  DEFINE_STYLE_MANAGER_ATTRIBUTE(DecorationType, DecorationType)
-  DEFINE_STYLE_MANAGER_ATTRIBUTE(DecorationThicknessMultiplier, float)
-  DEFINE_STYLE_MANAGER_ATTRIBUTE(ForegroundPainter, Painter*)
-  DEFINE_STYLE_MANAGER_ATTRIBUTE(BackgroundPainter, Painter*)
-  DEFINE_STYLE_MANAGER_ATTRIBUTE(WordBreak, WordBreakType)
-  DEFINE_STYLE_MANAGER_ATTRIBUTE(BaselineOffset, float)
 
- public:
-  using TextShadowList = std::vector<TextShadow>;
-  void SetTextShadowList(TextShadowList& attr, uint32_t start,
-                         uint32_t len = 1) {
-    auto type_id = (AttrType)AttributeType::kTextShadowList;
-    auto max_end = Range::MaxIndex();
-    auto end = len > max_end - start ? max_end : start + len;
-    style_list_[type_id].SetRangeValue(Range{start, end}, PackValue(&attr));
+  void SetDecorationType(const DecorationType attr, const uint32_t start,
+                         const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kDecorationType].SetRangeValue(Range{start, end},
+                                               PackValue(attr));
   }
-  const TextShadowList& GetTextShadowList(uint32_t idx) const {
-    auto type_id = (AttrType)AttributeType::kTextShadowList;
-    auto value = style_list_[type_id].GetAttrValue(idx);
+
+  DecorationType GetDecorationType(const uint32_t idx) const {
+    const auto value = style_list_[kDecorationType].GetAttrValue(idx);
+    return value == AttributesRangeList::Undefined()
+               ? (default_style_.GetDecorationType())
+               : UnPackValue<DecorationType>(value);
+  }
+
+  void SetDecorationThicknessMultiplier(const float attr, const uint32_t start,
+                                        const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kDecorationThicknessMultiplier].SetRangeValue(Range{start, end},
+                                                              PackValue(attr));
+  }
+
+  float GetDecorationThicknessMultiplier(const uint32_t idx) const {
+    const auto value =
+        style_list_[kDecorationThicknessMultiplier].GetAttrValue(idx);
+    return value == AttributesRangeList::Undefined()
+               ? (default_style_.GetDecorationThicknessMultiplier())
+               : UnPackValue<float>(value);
+  }
+
+  void SetForegroundPainter(const Painter* attr, const uint32_t start,
+                            const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kForegroundPainter].SetRangeValue(Range{start, end},
+                                                  PackValue(attr));
+  }
+
+  Painter* GetForegroundPainter(const uint32_t idx) const {
+    const auto value = style_list_[kForegroundPainter].GetAttrValue(idx);
+    return value == AttributesRangeList::Undefined()
+               ? (default_style_.GetForegroundPainter())
+               : UnPackValue<Painter*>(value);
+  }
+
+  void SetBackgroundPainter(const Painter* attr, const uint32_t start,
+                            const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kBackgroundPainter].SetRangeValue(Range{start, end},
+                                                  PackValue(attr));
+  }
+
+  Painter* GetBackgroundPainter(const uint32_t idx) const {
+    const auto value = style_list_[kBackgroundPainter].GetAttrValue(idx);
+    return value == AttributesRangeList::Undefined()
+               ? (default_style_.GetBackgroundPainter())
+               : UnPackValue<Painter*>(value);
+  }
+
+  void SetWordBreak(const WordBreakType attr, const uint32_t start,
+                    const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kWordBreak].SetRangeValue(Range{start, end}, PackValue(attr));
+  }
+
+  WordBreakType GetWordBreak(const uint32_t idx) const {
+    const auto value = style_list_[kWordBreak].GetAttrValue(idx);
+    return value == AttributesRangeList::Undefined()
+               ? (default_style_.GetWordBreak())
+               : UnPackValue<WordBreakType>(value);
+  }
+
+  void SetBaselineOffset(const float attr, const uint32_t start,
+                         const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kBaselineOffset].SetRangeValue(Range{start, end},
+                                               PackValue(attr));
+  }
+
+  float GetBaselineOffset(const uint32_t idx) const {
+    const auto value = style_list_[kBaselineOffset].GetAttrValue(idx);
+    return value == AttributesRangeList::Undefined()
+               ? (default_style_.GetBaselineOffset())
+               : UnPackValue<float>(value);
+  }
+
+  using TextShadowList = std::vector<TextShadow>;
+  void SetTextShadowList(const TextShadowList& attr, const uint32_t start,
+                         const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kTextShadowList].SetRangeValue(Range{start, end},
+                                               PackValue(&attr));
+  }
+  const TextShadowList& GetTextShadowList(const uint32_t idx) const {
+    const auto value = style_list_[kTextShadowList].GetAttrValue(idx);
     return value == AttributesRangeList::Undefined()
                ? (default_style_.GetTextShadowList())
                : *reinterpret_cast<TextShadowList*>(value);
   }
 
- public:
-  void SetDecorationStyle(LineType attr, uint32_t start, uint32_t len = 1) {
-    LogUtil::D("Set%s range start:%d, len:%d", "DecorationStyle", start, len);
-    auto type_id = (AttrType)AttributeType::kDecorationStyle;
-    auto max_end = Range::MaxIndex();
-    auto end = len > max_end - start ? max_end : start + len;
-    style_list_[type_id].SetRangeValue(Range{start, end}, PackValue(attr));
+  void SetDecorationStyle(const LineType attr, const uint32_t start,
+                          const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kDecorationStyle].SetRangeValue(Range{start, end},
+                                                PackValue(attr));
   }
-  LineType GetDecorationStyle(uint32_t idx) const {
-    LogUtil::D("Get%s range idx:%d", "DecorationStyle", idx);
-    auto type_id = (AttrType)AttributeType::kDecorationStyle;
-    auto value = style_list_[type_id].GetAttrValue(idx);
+
+  LineType GetDecorationStyle(const uint32_t idx) const {
+    const auto value = style_list_[kDecorationStyle].GetAttrValue(idx);
     return value == AttributesRangeList::Undefined()
                ? (default_style_.GetDecorationStyle())
                : UnPackValue<LineType>(value);
   }
-  void ApplyStyleInRange(const Style& style, uint32_t start, uint32_t len);
-  AttributesRangeList::ValueType GetTypeValue(AttributeType type,
-                                              uint32_t idx) {
-    auto type_id = (AttrType)type;
-    return style_list_[type_id].GetAttrValue(idx);
+
+  void ApplyStyleInRange(const Style& style, const uint32_t start,
+                         const uint32_t len);
+  AttributesRangeList::ValueType GetTypeValue(const AttributeType type,
+                                              const uint32_t idx) const {
+    return style_list_[type].GetAttrValue(idx);
   }
-  void ClearStyleInRange(AttributeType type, const Range& range) {
-    auto type_id = (AttrType)type;
-    style_list_[type_id].ClearRangeValue(range);
+  void ClearStyleInRange(const AttributeType type, const Range& range) {
+    style_list_[type].ClearRangeValue(range);
   }
-  const Style GetStyle(uint32_t id);
+
+  Style GetStyle(const uint32_t index) const;
   void GetStyleRange(StyleRange* style_range, uint32_t start_char,
-                     AttrType flag = Style::FullFlag(),
+                     AttrType flag = Style::FullFlag,
                      Range::RangeType end_char = Range::MaxIndex()) const;
   void GetStyleRange(Range* range, uint32_t start_char,
-                     AttrType flag = Style::FullFlag(),
+                     AttrType flag = Style::FullFlag,
                      Range::RangeType end_char = Range::MaxIndex()) const;
 
-  void ClearExtraAttributes(AttributeType extra_attr) {
-    extra_style_list_[(AttrType)extra_attr].Clear();
+  void ClearExtraAttributes(const AttributeType extra_attr) {
+    extra_style_list_[extra_attr].Clear();
   }
   void SetExtraFloatAttributesInRange(AttributeType extra_attr, float value,
                                       uint32_t start, uint32_t len);
@@ -262,16 +305,13 @@ class StyleManager {
 
  private:
   void SetStyle(Style* style, uint64_t value, AttributeType type) const;
-  AttributesRangeList::ValueType GetStyleValue(const Style* style,
-                                               AttributeType type) const;
+  static AttributesRangeList::ValueType GetStyleValue(const Style* style,
+                                                      AttributeType type);
 
  private:
-  AttributesRangeList style_list_[(AttrType)AttributeType::kMaxAttrType];
+  AttributesRangeList style_list_[kMaxAttrType];
   std::map<AttrType, AttributesRangeList> extra_style_list_;
   Style default_style_;
-// #undef GETVALUE
-// #undef SETVALUE
-#undef DEFINE_STYLE_MANAGER_ATTRIBUTE
 };
 }  // namespace tttext
 }  // namespace ttoffice

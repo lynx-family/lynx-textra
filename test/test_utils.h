@@ -136,7 +136,7 @@ class TestUtils {
       float bounding_rect[4];
       line->GetBoundingRectForLine(bounding_rect);
       auto painter = canvas_helper.CreatePainter();
-      painter->SetColor(TTColor::GREEN());
+      painter->SetColor(TTColor::GREEN);
       painter->SetFillStyle(FillStyle::kStroke);
       painter->SetStrokeWidth(1);
       canvas_helper.DrawRect(bounding_rect[0], bounding_rect[1],

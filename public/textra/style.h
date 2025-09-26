@@ -48,35 +48,33 @@ class L_EXPORT Style {
 
 #define DEFINE_STYLE_ATTRIBUTE(TYPE_NAME, VAR_NAME, TYPE)           \
  public:                                                            \
-  static constexpr FlagType TYPE_NAME##Flag() {                     \
-    return 1u << (int32_t)AttributeType::k##TYPE_NAME;              \
-  }                                                                 \
-  bool Has##TYPE_NAME() const { return flag_ & TYPE_NAME##Flag(); } \
+  static constexpr AttrType TYPE_NAME##Flag =                       \
+      1u << static_cast<uint32_t>(AttributeType::k##TYPE_NAME);     \
+  bool Has##TYPE_NAME() const { return flag_ & TYPE_NAME##Flag; }   \
   const TYPE& Get##TYPE_NAME() const {                              \
     return Has##TYPE_NAME() ? (VAR_NAME) : DefaultStyle().VAR_NAME; \
   }                                                                 \
   void Set##TYPE_NAME(const TYPE& val) {                            \
     VAR_NAME = val;                                                 \
-    flag_ |= TYPE_NAME##Flag();                                     \
-    if (Style::LayoutFlag() & TYPE_NAME##Flag()) ClearShapeStyle(); \
+    flag_ |= TYPE_NAME##Flag;                                       \
+    if (Style::LayoutFlag & TYPE_NAME##Flag) ClearShapeStyle();     \
   }                                                                 \
                                                                     \
  private:                                                           \
   TYPE VAR_NAME = DefaultStyle().VAR_NAME;
 
-#define DEFINE_STYLE_ATTRIBUTE_PTR(TYPE_NAME, VAR_NAME, TYPE)       \
- public:                                                            \
-  static constexpr FlagType TYPE_NAME##Flag() {                     \
-    return 1u << (int32_t)AttributeType::k##TYPE_NAME;              \
-  }                                                                 \
-  bool Has##TYPE_NAME() const { return flag_ & TYPE_NAME##Flag(); } \
-  TYPE Get##TYPE_NAME() const { return VAR_NAME; }                  \
-  void Set##TYPE_NAME(TYPE val) {                                   \
-    VAR_NAME = val;                                                 \
-    flag_ |= TYPE_NAME##Flag();                                     \
-  }                                                                 \
-                                                                    \
- private:                                                           \
+#define DEFINE_STYLE_ATTRIBUTE_PTR(TYPE_NAME, VAR_NAME, TYPE)     \
+ public:                                                          \
+  static constexpr AttrType TYPE_NAME##Flag =                     \
+      1u << static_cast<uint32_t>(AttributeType::k##TYPE_NAME);   \
+  bool Has##TYPE_NAME() const { return flag_ & TYPE_NAME##Flag; } \
+  TYPE Get##TYPE_NAME() const { return VAR_NAME; }                \
+  void Set##TYPE_NAME(TYPE val) {                                 \
+    VAR_NAME = val;                                               \
+    flag_ |= TYPE_NAME##Flag;                                     \
+  }                                                               \
+                                                                  \
+ private:                                                         \
   TYPE VAR_NAME;
 
  public:
@@ -333,7 +331,7 @@ class L_EXPORT Style {
    * @see TextShadow struct for individual shadow properties.
    */
   static constexpr FlagType TextShadowListFlag() {
-    return 1u << (int32_t)AttributeType::kTextShadowList;
+    return 1u << static_cast<int32_t>(AttributeType::kTextShadowList);
   }
   bool HasTextShadowList() const { return flag_ & TextShadowListFlag(); }
   const TextShadowList& GetTextShadowList() const { return text_shadow_list_; }
@@ -348,28 +346,21 @@ class L_EXPORT Style {
  public:
   float GetScaledTextSize() const { return GetTextSize() * GetTextScale(); }
   const ShapeStyle& GetShapeStyle() const;
-  bool HasAttribute(AttributeType type) const {
-    return flag_ & (1u << (int32_t)type);
+  bool HasAttribute(const AttributeType type) const {
+    return flag_ & (1u << static_cast<int32_t>(type));
   }
 
  public:
-  static constexpr FlagType FullFlag() {
-    return (1u << (AttrType)AttributeType::kMaxAttrType) - 1;
-  }
-  static constexpr FlagType SubSupFlag() {
-    return TextSizeFlag() | TextScaleFlag() | VerticalAlignmentFlag();
-  }
-  static constexpr FlagType MeasureFlag() {
-    return FontDescriptorFlag() | SubSupFlag() | LetterSpacingFlag();
-  }
-  static constexpr FlagType LayoutFlag() {
-    return MeasureFlag() | BoldFlag() | ItalicFlag();
-  }
-
-  static constexpr FlagType DecorationFlag() {
-    return DecorationColorFlag() | DecorationStyleFlag() |
-           DecorationTypeFlag() | DecorationThicknessMultiplierFlag();
-  }
+  static constexpr FlagType FullFlag =
+      (1u << static_cast<AttrType>(AttributeType::kMaxAttrType)) - 1;
+  static constexpr FlagType SubSupFlag =
+      TextSizeFlag | TextScaleFlag | VerticalAlignmentFlag;
+  static constexpr FlagType MeasureFlag =
+      FontDescriptorFlag | SubSupFlag | LetterSpacingFlag;
+  static constexpr FlagType LayoutFlag = MeasureFlag | BoldFlag | ItalicFlag;
+  static constexpr FlagType DecorationFlag =
+      DecorationColorFlag | DecorationStyleFlag | DecorationTypeFlag |
+      DecorationThicknessMultiplierFlag;
 
  public:
   Style& operator=(const Style& other);

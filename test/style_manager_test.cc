@@ -212,7 +212,7 @@ TEST(AttributesRangeListTest, SetRangeValue) {
 
 TEST(StyleManager, CopyConstructor) {
   StyleManager original;
-  TTColor color(TTColor::BLUE());
+  TTColor color(TTColor::BLUE);
   original.SetForegroundColor(color, 1, 5);
   StyleManager copy(original);
   EXPECT_EQ(copy.GetForegroundColor(2), color);
@@ -220,7 +220,7 @@ TEST(StyleManager, CopyConstructor) {
 
 TEST(StyleManager, SetParagraphStyle) {
   StyleManager manager;
-  TTColor fg_color(TTColor::RED());
+  TTColor fg_color(TTColor::RED);
   Style style;
   style.SetForegroundColor(fg_color);
   manager.SetParagraphStyle(style);
@@ -232,21 +232,21 @@ TEST(StyleManager, AttributeGettersAndSetters) {
   StyleManager manager;
   manager.SetParagraphStyle(default_style);
   // Test ForegroundColor
-  const TTColor fg_color(TTColor::RED());
+  const TTColor fg_color(TTColor::RED);
   manager.SetForegroundColor(fg_color, 1, 5);
   EXPECT_EQ(manager.GetForegroundColor(0), default_style.GetForegroundColor());
   EXPECT_EQ(manager.GetForegroundColor(1), fg_color);
   EXPECT_EQ(manager.GetForegroundColor(5), fg_color);
   EXPECT_EQ(manager.GetForegroundColor(6), default_style.GetForegroundColor());
   // Test BackgroundColor
-  const TTColor bg_color(TTColor::GREEN());
+  const TTColor bg_color(TTColor::GREEN);
   manager.SetBackgroundColor(bg_color, 1, 5);
   EXPECT_EQ(manager.GetBackgroundColor(0), default_style.GetBackgroundColor());
   EXPECT_EQ(manager.GetBackgroundColor(1), bg_color);
   EXPECT_EQ(manager.GetBackgroundColor(5), bg_color);
   EXPECT_EQ(manager.GetBackgroundColor(6), default_style.GetBackgroundColor());
   // Test DecorationColor
-  const TTColor dec_color(TTColor::BLUE());
+  const TTColor dec_color(TTColor::BLUE);
   manager.SetDecorationColor(dec_color, 1, 5);
   EXPECT_EQ(manager.GetDecorationColor(0), default_style.GetDecorationColor());
   EXPECT_EQ(manager.GetDecorationColor(1), dec_color);
@@ -315,8 +315,8 @@ TEST(StyleManager, AttributeGettersAndSetters) {
 
 TEST(StyleManager, GetStyle) {
   StyleManager manager;
-  TTColor fg_color(TTColor::RED());
-  TTColor bg_color(TTColor::GREEN());
+  TTColor fg_color(TTColor::RED);
+  TTColor bg_color(TTColor::GREEN);
   LineType line_type = LineType::kDashed;
   manager.SetForegroundColor(fg_color, 1, 5);
   manager.SetBackgroundColor(bg_color, 1, 5);
@@ -329,7 +329,7 @@ TEST(StyleManager, GetStyle) {
 }
 
 TEST(StyleManager, ApplyStyleInRange) {
-  const TTColor color(TTColor::RED());
+  const TTColor color(TTColor::RED);
   Style style;
   style.SetForegroundColor(color);
   {
@@ -363,7 +363,7 @@ TEST(StyleManager, ApplyStyleInRange) {
   {
     // Test overlapping ranges
     StyleManager manager;
-    const TTColor color2(TTColor::GREEN());
+    const TTColor color2(TTColor::GREEN);
     Style style2;
     style2.SetForegroundColor(color2);
     manager.ApplyStyleInRange(style, 5, 7);
@@ -383,7 +383,7 @@ TEST(StyleManager, ApplyStyleInRange) {
     // Thickness  |   |   |<---2.0--->)   |
     // Decoration |<------Underline------>)
     StyleManager manager;
-    const TTColor bg_color(TTColor::RED());
+    const TTColor bg_color(TTColor::RED);
     const float thickness = 2.0f;
     const DecorationType dec_type = DecorationType::kUnderLine;
     Style style1;
@@ -418,7 +418,7 @@ TEST(StyleManager, ApplyStyleInRange) {
 TEST(StyleManager, ClearStyleInRange) {
   StyleManager manager;
   const AttributeType fg_attr = AttributeType::kForegroundColor;
-  const TTColor fg_color(TTColor::RED());
+  const TTColor fg_color(TTColor::RED);
   const Range range{2, 5};
   const TTColor default_color = Style::DefaultStyle().GetForegroundColor();
   // Clear when StyleManager is empty
@@ -460,7 +460,7 @@ TEST(StyleManager, GetStyleRange) {
 
   // Test single attribute range
   const Range range1{1, 4};
-  const TTColor fg_color(TTColor::RED());
+  const TTColor fg_color(TTColor::RED);
   manager.SetForegroundColor(fg_color, range1.GetStart(), range1.GetLength());
   StyleRange style_range;
   manager.GetStyleRange(&style_range, range1.GetStart());

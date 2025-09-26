@@ -17,7 +17,7 @@ class LayoutDrawerListener {
  public:
   virtual uint32_t FetchThemeColor(ThemeCategory style_type,
                                    const TTColor& color) {
-    return color.IsThemeColor() ? 0xFF000000 : color.GetPlainColor();
+    return color.GetPlainColor();
   }
 
  public:

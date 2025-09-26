@@ -107,8 +107,8 @@ void LayoutDrawer::DrawLineBackground(TextLine* i_line,
   while (range.GetRange().GetEnd() <= char_end_in_para) {
     style_manager->GetStyleRange(
         &range, start_char,
-        Style::BackgroundColorFlag() | Style::BackgroundPainterFlag());
-    if (range.GetStyle().GetBackgroundColor().GetAlpha() != 0 ||
+        Style::BackgroundColorFlag | Style::BackgroundPainterFlag);
+    if ((range.GetStyle().GetBackgroundColor() & 0xFF000000) != 0 ||
         range.GetStyle().GetBackgroundPainter() != nullptr) {
       auto end_char = std::min(range.GetRange().GetEnd(), char_end_in_para);
       line->GetBoundingRectByCharRange(rect.data(), start_char, end_char);
@@ -118,7 +118,7 @@ void LayoutDrawer::DrawLineBackground(TextLine* i_line,
       if (painter == nullptr) {
         painter = default_painter.get();
         painter->SetFillStyle(FillStyle::kFill);
-        painter->SetColor(style.GetBackgroundColor().GetPlainColor());
+        painter->SetColor(style.GetBackgroundColor());
       }
       canvas_->DrawRect(rect[0], line->GetLineTop(), rect[0] + rect[2],
                         line->GetLineBottom(), painter);
@@ -137,7 +137,7 @@ void LayoutDrawer::DrawLineDecoration(TextLine* i_line,
   std::array<float, 4> rect{};
   float line_y = 0;
   while (range.GetRange().GetEnd() <= char_end_in_para) {
-    style_manager->GetStyleRange(&range, start_char, Style::DecorationFlag());
+    style_manager->GetStyleRange(&range, start_char, Style::DecorationFlag);
     auto end_char = std::min(range.GetRange().GetEnd(), char_end_in_para);
     auto& decorate_style = range.GetStyle();
     auto& default_text_style = line->GetParagraph()->GetDefaultStyle();
@@ -304,8 +304,8 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
     if (style_manager != nullptr) {
       style_manager->GetStyleRange(
           &style_range, run->GetStartCharPos() + piece_start,
-          Style::ForegroundColorFlag() | Style::ForegroundPainterFlag() |
-              Style::BaselineOffsetFlag());
+          Style::ForegroundColorFlag | Style::ForegroundPainterFlag |
+              Style::BaselineOffsetFlag);
       piece_end = std::min(char_end_pos, style_range.GetRange().GetEnd() -
                                              run->GetStartCharPos());
       style = &style_range.GetStyle();
@@ -320,7 +320,7 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
         painter->SetFontFamily(fd.font_family_list_[0]);
       }
       painter->SetTextSize(layout_style.GetTextSize());
-      painter->SetColor(style->GetForegroundColor().GetPlainColor());
+      painter->SetColor(style->GetForegroundColor());
       painter->SetBold(layout_style.GetBold());
       painter->SetItalic(layout_style.GetItalic());
     } else {

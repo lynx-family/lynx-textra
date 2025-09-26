@@ -66,7 +66,7 @@ TEST(StyleTest, ChangingSomeAttributesResetsShapeStyle) {
 
 TEST(StyleTest, Reset) {
   Style style;
-  style.SetBackgroundColor(TTColor(TTColor::BLUE()));
+  style.SetBackgroundColor(TTColor(TTColor::BLUE));
   EXPECT_TRUE(style.HasBackgroundColor());
   style.Reset();
   EXPECT_FALSE(style.HasBackgroundColor());
