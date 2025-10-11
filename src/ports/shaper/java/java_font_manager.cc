@@ -6,6 +6,8 @@
 #include <textra/platform/java/java_typeface.h>
 #include <textra/platform/java/tttext_jni_proxy.h>
 
+#include <memory>
+
 #include "src/ports/shaper/java/java_utils.h"
 
 namespace ttoffice {
@@ -15,7 +17,7 @@ JavaFontManager::JavaFontManager() {
   auto* env = proxy.GetCurrentJNIEnv();
   auto inst = env->NewObject(
       static_cast<jclass>(proxy.JavaFontManager_class_->get()),
-      proxy.JavaFontManager_method_init_, reinterpret_cast<uint64_t>(this));
+      proxy.JavaFontManager_method_init_, reinterpret_cast<jlong>(this));
   if (ClearException(env)) {
     return;
   }
@@ -79,7 +81,7 @@ std::shared_ptr<JavaTypeface> JavaFontManager::matchTypeface(
   }
   auto& proxy = TTTextJNIProxy::GetInstance();
   auto env = proxy.GetCurrentJNIEnv();
-  long raw_pointer = 0;
+  uint64_t raw_pointer = 0;
   std::shared_ptr<JavaTypeface> obj = nullptr;
   if (fd.platform_font_ != 0) {
     raw_pointer = env->CallLongMethod(
@@ -99,11 +101,11 @@ std::shared_ptr<JavaTypeface> JavaFontManager::matchTypeface(
         java_instance_->get(), proxy.JavaFontManager_method_onMatchFamilyStyle_,
         j_fontfamily, fd.font_style_.GetWeight(),
         fd.font_style_.GetSlant() != FontStyle::kUpright_Slant,
-        reinterpret_cast<uint64_t>(obj.get()));
+        reinterpret_cast<jlong>(obj.get()));
   }
-  if (raw_pointer != (jlong)obj.get()) {
+  if (raw_pointer != (uint64_t)obj.get()) {
     auto typeface =
-        (reinterpret_cast<JavaTypeface*>(raw_pointer))->shared_from_this();
+        reinterpret_cast<JavaTypeface*>(raw_pointer)->shared_from_this();
     obj = std::static_pointer_cast<JavaTypeface>(typeface);
   }
   typeface_map_[fd] = obj;

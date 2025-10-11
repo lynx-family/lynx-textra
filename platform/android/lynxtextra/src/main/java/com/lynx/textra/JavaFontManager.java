@@ -6,6 +6,7 @@ package com.lynx.textra;
 
 import android.graphics.Typeface;
 import android.graphics.fonts.Font;
+import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -73,16 +74,35 @@ public class JavaFontManager {
       style = Typeface.ITALIC;
     }
 
-    cached_typeface = RegisterTypeface(Typeface.create("", style), key, typeface_handler);
-    return cached_typeface.mNativeHandler;
+    try {
+      Typeface tf = Typeface.create(Typeface.DEFAULT, style);
+      if (tf == null)
+        tf = Typeface.DEFAULT;
+
+      cached_typeface = RegisterTypeface(tf, key, typeface_handler);
+      if (cached_typeface.mNativeHandler == 0) {
+        cached_typeface = null;
+      }
+    } catch (Exception e) {
+      cached_typeface = null;
+    }
+    if (cached_typeface != null) {
+      mFontMap.put(key, cached_typeface);
+    } else {
+      if (!mFontMap.isEmpty()) {
+        cached_typeface = mFontMap.values().iterator().next();
+      } else if (!mFontList.isEmpty()) {
+        cached_typeface = mFontList.getFirst();
+      }
+    }
+
+    return cached_typeface != null ? cached_typeface.mNativeHandler : mNativeHandler;
   }
 
   private synchronized JavaTypeface RegisterTypeface(
       Typeface typeface, JavaTypeface.FontKey key, long typeface_handler) {
     int index = mCount.incrementAndGet();
-    JavaTypeface java_typeface = new JavaTypeface(index, typeface, key, typeface_handler);
-    mFontMap.put(key, java_typeface);
-    return java_typeface;
+    return new JavaTypeface(index, typeface, key, typeface_handler);
   }
 
   public synchronized JavaTypeface RegisterShapeFont(Font font, JavaTypeface.FontKey key) {
