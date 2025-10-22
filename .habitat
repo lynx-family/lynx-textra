@@ -1,1 +1,2 @@
+habitat_version = "0.3.143"
 solutions = [{'name': '.', 'deps_file': 'DEPS', 'url': 'git@github.com:lynx-family/lynx-textra.git'}]
