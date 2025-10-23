@@ -363,6 +363,8 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
                        pos_y + prev_start, painter);
     }
     piece_start = piece_end;
+    pos_x += glyph_count;
+    pos_y += glyph_count;
   }
   return x;
 }

@@ -114,6 +114,7 @@ ParagraphTest::GetTestCases() {
           {"TestAlignWithBBox", &ParagraphTest::TestAlignWithBBox},
           {"TestModifyHAlignAfterLayout",
            &ParagraphTest::TestModifyHAlignAfterLayout},
+          {"TestApplyStyleInRange", &ParagraphTest::TestApplyStyleInRange},
       };
   return kTestCases;
 }
@@ -1570,6 +1571,26 @@ void ParagraphTest::TestModifyHAlignAfterLayout(ICanvasHelper* canvas,
       ParagraphHorizontalAlignment::kRight);
   LayoutDrawer drawer(canvas);
   drawer.DrawLayoutPage(&page);
+}
+
+void ParagraphTest::TestApplyStyleInRange(ICanvasHelper* canvas,
+                                          float width) const {
+  Style style;
+  style.SetTextSize(24);
+  auto para = Paragraph::Create();
+  para->GetParagraphStyle().SetDefaultStyle(style);
+  para->AddTextRun(nullptr, "一段文本");
+  Style y_offset = style;
+  y_offset.SetBaselineOffset(10);
+  para->AddTextRun(&y_offset, "一段文本");
+  para->AddTextRun(nullptr,
+                   "一段文本一段文本一段文本一段文本一段文本一段文本一段文本"
+                   "一段文本一段文本一段文本一段文本一段文本");
+  Style style1;
+  style1.SetForegroundColor(TTColor(0xffff0000));
+  para->ApplyStyleInRange(style1, 10, 20);
+  DrawParagraph(canvas, *para, width, LayoutMode::kDefinite,
+                LayoutMode::kIndefinite);
 }
 
 #pragma clang diagnostic pop

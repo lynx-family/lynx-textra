@@ -145,6 +145,10 @@ class ParagraphImageTest : public ::testing::Test {
     TestHelper(&ParagraphTest::TestModifyHAlignAfterLayout,
                "modify_halign_after_layout.png");
   }
+  void TestApplyStyleRange() {
+    TestHelper(&ParagraphTest::TestApplyStyleInRange,
+               "apply_style_in_range.png");
+  }
 };
 
 TEST_F(ParagraphImageTest, TestSupSub) { TestSupSub(); }
@@ -191,3 +195,4 @@ TEST_F(ParagraphImageTest, TestAlignWithBBox) { TestAlignWithBBox(); }
 TEST_F(ParagraphImageTest, TestModifyHAlignAfterLayout) {
   TestModifyHAlignAfterLayout();
 }
+TEST_F(ParagraphImageTest, TestApplyStyleRange) { TestApplyStyleRange(); }
