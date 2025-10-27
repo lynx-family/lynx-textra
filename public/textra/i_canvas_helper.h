@@ -70,6 +70,7 @@ class ICanvasHelper {
 
  public:
   virtual std::unique_ptr<Painter> CreatePainter() = 0;
+  virtual void SetCanvas(void* canvas) {}
   virtual void StartPaint() = 0;
   virtual void EndPaint() = 0;
 

@@ -12,6 +12,7 @@ shared_library("lynxtextra") {
     "libace_ndk.z.so",
     "libnative_drawing.so",
     "libnative_display_manager.so",
+    "libhilog_ndk.z.so",
   ]
   include_dirs = [
     "src/main/jni/include",

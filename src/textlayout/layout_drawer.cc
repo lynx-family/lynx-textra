@@ -36,6 +36,7 @@ LayoutDrawer::LayoutDrawer(ICanvasHelper* canvas)
 LayoutDrawer::~LayoutDrawer() = default;
 void LayoutDrawer::DrawLayoutPage(LayoutRegion* layout_page) {
   if (!canvas_) return;
+  default_painter_ = canvas_->CreatePainter();
   for (auto& line : layout_page->line_lst_) {
     DrawTextLine(line.get(), 0, line->GetCharCount());
   }
@@ -290,7 +291,6 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
   }
   while (piece_start < char_end_pos) {
     const Style* style = nullptr;
-    auto default_painter = canvas_->CreatePainter();
     Painter* painter = nullptr;
     auto piece_end = char_end_pos;
     StyleRange style_range;
@@ -307,7 +307,7 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
       style = &run->GetLayoutStyle();
     }
     if (painter == nullptr) {
-      painter = default_painter.get();
+      painter = default_painter_.get();
       auto& fd = layout_style.GetFontDescriptor();
       if (!fd.font_family_list_.empty()) {
         painter->SetFontFamily(fd.font_family_list_[0]);
@@ -332,9 +332,14 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
       }
     } else {
       y += style->GetBaselineOffset();
-      std::vector<uint16_t> glyphs(glyph_count);
-      std::vector<const ITypefaceHelper*> fonts(glyph_count);
-      std::vector<float> advance(glyph_count);
+      auto& glyphs = glyphs_cache_;
+      auto& fonts = fonts_cache_;
+      auto& advance = advance_cache_;
+      if (glyphs.size() < glyph_count) {
+        glyphs.resize(glyph_count);
+        fonts.resize(glyph_count);
+        advance.resize(glyph_count);
+      }
       uint32_t prev_start = 0;
       uint32_t prev_glyph_id = run->IsRtl() ? glyph_count - 1 : 0;
       for (uint32_t k = 0; k < glyph_count; k++) {

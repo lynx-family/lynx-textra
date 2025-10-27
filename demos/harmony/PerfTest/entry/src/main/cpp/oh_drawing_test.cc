@@ -43,6 +43,9 @@ void OHLayoutParagraph(void* ctx, double width) {
   OH_Drawing_TypographyLayout(typography, width);
   context->typography_ = typography;
 }
+void OHCreateCanvas(void* context, OH_Drawing_Bitmap* bitmap){
+  
+}
 void OHDrawParagraph(void* ctx, OH_Drawing_Canvas* canvas) {
   auto* context = (OHContext*)ctx;
   if (!context->typography_ || !canvas) return;

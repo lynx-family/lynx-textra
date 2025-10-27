@@ -101,6 +101,10 @@ class L_EXPORT LayoutDrawer {
  private:
   ICanvasHelper* canvas_;
   LayoutDrawerListener* listener_;
+  std::unique_ptr<Painter> default_painter_;
+  mutable std::vector<uint16_t> glyphs_cache_;
+  mutable std::vector<const ITypefaceHelper*> fonts_cache_;
+  mutable std::vector<float> advance_cache_;
 };
 }  // namespace tttext
 }  // namespace ttoffice

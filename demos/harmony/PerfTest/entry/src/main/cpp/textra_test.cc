@@ -19,6 +19,9 @@ void TextraBuildParagraph(void* ctx) {
   context->layout_ =
       std::make_unique<tttext::TextLayout>(&fc, tttext::ShaperType::kSystem);
   context->paragraph_ = tttext::Paragraph::Create();
+  context->canvas_ = tttext::PlatformHelper::CreateCanvasHelper(
+      tttext::PlatformType::kSystem, nullptr);
+  context->layout_drawer_ = std::make_unique<tttext::LayoutDrawer>(context->canvas_.get());
 }
 void TextraAppendContent(void* ctx, const std::string& text, uint32_t font_size,
                          uint32_t color) {
@@ -35,13 +38,13 @@ void TextraLayoutParagraph(void* ctx, double width) {
   context->layout_->Layout(context->paragraph_.get(), context->region_.get(),
                            *(context->context_));
 }
+void TextraCreateCanvas(void* context, OH_Drawing_Bitmap* bitmap){
+  
+}
 void TextraDrawParagraph(void* ctx, OH_Drawing_Canvas* canvas) {
   auto context = (TextraContext*)ctx;
   if (context == nullptr || context->region_ == nullptr || canvas == nullptr)
     return;
-  auto textra_canvas = tttext::PlatformHelper::CreateCanvasHelper(
-      tttext::PlatformType::kSystem, canvas);
-  textra_canvas->Translate(0, 0);
-  tttext::LayoutDrawer drawer(textra_canvas.get());
-  drawer.DrawLayoutPage(context->region_.get());
+  context->canvas_->SetCanvas(canvas);
+  context->layout_drawer_->DrawLayoutPage(context->region_.get());
 }

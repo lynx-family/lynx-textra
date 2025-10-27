@@ -169,16 +169,16 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
   auto text_style = OH_Drawing_CreateTextStyle();
   OH_Drawing_SetTextStyleFontSize(text_style, key.style_.GetFontSize());
   auto& fd = key.style_.GetFontDescriptor();
-  const char** families = new const char*[fd.font_family_list_.size()];
-  for (int k = 0; k < fd.font_family_list_.size(); k++) {
-    families[k] = fd.font_family_list_[k].c_str();
-  }
-  OH_Drawing_SetTextStyleFontFamilies(
-      text_style, static_cast<int32_t>(fd.font_family_list_.size()), families);
-  if (fd.font_style_.GetSlant() != FontStyle::kUpright_Slant)
-    OH_Drawing_SetTextStyleFontStyle(text_style, FONT_STYLE_ITALIC);
-  OH_Drawing_SetTextStyleFontWeight(text_style,
-                                    (int)(fd.font_style_.GetWeight() / 100));
+  // const char** families = new const char*[fd.font_family_list_.size()];
+  // for (int k = 0; k < fd.font_family_list_.size(); k++) {
+  //   families[k] = fd.font_family_list_[k].c_str();
+  // }
+  // OH_Drawing_SetTextStyleFontFamilies(
+  //     text_style, static_cast<int32_t>(fd.font_family_list_.size()), families);
+  // if (fd.font_style_.GetSlant() != FontStyle::kUpright_Slant)
+  //   OH_Drawing_SetTextStyleFontStyle(text_style, FONT_STYLE_ITALIC);
+  // OH_Drawing_SetTextStyleFontWeight(text_style,
+  //                                   (int)(fd.font_style_.GetWeight() / 100));
   OH_Drawing_TypographyHandlerPushTextStyle(typography_handler, text_style);
   ohos_shaping_funcs_->TypographyHandlerAddEncodedText_(
       typography_handler, key.text_.c_str(), key.text_.length() * 4,
@@ -233,7 +233,7 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
     ohos_shaping_funcs_->DestroyRunPositions_(position_array);
     ohos_shaping_funcs_->DestroyRunGlyphs_(glyph_array);
   }
-  delete[] families;
+//  delete[] families;
 
   ohos_shaping_funcs_->DestroyRuns_(glyph_runs);
   ohos_shaping_funcs_->DestroyTextLine_(line);

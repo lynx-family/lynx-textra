@@ -27,11 +27,11 @@ struct Index {
         .height('30%')
         .width('100%')
         .borderWidth(1).borderColor('#FF00FF00')
-      NodeContainer(this.textNativeNodeController)
+      NodeContainer(this.textraNodeController)
         .height('30%')
         .width('100%')
         .borderWidth(1).borderColor('#FF0000FF')
-      NodeContainer(this.textraNodeController)
+      NodeContainer(this.textNativeNodeController)
         .height('30%')
         .width('100%')
         .borderWidth(1).borderColor('#FFFF0000')
@@ -45,9 +45,9 @@ struct Index {
         })
         .onClick(() => {
           let testCase = this.constructTestCases()
+          this.startTest(this.textraNodeController.renderNode, testCase, "Textra")
           this.startTest(this.textNativeNewNodeController.renderNode, testCase, "NativeNewText")
           this.startTest(this.textNativeNodeController.renderNode, testCase, "NativeText")
-          this.startTest(this.textraNodeController.renderNode, testCase, "Textra")
         })
     }
     .height('100%')
@@ -67,15 +67,15 @@ struct Index {
   }
 
   constructTestCases(): Array<TestCase> {
-    let testCount = 200
-    let testLength = 500
+    let testCount = 1
+    let testLength = 1
     let testCase: Array<TestCase> = new Array<TestCase>()
     let testContent = this.fullContent
 
     for (let k = 0; k < testCount; k++) {
       let one_case = new TestCase()
       let start = Decimal.random().mul(testContent.length - testLength).floor().toNumber()
-      one_case.text = testContent.substring(start, start + testLength);
+      one_case.text = "  \t\tab"// testContent.substring(start, start + testLength);
       let style_start = 0
       while (style_start < one_case.text.length) {
         let run_style = new RunStyle()

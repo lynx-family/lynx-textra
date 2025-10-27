@@ -6,6 +6,10 @@
 
 #include <native_drawing/drawing_point.h>
 #include <native_drawing/drawing_text_run.h>
+#include <native_drawing/drawing_text_blob.h>
+#include <native_drawing/drawing_brush.h>
+#include <hilog/log.h>
+#include <sys/types.h>
 
 #include <cstdint>
 
@@ -59,7 +63,11 @@ void OHNewLayoutParagraph(void* ctx, double width) {
       OH_Drawing_LineTypographyCreateLine(line_typo, 0, context->char_count_);
   auto glyph_count = OH_Drawing_TextLineGetGlyphCount(line);
 
-  if (0) {
+  auto& result = context->glyph_struct_;
+  result.clear();
+  context->line_info_.clear();
+
+  if (1) {
     auto glyph_runs = OH_Drawing_TextLineGetGlyphRuns(line);
     auto glyph_runs_count = OH_Drawing_GetDrawingArraySize(glyph_runs);
     auto glyph_idx = 0;
@@ -83,22 +91,64 @@ void OHNewLayoutParagraph(void* ctx, double width) {
         auto adv = OH_Drawing_GetRunGlyphAdvanceByIndex(advance_array, j);
         float aadv[2];
         OH_Drawing_PointGetX(adv, &aadv[0]);
-        //      shaping_result.typeface_[glyph_idx + j] = tf_helper;
+        OH_Drawing_PointGetY(adv, &aadv[1]);
+        result.emplace_back(GlyphStruct{.glyph_id_ = glyph, .advance_ = aadv[0], .advance_y_ = aadv[1], .font_ = font});
       }
       glyph_idx += glyph_cnt;
-      //    ohos_shaping_funcs_->DestroyRunStringIndices_(indices_array);
-      //    ohos_shaping_funcs_->DestroyRunPositions_(position_array);
-      //    ohos_shaping_funcs_->DestroyRunGlyphs_(glyph_array);
     }
-    //  delete[] families;
-    //
-    //  ohos_shaping_funcs_->DestroyRuns_(glyph_runs);
-    //  ohos_shaping_funcs_->DestroyTextLine_(line);
-    //  ohos_shaping_funcs_->DestroyLineTypography_(line_typo);
+  }
+  float w = 0;
+  uint32_t start = 0;
+  for (auto k = 0; k < result.size(); k++) {
+    if (w + result[k].advance_ > width) {
+      context->line_info_.emplace_back(std::make_pair(start, k));
+      start = k;
+      w = 0;
+    }
+    w += result[k].advance_;
+  }
+  if (start < result.size()) {
+    context->line_info_.emplace_back(std::make_pair(start, result.size()));
   }
   context->line_ = line;
 }
+void OHNewCreateCanvas(void* context, OH_Drawing_Bitmap* bitmap){
+  
+}
 void OHNewDrawParagraph(void* ctx, OH_Drawing_Canvas* canvas) {
   auto* context = (OHNewContext*)ctx;
-  OH_Drawing_TextLinePaint(context->line_, canvas, 0, 0);
+
+  OH_Drawing_CanvasSave(canvas);
+  auto y = 0.f;
+  for (auto k = 0; k < context->line_info_.size(); k++) {
+    auto glyph_start = context->line_info_[k].first;
+    auto glyph_end = context->line_info_[k].second;
+    auto glyph_count = glyph_end - glyph_start;
+    auto& gi = context->glyph_struct_[glyph_start];
+    auto font = gi.font_;
+    y += OH_Drawing_FontGetTextSize(font);
+
+    OH_Drawing_TextBlobBuilder* builder = OH_Drawing_TextBlobBuilderCreate();
+    const OH_Drawing_RunBuffer* runBuffer =
+        OH_Drawing_TextBlobBuilderAllocRunPos(builder, font, glyph_count,
+                                              nullptr);
+    auto x = 0.f;
+    for (auto idx = 0; idx < glyph_count; idx++) {
+      auto& glyph_struct = context->glyph_struct_[glyph_start + idx];
+      runBuffer->glyphs[idx] = glyph_struct.glyph_id_;
+      runBuffer->pos[idx * 2] = x;
+      runBuffer->pos[idx * 2 + 1] = y;
+      x += glyph_struct.advance_;
+    }
+    OH_Drawing_TextBlob* textBlob = OH_Drawing_TextBlobBuilderMake(builder);
+    auto* brush = OH_Drawing_BrushCreate();
+    OH_Drawing_BrushSetColor(brush, 0xFF0000FF);
+    OH_Drawing_CanvasAttachBrush(canvas, brush);
+    OH_Drawing_CanvasDrawTextBlob(canvas, textBlob, 0, 0);
+    OH_Drawing_CanvasDetachBrush(canvas);
+    OH_Drawing_BrushDestroy(brush);
+    OH_Drawing_TextBlobDestroy(textBlob);
+    OH_Drawing_TextBlobBuilderDestroy(builder);
+  }
+  OH_Drawing_CanvasRestore(canvas);
 }

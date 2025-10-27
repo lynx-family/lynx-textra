@@ -24,9 +24,24 @@
 #include <memory>
 
 #include "src/ports/renderer/ark_graphics/ag_typeface_helper.h"
+#include "utils/log_util.h"
 
 namespace ttoffice {
 namespace tttext {
+class AGPainter : public Painter {
+ public:
+  AGPainter() {
+    brush_ = OH_Drawing_BrushCreate();
+    pen_ = OH_Drawing_PenCreate();
+  }
+  ~AGPainter() override {
+    OH_Drawing_BrushDestroy(brush_);
+    OH_Drawing_PenDestroy(pen_);
+  }
+
+  OH_Drawing_Brush* brush_;
+  OH_Drawing_Pen* pen_;
+};
 class AGCanvasHelper : public ICanvasHelper {
  public:
   explicit AGCanvasHelper(void* canvas)
@@ -35,7 +50,10 @@ class AGCanvasHelper : public ICanvasHelper {
 
  public:
   std::unique_ptr<Painter> CreatePainter() override {
-    return std::make_unique<Painter>();
+    return std::make_unique<AGPainter>();
+  }
+  void SetCanvas(void* canvas) override {
+    canvas_ = static_cast<OH_Drawing_Canvas*>(canvas);
   }
   void StartPaint() override {}
   void EndPaint() override {}
@@ -275,7 +293,7 @@ class AGCanvasHelper : public ICanvasHelper {
                   const uint16_t* glyphs, const char* text, uint32_t text_bytes,
                   float origin_x, float origin_y, float* x, float* y,
                   Painter* painter) override {
-    OH_Drawing_CanvasSave(canvas_);
+    auto* ag_painter = TTDYNAMIC_CAST<AGPainter*>(painter);
     auto* font_helper = TTDYNAMIC_CAST<const AGTypefaceHelper*>(font);
     auto* oh_font = font_helper->GetTypeface();
     OH_Drawing_TextBlobBuilder* builder = OH_Drawing_TextBlobBuilderCreate();
@@ -288,30 +306,28 @@ class AGCanvasHelper : public ICanvasHelper {
       runBuffer->pos[idx * 2 + 1] = y[idx];
     }
     OH_Drawing_TextBlob* textBlob = OH_Drawing_TextBlobBuilderMake(builder);
-    auto* brush = OH_Drawing_BrushCreate();
+    auto* brush = ag_painter->brush_;
     OH_Drawing_BrushSetColor(brush, painter->GetColor());
     OH_Drawing_CanvasAttachBrush(canvas_, brush);
 
     OH_Drawing_Pen* pen = nullptr;
     if (painter->IsBold()) {
-      pen = OH_Drawing_PenCreate();
+      pen = ag_painter->pen_;
       OH_Drawing_PenSetColor(pen, painter->GetColor());
       OH_Drawing_PenSetWidth(pen, painter->GetTextSize() / 40);
       OH_Drawing_CanvasAttachPen(canvas_, pen);
     }
-    OH_Drawing_CanvasTranslate(canvas_, origin_x, origin_y);
     if (painter->IsItalic()) {
       OH_Drawing_CanvasSkew(canvas_, -0.3f, 0);
     }
-    OH_Drawing_CanvasDrawTextBlob(canvas_, textBlob, 0, 0);
+    OH_Drawing_CanvasDrawTextBlob(canvas_, textBlob, origin_x, origin_y);
     OH_Drawing_CanvasDetachBrush(canvas_);
-    OH_Drawing_BrushDestroy(brush);
 
     if (pen != nullptr) {
       OH_Drawing_CanvasDetachPen(canvas_);
-      OH_Drawing_PenDestroy(pen);
     }
-    OH_Drawing_CanvasRestore(canvas_);
+    OH_Drawing_TextBlobDestroy(textBlob);
+    OH_Drawing_TextBlobBuilderDestroy(builder);
   }
   void DrawRunDelegate(const RunDelegate* delegate, float left, float top,
                        float right, float bottom,

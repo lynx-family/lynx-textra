@@ -70,10 +70,12 @@ using BuildParagraphFunc = void (*)(void* context);
 using AppendContentFunc = void (*)(void* context, const std::string& text,
                                    uint32_t font_size, uint32_t color);
 using LayoutParagraphFunc = void (*)(void* context, double width);
+using CreateCanvasFunc = void(*)(void* context, OH_Drawing_Bitmap* bitmap);
 using DrawParagraphFunc = void (*)(void* context, OH_Drawing_Canvas* canvas);
 
 struct LayoutContext {
   OH_Drawing_Bitmap* bitmap_ = nullptr;
+  OH_Drawing_Canvas* canvas_ = nullptr;
   std::unique_ptr<OHContext> oh_context_ = nullptr;
   std::unique_ptr<TextraContext> textra_context_ = nullptr;
   std::unique_ptr<OHNewContext> oh_new_context_ = nullptr;
@@ -81,6 +83,7 @@ struct LayoutContext {
   BuildParagraphFunc build_paragraph_func_ = nullptr;
   AppendContentFunc append_content_func_ = nullptr;
   LayoutParagraphFunc layout_paragraph_func_ = nullptr;
+  CreateCanvasFunc create_canvas_func_ = nullptr;
   DrawParagraphFunc draw_paragraph_func_ = nullptr;
 };
 
@@ -93,6 +96,9 @@ static void NAPI_Deref(napi_env env, void* data, void* hint) {
     auto context = static_cast<LayoutContext*>(data);
     if (context && context->bitmap_) {
       OH_Drawing_BitmapDestroy(context->bitmap_);
+    }
+    if (context && context->canvas_) {
+      OH_Drawing_CanvasDestroy(context->canvas_);
     }
     delete context;
   }
@@ -113,6 +119,7 @@ napi_value NAPI_Global_initLayoutContext(napi_env env,
     context->build_paragraph_func_ = &TextraBuildParagraph;
     context->append_content_func_ = &TextraAppendContent;
     context->layout_paragraph_func_ = &TextraLayoutParagraph;
+    context->create_canvas_func_ = &TextraCreateCanvas;
     context->draw_paragraph_func_ = &TextraDrawParagraph;
   } else if (mode == 1) {
     context->oh_context_ = std::make_unique<OHContext>();
@@ -120,6 +127,7 @@ napi_value NAPI_Global_initLayoutContext(napi_env env,
     context->build_paragraph_func_ = &OHBuildParagraph;
     context->append_content_func_ = &OHAppendContent;
     context->layout_paragraph_func_ = &OHLayoutParagraph;
+    context->create_canvas_func_ = &OHCreateCanvas;
     context->draw_paragraph_func_ = &OHDrawParagraph;
   } else if (mode == 2) {
     context->oh_new_context_ = std::make_unique<OHNewContext>();
@@ -127,6 +135,7 @@ napi_value NAPI_Global_initLayoutContext(napi_env env,
     context->build_paragraph_func_ = &OHNewBuildParagraph;
     context->append_content_func_ = &OHNewAppendContent;
     context->layout_paragraph_func_ = &OHNewLayoutParagraph;
+    context->create_canvas_func_ = &OHNewCreateCanvas;
     context->draw_paragraph_func_ = &OHNewDrawParagraph;
   }
   napi_wrap(env, argv[0], context, NAPI_Deref, &HINT_LAYOUT_CONTEXT, nullptr);
@@ -154,6 +163,9 @@ napi_value NAPI_Global_buildCanvas(napi_env env, napi_callback_info info) {
   OH_Drawing_BitmapFormat cFormat{COLOR_FORMAT_RGBA_8888, ALPHA_FORMAT_PREMUL};
   OH_Drawing_BitmapBuild(bitmap, width, height, &cFormat);
   context->bitmap_ = bitmap;
+  context->canvas_ = OH_Drawing_CanvasCreate();
+  OH_Drawing_CanvasBind(context->canvas_, context->bitmap_);
+  context->create_canvas_func_(context->context_, bitmap);
   return nullptr;
 }
 
@@ -238,8 +250,7 @@ napi_value NAPI_Global_drawParagraph(napi_env env, napi_callback_info info) {
   status = napi_unwrap(env, argv[1], &temp);
   context = reinterpret_cast<LayoutContext*>(temp);
   if (target_canvas == nullptr) {
-    target_canvas = OH_Drawing_CanvasCreate();
-    OH_Drawing_CanvasBind(target_canvas, context->bitmap_);
+    target_canvas = context->canvas_;
   }
 
   double x = 0, y = 0;
