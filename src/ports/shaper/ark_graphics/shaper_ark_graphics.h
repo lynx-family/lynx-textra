@@ -18,6 +18,7 @@ class ShaperArkGraphics : public TTShaper {
   ~ShaperArkGraphics() override;
 
  public:
+  void ApplyShaperOption(ShaperOption option, uint32_t value) override;
   void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
   void ShapingTextWithHighAPILevel(const ShapeKey& key,
                                    ShapeResult* result) const;
@@ -27,6 +28,7 @@ class ShaperArkGraphics : public TTShaper {
  private:
   OH_Drawing_FontCollection* shared_font_collection_;
   OH_Drawing_TypographyStyle* typography_style_;
+  bool force_low_api_level_;
 };
 }  // namespace tttext
 }  // namespace ttoffice

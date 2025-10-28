@@ -112,6 +112,7 @@ class AGShapingResult : public PlatformShapingResultReader {
 ShaperArkGraphics::ShaperArkGraphics(
     const FontmgrCollection& font_collections) noexcept
     : TTShaper(font_collections),
+      force_low_api_level_(false),
       shared_font_collection_(OH_Drawing_CreateSharedFontCollection()) {
   typography_style_ = OH_Drawing_CreateTypographyStyle();
 
@@ -151,10 +152,17 @@ ShaperArkGraphics::~ShaperArkGraphics() {
   OH_Drawing_DestroyTypographyStyle(typography_style_);
   OH_Drawing_DestroyFontCollection(shared_font_collection_);
 }
-
+void ShaperArkGraphics::ApplyShaperOption(ShaperOption option, uint32_t value) {
+  TTShaper::ApplyShaperOption(option, value);
+  switch (option) {
+    case ShaperOption::kHarmonyShaperForceLowAPI: {
+      force_low_api_level_ = value != 0;
+    }
+  }
+}
 void ShaperArkGraphics::OnShapeText(const ShapeKey& key,
                                     ShapeResult* result) const {
-  if (ohos_shaping_funcs_->GetRunFont_ != NULL) {
+  if (!force_low_api_level_ && ohos_shaping_funcs_->GetRunFont_ != NULL) {
     ShapingTextWithHighAPILevel(key, result);
   } else {
     ShapingTextWithLowAPILevel(key, result);

@@ -102,7 +102,7 @@ void TextLayoutImpl::FinishLineLayout(LayoutRegion* page,
   TTASSERT(keep_line || break_page);
   auto* current_line = line.get();
   if (keep_line) {
-    context.UpdateContextSpace(line.get());
+    context.SetLayoutBottom(line->GetLineBottom());
     *result = page->AddLine(std::move(line), context);
   } else {
     pos.Update(line->GetStartLayoutPosition());

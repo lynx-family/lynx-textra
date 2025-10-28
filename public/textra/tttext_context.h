@@ -7,9 +7,9 @@
 
 #include <textra/layout_definition.h>
 #include <textra/macro.h>
-#include <textra/text_line.h>
 
 #include <memory>
+#include <utility>
 
 namespace ttoffice {
 namespace tttext {
@@ -58,45 +58,38 @@ class L_EXPORT TTTextContext {
     skip_spacing_before_first_line_ = skipSpacingBeforeFirstLine;
   }
 
+  /**
+   * @brief Force harmony system shaper only use low Level API from Harmony OS
+   */
+  bool IsHarmonyShaperForceLowAPI() const {
+    return harmony_shaper_force_low_api_;
+  }
+  void SetHarmonyShaperForceLowAPI(bool harmonyShaperForceLowAPI) {
+    harmony_shaper_force_low_api_ = harmonyShaperForceLowAPI;
+  }
+
   // Layout state getters/setters
  public:
   void Reset();
-  void ResetLayoutPosition(const LayoutPosition& position);
+  void SetLayoutPosition(uint32_t run_idx, uint32_t char_idx_in_run) const;
+  std::pair<uint32_t, uint32_t> GetLayoutPosition() const;
+  float GetLayoutBottom() const { return layout_bottom_; }
+  void SetLayoutBottom(float layout_bottom) { layout_bottom_ = layout_bottom; }
 
  private:
   friend class TextLayoutImpl;
   friend class TextLayoutTest;
   friend class TTTextContextTest;
   L_HIDDEN LayoutPosition& GetPositionRef() { return *position_; }
-  float GetLayoutBottom() const { return layout_bottom_; }
-  float GetParagraphGap() const { return paragraph_space_; }
-  float GetLineSpace() const { return line_space_; }
-  float GetBottomMargin() const { return bottom_margin_; }
-  float GetMinBottomHeight() const { return min_bottom_height_; }
-
-  void SetLayoutBottom(float bottom) { layout_bottom_ = bottom; }
-  void SetParagraphSpace(float paragraphSpace) {
-    paragraph_space_ = paragraphSpace;
-  }
-  void SetLineSpace(float line_space) { line_space_ = line_space; }
-  void SetBottomMargin(float bottomMargin) { bottom_margin_ = bottomMargin; }
-  void SetMinBottomHeight(float minBottomHeight) {
-    min_bottom_height_ = minBottomHeight;
-  }
-
-  L_HIDDEN void UpdateContextSpace(TextLine* line);
 
  private:
   // Layout Configurations
   bool last_line_can_overflow_{true};
   bool skip_spacing_before_first_line_{false};
+  bool harmony_shaper_force_low_api_{false};
   // Layout States
   std::unique_ptr<LayoutPosition> position_;
   float layout_bottom_{0};
-  float paragraph_space_{0};
-  float line_space_{0};
-  float bottom_margin_{0};
-  float min_bottom_height_{0};
 };
 }  // namespace tttext
 }  // namespace ttoffice

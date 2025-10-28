@@ -859,7 +859,7 @@ std::unique_ptr<LayoutRegion> LayoutJsonDocument(
   // Layout each paragraph
   for (auto& paragraph : paragraphs) {
     layout.Layout(paragraph.get(), region.get(), *tttext_context);
-    tttext_context->ResetLayoutPosition({0, 0});
+    tttext_context->SetLayoutPosition(0, 0);
   }
 
   // If the width_mode/height_mode of the region is kAtMost, it means the user
@@ -881,7 +881,7 @@ std::unique_ptr<LayoutRegion> LayoutJsonDocument(
     TTTextContext new_context;
     for (auto& paragraph : paragraphs) {
       layout.Layout(paragraph.get(), new_layout_region.get(), new_context);
-      new_context.ResetLayoutPosition({0, 0});
+      new_context.SetLayoutPosition(0, 0);
     }
     region = std::move(new_layout_region);
   }

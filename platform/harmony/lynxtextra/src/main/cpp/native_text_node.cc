@@ -159,7 +159,7 @@ void NativeTextNode::OnMeasure(ArkUI_NodeCustomEvent* event) {
 
   for (auto& paragraph : paragraphs_list_) {
     layout_->Layout(paragraph.get(), region_.get(), *context_);
-    context_->ResetLayoutPosition({0, 0});
+    context_->SetLayoutPosition(0, 0);
   }
 
   nativeModule_->setMeasuredSize(handle_, max_width, max_height);

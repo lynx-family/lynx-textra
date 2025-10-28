@@ -22,12 +22,12 @@ void TTTextContext::Reset() {
   layout_bottom_ = 0;
 }
 
-void TTTextContext::ResetLayoutPosition(const LayoutPosition& position) {
-  *position_ = position;
+void TTTextContext::SetLayoutPosition(uint32_t run_idx,
+                                      uint32_t char_idx_in_run) const {
+  *position_ = LayoutPosition{run_idx, char_idx_in_run};
 }
-
-void TTTextContext::UpdateContextSpace(TextLine* line) {
-  SetLayoutBottom(line->GetLineBottom());
+std::pair<uint32_t, uint32_t> TTTextContext::GetLayoutPosition() const {
+  return {position_->GetRunIdx(), position_->GetCharIdx()};
 }
 }  // namespace tttext
 }  // namespace ttoffice

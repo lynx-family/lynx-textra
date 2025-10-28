@@ -21,6 +21,9 @@
 
 namespace ttoffice {
 namespace tttext {
+enum class ShaperOption : uint8_t {
+  kHarmonyShaperForceLowAPI,
+};
 class ShapeResult;
 class ShapeKey;
 class ShapeCache;
@@ -39,6 +42,7 @@ class TTShaper {
   const FontmgrCollection& GetFontCollection() const noexcept {
     return font_collection_;
   };
+  virtual void ApplyShaperOption(ShaperOption key, uint32_t value) {}
   virtual void ProcessBidirection(const char32_t* text, uint32_t length,
                                   WriteDirection write_direction,
                                   uint32_t* visual_map, uint32_t* logical_map,
