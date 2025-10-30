@@ -16,6 +16,7 @@
 namespace ttoffice {
 namespace tttext {
 class RunStyle;
+constexpr uint32_t SHAPER_BUFF_SIZE = 1024;
 class ShaperCoreText : public TTShaper {
  public:
   ShaperCoreText() = delete;
@@ -38,6 +39,7 @@ class ShaperCoreText : public TTShaper {
  private:
   mutable std::vector<TypefaceRef> ct_font_lst_;
   mutable CTFontDescriptorRef default_font_desc_ = nullptr;
+  mutable uint32_t tmp_buf_[SHAPER_BUFF_SIZE];
 };
 }  // namespace tttext
 }  // namespace ttoffice

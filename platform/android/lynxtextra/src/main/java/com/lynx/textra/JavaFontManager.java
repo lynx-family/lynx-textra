@@ -40,6 +40,7 @@ public class JavaFontManager {
       mFontList.add(cached_typeface);
       cached_typeface = RegisterTypeface(typeface, key, CreateNativeTypeface(mNativeHandler));
     }
+    mFontMap.put(key, cached_typeface);
     return cached_typeface;
   }
 

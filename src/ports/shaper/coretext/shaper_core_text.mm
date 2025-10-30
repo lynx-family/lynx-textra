@@ -39,7 +39,10 @@ void ShaperCoreText::ProcessBidirection(const char32_t* text, uint32_t length,
                                         uint32_t* logical_map,
                                         uint8_t* dir_vec) {
   auto u16_str = ttoffice::base::U32StringToU16(text, length);
-  uint32_t u16_to_u32_map[u16_str.length() + 1];
+  uint32_t* u16_to_u32_map = tmp_buf_;
+  if (u16_str.length() + 1 > SHAPER_BUFF_SIZE) {
+    u16_to_u32_map = new uint32_t[u16_str.length() + 1];
+  }
   CTWritingDirection direction = kCTWritingDirectionNatural;
   if (write_direction == WriteDirection::kLTR ||
       write_direction == WriteDirection::kTTB) {
@@ -87,6 +90,9 @@ void ShaperCoreText::ProcessBidirection(const char32_t* text, uint32_t length,
         visual_map[char_start + k] = static_cast<unsigned int>(order++);
       }
     }
+  }
+  if (u16_to_u32_map != tmp_buf_) {
+    delete[] u16_to_u32_map;
   }
   CFRelease(attr_text);
   CFRelease(dict);
@@ -155,7 +161,10 @@ void ShaperCoreText::OnShapeText(const ShapeKey& key,
   CFDictionaryRef attributes = GenerateAttributes(key);
   auto u16_str = base::U32StringToU16(
       key.text_.data(), static_cast<uint32_t>(key.text_.length()));
-  uint32_t u16_char_map[u16_str.length() + 1];
+  uint32_t* u16_char_map = tmp_buf_;
+  if (u16_str.length() + 1 > SHAPER_BUFF_SIZE) {
+    u16_char_map = new uint32_t[u16_str.length() + 1];
+  }
   auto cfa = GenerateAttributeString(u16_str.data(),
                                      static_cast<uint32_t>(u16_str.length()),
                                      u16_char_map, attributes);
@@ -219,6 +228,9 @@ void ShaperCoreText::OnShapeText(const ShapeKey& key,
                            static_cast<int32_t>(char_count), is_rtl);
   }
   result->AppendPlatformShapingResult(ct_result);
+  if (u16_char_map != tmp_buf_) {
+    delete[] u16_char_map;
+  }
   CFRelease(attributes);
   CFRelease(cfa);
   CFRelease(line);
