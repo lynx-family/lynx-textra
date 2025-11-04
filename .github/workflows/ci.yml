@@ -37,19 +37,7 @@ jobs:
           source tools/envsetup.sh
           gn gen out/macos_release --args='is_debug=false use_flutter_cxx=false'
           ninja -C out/macos_release lynxtextra_static
-
-  macos-example-build-check:
-    runs-on: lynx-darwin-14-medium
-    timeout-minutes: 30
-    steps:
-      - name: Download Source
-        uses: actions/checkout@v4.2.2
-        with:
-          fetch-depth: 2
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Install Common Dependencies
-        uses: ./.github/actions/common-deps
-      - name: Run macOS build check
+      - name: Run macOS example build check
         run: |
           source tools/envsetup.sh
           buildtools/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Release -DSKITY_MTL_BACKEND=ON -G Ninja -S . -B cmake-build-release
@@ -59,10 +47,6 @@ jobs:
     runs-on: lynx-darwin-14-medium
     timeout-minutes: 30
     steps:
-      - name: Install Git LFS
-        run: |
-          brew install git-lfs
-          git lfs install --skip-repo
       - name: Download Source
         uses: actions/checkout@v4.2.2
         with:

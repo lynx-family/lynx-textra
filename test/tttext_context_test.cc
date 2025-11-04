@@ -18,13 +18,14 @@ namespace tttext {
  */
 class TTTextContextTest : public ::testing::Test {
  public:
-  static const LayoutPosition& GetPositionRef(TTTextContext& context) {
-    return context.GetPositionRef();
+  static std::pair<uint32_t, uint32_t> GetLayoutPosition(
+      TTTextContext& context) {
+    return context.GetLayoutPosition();
   }
   static void Reset(TTTextContext& context) { context.Reset(); }
-  static void ResetLayoutPosition(TTTextContext& context,
-                                  const LayoutPosition& position) {
-    context.ResetLayoutPosition(position);
+  static void SetLayoutPosition(TTTextContext& context, uint32_t run_idx,
+                                uint32_t char_idx_in_run) {
+    context.SetLayoutPosition(run_idx, char_idx_in_run);
   }
   static float GetLayoutBottom(TTTextContext& context) {
     return context.GetLayoutBottom();
@@ -49,25 +50,31 @@ TEST_F(TTTextContextTest, ConfigurationGettersAndSetters) {
 TEST_F(TTTextContextTest, Reset) {
   TTTextContext context;
 
-  const LayoutPosition new_position(5, 10);
   const float new_layout_bottom = 20.f;
-  TTTextContextTest::ResetLayoutPosition(context, new_position);
+  TTTextContextTest::SetLayoutPosition(context, 5, 10);
   TTTextContextTest::SetLayoutBottom(context, new_layout_bottom);
-  EXPECT_EQ(TTTextContextTest::GetPositionRef(context), new_position);
+  auto result = context.GetLayoutPosition();
+  EXPECT_EQ(result.first, 5);
+  EXPECT_EQ(result.second, 10);
   EXPECT_EQ(TTTextContextTest::GetLayoutBottom(context), new_layout_bottom);
 
   TTTextContextTest::Reset(context);
-  EXPECT_EQ(TTTextContextTest::GetPositionRef(context), LayoutPosition(0, 0));
+  result = context.GetLayoutPosition();
+  EXPECT_EQ(result.first, 0);
+  EXPECT_EQ(result.second, 0);
   EXPECT_EQ(TTTextContextTest::GetLayoutBottom(context), 0.f);
 }
 
 TEST_F(TTTextContextTest, ResetLayoutPosition) {
   TTTextContext context;
-  EXPECT_EQ(TTTextContextTest::GetPositionRef(context), LayoutPosition(0, 0));
+  auto result = context.GetLayoutPosition();
+  EXPECT_EQ(result.first, 0);
+  EXPECT_EQ(result.second, 0);
 
-  LayoutPosition new_position(5, 10);
-  TTTextContextTest::ResetLayoutPosition(context, new_position);
-  EXPECT_EQ(TTTextContextTest::GetPositionRef(context), new_position);
+  TTTextContextTest::SetLayoutPosition(context, 5, 10);
+  result = context.GetLayoutPosition();
+  EXPECT_EQ(result.first, 5);
+  EXPECT_EQ(result.second, 10);
 }
 
 }  // namespace tttext

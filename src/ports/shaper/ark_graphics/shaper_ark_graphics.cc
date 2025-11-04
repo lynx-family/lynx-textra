@@ -6,6 +6,7 @@
 
 #include <dlfcn.h>
 #include <native_drawing/drawing_font.h>
+#include <native_drawing/drawing_font_mgr.h>
 #include <native_drawing/drawing_point.h>
 #include <native_drawing/drawing_text_line.h>
 #include <native_drawing/drawing_text_lineTypography.h>
@@ -253,36 +254,92 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
 
 void ShaperArkGraphics::ShapingTextWithLowAPILevel(const ShapeKey& key,
                                                    ShapeResult* result) const {
-  auto font = OH_Drawing_FontCreate();
-  OH_Drawing_FontSetTextSize(font, key.style_.GetFontSize());
-  auto tf_helper = std::make_shared<AGTypefaceHelper>(font);
-  auto text_len = static_cast<uint32_t>(OH_Drawing_FontCountText(
-      font, key.text_.data(), key.text_.length() * 4, TEXT_ENCODING_UTF32));
-  TTASSERT(text_len == static_cast<uint32_t>(key.text_.length()));
+  auto font_mgr = font_collection_.GetDefaultFontManager();
+  auto& font_desc = key.style_.GetFontDescriptor();
+  auto font_family = font_desc.font_family_list_.empty()
+                         ? ""
+                         : font_desc.font_family_list_[0].c_str();
+  auto tf_typeface =
+      font_mgr->matchFamilyStyle(font_family, font_desc.font_style_);
+  auto text_len = static_cast<uint32_t>(key.text_.length());
   AGShapingResult shaping_result;
   shaping_result.ct_advances_.resize(text_len);
   shaping_result.ct_glyphs_.resize(text_len);
   shaping_result.ct_indices_.resize(text_len);
   shaping_result.ct_position_.resize(text_len, {0, 0});
-  shaping_result.typeface_.resize(text_len, tf_helper);
+  shaping_result.typeface_.resize(text_len);
 
-  auto* glyphs = shaping_result.ct_glyphs_.data();
-  std::vector<float> glyph_advances(text_len);
-  auto glyph_count = OH_Drawing_FontTextToGlyphs(
-      font, key.text_.data(), static_cast<uint32_t>(key.text_.length() * 4),
-      TEXT_ENCODING_UTF32, glyphs, text_len);
-  TTASSERT(glyph_count == text_len);
-  OH_Drawing_FontGetWidths(font, glyphs, glyph_count, glyph_advances.data());
+  auto shaping_piece = [&](RunPiece& piece, OH_Drawing_Font* oh_font) {
+    OH_Drawing_Font* drawing_font = oh_font;
+    auto piece_length = piece.length_;
+    if (drawing_font == nullptr) {
+      tf_typeface = font_mgr->matchFamilyStyleCharacter(
+          font_family, font_desc.font_style_, nullptr, 0,
+          key.text_[piece.offset_]);
+      auto ag_typeface_helper =
+          std::static_pointer_cast<AGTypefaceHelper>(tf_typeface);
+      drawing_font = ag_typeface_helper->GetTypeface();
+      OH_Drawing_FontSetTextSize(drawing_font, key.style_.GetFontSize());
+    }
+    auto* glyphs = shaping_result.ct_glyphs_.data() + piece.offset_;
+    std::vector<float> glyph_advances(piece_length);
+    auto glyph_count = OH_Drawing_FontTextToGlyphs(
+        drawing_font, key.text_.data() + piece.offset_, piece_length * 4,
+        TEXT_ENCODING_UTF32, glyphs, piece_length);
+    TTASSERT(glyph_count == piece_length);
+    OH_Drawing_FontGetWidths(drawing_font, glyphs, glyph_count,
+                             glyph_advances.data());
+
+    bool encounter_zero = false;
+    uint32_t zero_start = 0;
+    for (auto k = 0u; k < piece_length; k++) {
+      if (glyphs[k] == 0) {
+        if (!encounter_zero) {
+          encounter_zero = true;
+          zero_start = k;
+        }
+      } else {
+        if (encounter_zero) {
+          encounter_zero = false;
+          RunPiece new_piece(piece.offset_ + zero_start, k - zero_start);
+          run_pieces_.emplace_back(new_piece);
+        }
+        shaping_result.ct_indices_[piece.offset_ + k] = piece.offset_ + k;
+        shaping_result.ct_advances_[piece.offset_ + k][0] = glyph_advances[k];
+        shaping_result.ct_advances_[piece.offset_ + k][1] = 0;
+        shaping_result.typeface_[piece.offset_ + k] = tf_typeface;
+      }
+    }
+    if (encounter_zero) {
+      if (zero_start != 0 || oh_font != nullptr) {
+        run_pieces_.emplace_back(
+            RunPiece(piece.offset_ + zero_start, piece_length - zero_start));
+      }
+    }
+  };
+  run_pieces_.emplace_back(
+      RunPiece{0, static_cast<uint32_t>(key.text_.length())});
+  do {
+    auto run_piece = run_pieces_.front();
+    run_pieces_.pop_front();
+    OH_Drawing_Font* drawing_font = nullptr;
+    if (tf_typeface) {
+      auto ag_typeface_helper =
+          std::static_pointer_cast<AGTypefaceHelper>(tf_typeface);
+      drawing_font = ag_typeface_helper->GetTypeface();
+      OH_Drawing_FontSetTextSize(drawing_font, key.style_.GetFontSize());
+    }
+    shaping_piece(run_piece, drawing_font);
+    tf_typeface = nullptr;
+  } while (!run_pieces_.empty());
 
   auto advance_x = 0.f;
   for (auto k = 0u; k < text_len; k++) {
-    shaping_result.ct_indices_[k] = k;
     shaping_result.ct_position_[k][0] = advance_x;
     shaping_result.ct_position_[k][1] = 0;
-    shaping_result.ct_advances_[k][0] = glyph_advances[k];
-    shaping_result.ct_advances_[k][1] = 0;
-    advance_x += glyph_advances[k];
+    advance_x += shaping_result.ct_advances_[k][0];
   }
+
   shaping_result.text_length_ = text_len;
   result->AppendPlatformShapingResult(shaping_result);
 }
