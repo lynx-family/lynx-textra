@@ -6,10 +6,22 @@
 #define SRC_PORTS_SHAPER_ARK_GRAPHICS_SHAPER_ARK_GRAPHICS_H_
 #include <native_drawing/drawing_font_collection.h>
 
+#include <list>
+
 #include "src/textlayout/tt_shaper.h"
 
 namespace ttoffice {
 namespace tttext {
+class RunPiece {
+ public:
+  RunPiece() = delete;
+  explicit RunPiece(uint32_t offset, uint32_t length)
+      : offset_(offset), length_(length) {}
+
+ public:
+  uint32_t offset_{};
+  uint32_t length_{};
+};
 class ShaperArkGraphics : public TTShaper {
  public:
   ShaperArkGraphics() = delete;
@@ -20,6 +32,8 @@ class ShaperArkGraphics : public TTShaper {
  public:
   void ApplyShaperOption(ShaperOption option, uint32_t value) override;
   void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
+
+ private:
   void ShapingTextWithHighAPILevel(const ShapeKey& key,
                                    ShapeResult* result) const;
   void ShapingTextWithLowAPILevel(const ShapeKey& key,
@@ -29,6 +43,7 @@ class ShaperArkGraphics : public TTShaper {
   OH_Drawing_FontCollection* shared_font_collection_;
   OH_Drawing_TypographyStyle* typography_style_;
   bool force_low_api_level_;
+  mutable std::list<RunPiece> run_pieces_;
 };
 }  // namespace tttext
 }  // namespace ttoffice

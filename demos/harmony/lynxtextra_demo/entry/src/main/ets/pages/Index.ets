@@ -27,8 +27,8 @@ struct Index {
           let paragraph = new Paragraph().setParagraphStyle(
             new ParagraphStyle().setAlignment('left')
           )
-            .addTextRun('😄Кириллица👿hello😄هذا نص عربي لا معنى له ، فقط👿', new RunStyle().appendFontFamily('sans-serif').setTextSize(24))
-            .addTextRun('😄👿', new RunStyle().setTextSize(24).setTextColor(0xff00ff00))
+            .addTextRun('😄👿hello😄هذا نص عربي لا معنى له ، فقط👿', new RunStyle().setTextSize(24).setTextColor(0xffffff00))
+            .addTextRun('😄中国Кириллица👿', new RunStyle().setTextSize(24).setTextColor(0xff00ff00))
             .addRunDelegate(new RunDelegate(btn_node.getFrameNode()))
 
           this.text_view.appendParagraph(paragraph)

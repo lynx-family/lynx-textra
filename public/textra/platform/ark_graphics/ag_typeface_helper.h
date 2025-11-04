@@ -16,6 +16,11 @@ class AGTypefaceHelper : public ITypefaceHelper {
  public:
   explicit AGTypefaceHelper(OH_Drawing_Font* font)
       : ITypefaceHelper(0), font_(font) {}
+  explicit AGTypefaceHelper(OH_Drawing_Typeface* typeface)
+      : ITypefaceHelper(0) {
+    font_ = OH_Drawing_FontCreate();
+    OH_Drawing_FontSetTypeface(font_, typeface);
+  }
   ~AGTypefaceHelper() override = default;
 
  public:
