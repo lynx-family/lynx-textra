@@ -5,7 +5,9 @@
 #ifndef PUBLIC_TEXTRA_ICU_WRAPPER_H_
 #define PUBLIC_TEXTRA_ICU_WRAPPER_H_
 
+#ifndef TTTEXT_OS_WIN
 #include <sys/cdefs.h>
+#endif
 #include <textra/layout_definition.h>
 #include <textra/macro.h>
 

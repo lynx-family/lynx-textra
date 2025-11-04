@@ -17,7 +17,7 @@ import("//config.gni")
 declare_args() {
   prj_root = rebase_path("..")
   enable_javashaper = is_android
-  enable_skshaper = is_android || is_mac || is_harmony
+  enable_skshaper = is_android || is_mac || is_harmony || is_win
   enable_ctshaper = is_ios
   enable_harmony = is_harmony
   enable_minikin = false
@@ -74,6 +74,9 @@ config("textlayout_internal") {
   }
   if (is_harmony) {
     defines += [ "TTTEXT_OS_OH" ]
+  }
+  if (is_win) {
+    defines += [ "TTTEXT_OS_WIN" ]
   }
 }
 
@@ -364,10 +367,10 @@ source_set("skshaper") {
     "$prj_root/src/ports/shaper/skshaper/harfbuzz_lib.cc",
     "$prj_root/src/ports/shaper/skshaper/sk_shaper_harfbuzz.cc",
   ]
-  defines += [
-    "SK_SHAPER_HARFBUZZ_AVAILABLE",
-    "HAVE_PTHREADS",
-  ]
+  defines += [ "SK_SHAPER_HARFBUZZ_AVAILABLE" ]
+  if (!is_win) {
+    defines += [ "HAVE_PTHREADS" ]
+  }
   if (dynamic_load_harfbuzz) {
     sources += [
       "$prj_root/src/ports/shaper/skshaper/harfbuzz_lib_runtime.cc",
