@@ -116,39 +116,33 @@ class AGFontManager : public IFontManager {
         oh_font_style.slant = FONT_STYLE_OBLIQUE;
         break;
     }
-    switch (style.GetWeight()) {
-      case FontStyle::kInvisible_Weight:
-        oh_font_style.weight = FONT_WEIGHT_100;
+    switch (style.GetWidth()) {
+      case FontStyle::kUltraCondensed_Width:
+        oh_font_style.width = FONT_WIDTH_ULTRA_CONDENSED;
         break;
-      case FontStyle::kThin_Weight:
-        oh_font_style.weight = FONT_WEIGHT_100;
+      case FontStyle::kExtraCondensed_Width:
+        oh_font_style.width = FONT_WIDTH_EXTRA_CONDENSED;
         break;
-      case FontStyle::kExtraLight_Weight:
-        oh_font_style.weight = FONT_WEIGHT_200;
+      case FontStyle::kCondensed_Width:
+        oh_font_style.width = FONT_WIDTH_CONDENSED;
         break;
-      case FontStyle::kLight_Weight:
-        oh_font_style.weight = FONT_WEIGHT_300;
+      case FontStyle::kSemiCondensed_Width:
+        oh_font_style.width = FONT_WIDTH_SEMI_CONDENSED;
         break;
-      case FontStyle::kNormal_Weight:
-        oh_font_style.weight = FONT_WEIGHT_400;
+      case FontStyle::kNormal_Width:
+        oh_font_style.width = FONT_WIDTH_NORMAL;
         break;
-      case FontStyle::kMedium_Weight:
-        oh_font_style.weight = FONT_WEIGHT_500;
+      case FontStyle::kSemiExpanded_Width:
+        oh_font_style.width = FONT_WIDTH_SEMI_EXPANDED;
         break;
-      case FontStyle::kSemiBold_Weight:
-        oh_font_style.weight = FONT_WEIGHT_600;
+      case FontStyle::kExpanded_Width:
+        oh_font_style.width = FONT_WIDTH_EXPANDED;
         break;
-      case FontStyle::kBold_Weight:
-        oh_font_style.weight = FONT_WEIGHT_700;
+      case FontStyle::kExtraExpanded_Width:
+        oh_font_style.width = FONT_WIDTH_EXTRA_EXPANDED;
         break;
-      case FontStyle::kExtraBold_Weight:
-        oh_font_style.weight = FONT_WEIGHT_800;
-        break;
-      case FontStyle::kBlack_Weight:
-        oh_font_style.weight = FONT_WEIGHT_900;
-        break;
-      case FontStyle::kExtraBlack_Weight:
-        oh_font_style.weight = FONT_WEIGHT_900;
+      case FontStyle::kUltraExpanded_Width:
+        oh_font_style.width = FONT_WIDTH_ULTRA_EXPANDED;
         break;
     }
     return oh_font_style;
