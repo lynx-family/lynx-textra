@@ -290,9 +290,10 @@ void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
       auto* run = drawer->GetRun();
       auto& metrics = run->GetMetrics();
       auto cva = CharacterVerticalAlignment::kBaseLine;
-      if (run->GetLayoutStyle().HasVerticalAlignment()) {
+      if (run->GetLayoutStyle().HasAttribute(kVerticalAlignment)) {
         cva = run->GetLayoutStyle().GetVerticalAlignment();
-      } else if (paragraph_->GetDefaultStyle().HasVerticalAlignment()) {
+      } else if (paragraph_->GetDefaultStyle().HasAttribute(
+                     kVerticalAlignment)) {
         cva = paragraph_->GetDefaultStyle().GetVerticalAlignment();
       }
       auto y_offset = GetContentBaseline();

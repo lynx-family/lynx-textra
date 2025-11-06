@@ -52,13 +52,11 @@ void ParagraphTest::DrawParagraph(ICanvasHelper* canvas, Paragraph& paragraph,
   auto layout_width = page.GetLayoutedWidth();
   auto layout_height = page.GetLayoutedHeight();
   if (draw_page_bound_) {
-    paint->SetColor(TTColor::BLACK);
-    paint->SetFillStyle(FillStyle::kStroke);
+    paint->SetStrokeColor(TTColor::BLACK);
     canvas->DrawRect(0, 0, page_width, page_height, paint.get());
   }
   if (draw_layouted_bound_) {
-    paint->SetColor(TTColor::GREEN);
-    paint->SetFillStyle(FillStyle::kStroke);
+    paint->SetStrokeColor(TTColor::GREEN);
     canvas->DrawRect(0, 0, layout_width, layout_height, paint.get());
   }
 }
@@ -430,7 +428,7 @@ void ParagraphTest::TestOneString(ICanvasHelper* canvas, float width) const {
   LayoutDrawer drawer(canvas);
   drawer.DrawLayoutPage(&page);
   auto paint = canvas->CreatePainter();
-  paint->SetFillStyle(FillStyle::kStroke);
+  paint->SetStrokeColor(TTColor::BLACK);
   canvas->DrawRect(0, 0, page.GetPageWidth(), page.GetPageHeight(),
                    paint.get());
 }
@@ -459,7 +457,7 @@ void ParagraphTest::TestLineSpacing(ICanvasHelper* canvas, float width) const {
   LayoutDrawer drawer(canvas);
   drawer.DrawLayoutPage(&page);
   auto paint = canvas->CreatePainter();
-  paint->SetFillStyle(FillStyle::kStroke);
+  paint->SetStrokeColor(TTColor::BLACK);
   canvas->DrawRect(0, 0, page.GetPageWidth(), font_size, paint.get());
 
   paragraph.GetParagraphStyle().SetLineHeightInPercent(1);
@@ -494,7 +492,7 @@ void ParagraphTest::TestDecoration(ICanvasHelper* canvas, float width) const {
   LayoutDrawer drawer(canvas);
   drawer.DrawLayoutPage(&page);
   auto paint = canvas->CreatePainter();
-  paint->SetFillStyle(FillStyle::kStroke);
+  paint->SetStrokeColor(TTColor::BLACK);
   canvas->DrawRect(0, 0, page.GetPageWidth(), page.GetPageHeight(),
                    paint.get());
 }
@@ -523,7 +521,7 @@ void ParagraphTest::TestMaxLine(ICanvasHelper* canvas, float width) const {
   LayoutDrawer drawer(canvas);
   drawer.DrawLayoutPage(&page);
   auto paint = canvas->CreatePainter();
-  paint->SetFillStyle(FillStyle::kStroke);
+  paint->SetStrokeColor(TTColor::BLACK);
   canvas->DrawRect(0, 0, page.GetPageWidth(), font_size, paint.get());
 
   paragraph.GetParagraphStyle().SetMaxLines(0);
@@ -555,7 +553,7 @@ void ParagraphTest::TestPageHeight(ICanvasHelper* canvas, float width) const {
   TTTextContext context;
   LayoutDrawer drawer(canvas);
   auto paint = canvas->CreatePainter();
-  paint->SetFillStyle(FillStyle::kStroke);
+  paint->SetStrokeColor(TTColor::BLACK);
   auto page_ptr = std::make_unique<LayoutRegion>(width, 50);
 
   context.SetSkipSpacingBeforeFirstLine(false);
@@ -760,6 +758,10 @@ void ParagraphTest::TestFontStyle(ICanvasHelper* canvas, float width) const {
   decorator_rpr.SetDecorationType(DecorationType::kUnderLine);
   decorator_rpr.SetDecorationColor(TTColor(0xFF00FF00));
   paragraph.AddTextRun(&decorator_rpr, "下划线\n");
+  Style text_stroke;
+  paragraph.AddTextRun(&text_stroke, "文本描边:");
+  text_stroke.SetTextStrokeStyle(TTColor::GREEN, 0.5);
+  paragraph.AddTextRun(&text_stroke, "中国人, abc\n");
   DrawParagraph(canvas, paragraph, width);
 }
 void ParagraphTest::TestCRLF(ICanvasHelper* canvas, float width) const {

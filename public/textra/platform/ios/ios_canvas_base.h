@@ -270,6 +270,7 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
                y, pos_x, pos_y, painter);
     CFRelease(cf_text);
   }
+
   void DrawGlyphs(const ITypefaceHelper* font, uint32_t glyph_count,
                   const uint16_t* glyphs, const char* text, uint32_t text_bytes,
                   float ox, float oy, float* x, float* y,
@@ -285,17 +286,15 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
       cg_position[i].x = x[i];
       cg_position[i].y = y[i];
     }
-    auto color = painter->GetColor();
-    CGContextSetRGBFillColor(context_, ((color >> 16) & 0xFF) / 255.0f,
-                             ((color >> 8) & 0xFF) / 255.f,
-                             (color & 0xFF) / 255.f,
-                             ((color >> 24) & 0xFF) / 255.f);
+    auto fill_color = painter->GetFillColor();
+    auto mode = ApplyPainterStyle(painter);
     CGContextSaveGState(context_);
     auto text_mat = CGAffineTransformIdentity;
     if (painter->IsBold() || painter->IsItalic()) {
       NSDictionary* traits =
           (__bridge_transfer NSDictionary*)CTFontCopyTraits(ct_font);
-      if (painter->IsBold()) {
+      if (painter->IsBold() &&
+          painter->GetStrokeColor() == TTColor::UNDEFINED) {
         NSObject* obj = traits[(id)kCTFontWeightTrait];
         if (obj == nil ||
             ([obj isKindOfClass:[NSNumber class]] &&
@@ -304,10 +303,9 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
           auto size = CTFontGetSize(ct_font);
           CGContextSetTextDrawingMode(context_, kCGTextFillStroke);
           CGContextSetLineWidth(context_, size / 40.0);
-          CGContextSetRGBStrokeColor(context_, ((color >> 16) & 0xFF) / 255.0f,
-                                     ((color >> 8) & 0xFF) / 255.f,
-                                     (color & 0xFF) / 255.f,
-                                     ((color >> 24) & 0xFF) / 255.f);
+          CGContextSetRGBStrokeColor(
+              context_, fill_color.GetRedRatio(), fill_color.GetGreenRatio(),
+              fill_color.GetBlueRatio(), fill_color.GetAlphaRatio());
         }
       }
       if (painter->IsItalic()) {
@@ -336,10 +334,9 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
                               oy + underline_y);
       CGContextClosePath(context_);
       CGContextSetLineWidth(context_, thickness);
-      CGContextSetRGBStrokeColor(context_, ((color >> 16) & 0xFF) / 255.0f,
-                                 ((color >> 8) & 0xFF) / 255.f,
-                                 (color & 0xFF) / 255.f,
-                                 ((color >> 24) & 0xFF) / 255.f);
+      CGContextSetRGBStrokeColor(
+          context_, fill_color.GetRedRatio(), fill_color.GetGreenRatio(),
+          fill_color.GetBlueRatio(), fill_color.GetAlphaRatio());
       CGContextDrawPath(context_, kCGPathStroke);
     }
   }
@@ -384,24 +381,32 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
   BOOL CheckValide() { return context_ != NULL; }
   CGPathDrawingMode ApplyPainterStyle(tttext::Painter* painter) {
     CGPathDrawingMode mode = kCGPathFillStroke;
-    if (painter->GetFillStyle() == tttext::FillStyle::kFill) {
-      mode = kCGPathFill;
-      CGContextSetRGBFillColor(
-          context_, painter->GetRed() / 255.0f, painter->GetGreen() / 255.f,
-          painter->GetBlue() / 255.f, painter->GetAlpha() / 255.f);
-    } else if (painter->GetFillStyle() == tttext::FillStyle::kStroke) {
-      mode = kCGPathStroke;
-      CGContextSetRGBStrokeColor(
-          context_, painter->GetRed() / 255.0f, painter->GetGreen() / 255.f,
-          painter->GetBlue() / 255.f, painter->GetAlpha() / 255.f);
-    } else if (painter->GetFillStyle() == tttext::FillStyle::kStrokeAndFill) {
+    auto fill_color = painter->GetFillColor();
+    auto stroke_color = painter->GetStrokeColor();
+    if (fill_color != TTColor::UNDEFINED &&
+        stroke_color != TTColor::UNDEFINED) {
       mode = kCGPathFillStroke;
+      CGContextSetTextDrawingMode(context_, kCGTextFillStroke);
+    } else {
+      if (fill_color != TTColor::UNDEFINED) {
+        mode = kCGPathFill;
+        CGContextSetTextDrawingMode(context_, kCGTextFill);
+      }
+      if (stroke_color != TTColor::UNDEFINED) {
+        mode = kCGPathStroke;
+        CGContextSetTextDrawingMode(context_, kCGTextStroke);
+      }
+    }
+    if (fill_color != TTColor::UNDEFINED) {
       CGContextSetRGBFillColor(
-          context_, painter->GetRed() / 255.0f, painter->GetGreen() / 255.f,
-          painter->GetBlue() / 255.f, painter->GetAlpha() / 255.f);
+          context_, fill_color.GetRedRatio(), fill_color.GetGreenRatio(),
+          fill_color.GetBlueRatio(), fill_color.GetAlphaRatio());
+    }
+    if (stroke_color != TTColor::UNDEFINED) {
       CGContextSetRGBStrokeColor(
-          context_, painter->GetRed() / 255.0f, painter->GetGreen() / 255.f,
-          painter->GetBlue() / 255.f, painter->GetAlpha() / 255.f);
+          context_, stroke_color.GetRedRatio(), stroke_color.GetGreenRatio(),
+          stroke_color.GetBlueRatio(), stroke_color.GetAlphaRatio());
+      CGContextSetLineWidth(context_, painter->GetStrokeWidth());
     }
     return mode;
   }

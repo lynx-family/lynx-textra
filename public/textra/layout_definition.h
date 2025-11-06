@@ -42,6 +42,7 @@ enum AttributeType : AttrType {
   kDecorationStyle,
   //  kDecorationMode,
   kDecorationThicknessMultiplier,
+  kTextStrokeStyle,
   kBold,
   kItalic,
   kTextShadowList,

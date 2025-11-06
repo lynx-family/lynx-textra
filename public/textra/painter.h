@@ -49,13 +49,10 @@ struct TextShadow {
 class Painter {
  public:
   Painter()
-      : fill_style_(FillStyle::kFill),
+      : fill_color_(TTColor::UNDEFINED),
+        stroke_color_(TTColor::UNDEFINED),
         stroke_width_(0),
         stroke_miter_(0),
-        alpha_(0xFF),
-        red_(0),
-        green_(0),
-        blue_(0),
         font_family_("pingfang"),
         text_size_(14),
         bold_(false),
@@ -63,24 +60,22 @@ class Painter {
         under_line_(false),
         cap_(Cap::kDefault_Cap),
         join_(Join::kDefault_Join),
-        shadow_list_{} {}
+        shadow_list_({}) {}
   virtual ~Painter() = default;
 
  public:
-  FillStyle GetFillStyle() const { return fill_style_; }
-  void SetFillStyle(FillStyle style) { fill_style_ = style; }
+  // void SetColor(uint32_t color) {
+  //   SetFillColor(color);
+  //   SetStrokeColor(color);
+  // }
+  void SetFillColor(uint32_t color) { fill_color_ = color; }
+  TTColor GetFillColor() const { return fill_color_; }
+  void SetStrokeColor(TTColor color) { stroke_color_ = color; }
+  TTColor GetStrokeColor() const { return stroke_color_; }
   float GetStrokeWidth() const { return stroke_width_; }
   void SetStrokeWidth(float stroke_width) { stroke_width_ = stroke_width; }
   float GetStrokeMiter() const { return stroke_miter_; }
   void SetStrokeMiter(float stroke_miter) { stroke_miter_ = stroke_miter; }
-  uint8_t GetAlpha() const { return alpha_; }
-  void SetAlpha(uint8_t alpha) { alpha_ = alpha; }
-  uint8_t GetRed() const { return red_; }
-  void SetRed(uint8_t red) { red_ = red; }
-  uint8_t GetGreen() const { return green_; }
-  void SetGreen(uint8_t green) { green_ = green; }
-  uint8_t GetBlue() const { return blue_; }
-  void SetBlue(uint8_t blue) { blue_ = blue; }
   const std::string& GetFontFamily() const { return font_family_; }
   void SetFontFamily(const std::string& font_family) {
     font_family_ = font_family;
@@ -97,33 +92,16 @@ class Painter {
   void SetCap(Cap cap) { cap_ = cap; }
   Join GetJoin() const { return join_; }
   void SetJoin(Join join) { join_ = join; }
-  void SetColor(uint32_t color) {
-    alpha_ = color >> 24u;
-    red_ = (color >> 16u) & 0xFFu;
-    green_ = (color >> 8u) & 0xFFu;
-    blue_ = color & 0xFFu;
-  }
-  uint32_t GetColor() const {
-    uint32_t a = alpha_ << 24u;
-    uint32_t r = red_ << 16u;
-    uint32_t g = green_ << 8u;
-    uint32_t b = blue_;
-    return a | r | g | b;
-  }
   void SetShadowList(const std::vector<TextShadow>& list) {
     shadow_list_ = list;
   }
   const std::vector<TextShadow>& GetShadowList() const { return shadow_list_; }
 
  private:
-  //  uint32_t font_id_;
-  FillStyle fill_style_;
+  TTColor fill_color_;
+  TTColor stroke_color_;
   float stroke_width_;
   float stroke_miter_;
-  uint8_t alpha_;
-  uint8_t red_;
-  uint8_t green_;
-  uint8_t blue_;
   std::string font_family_;
   float text_size_;
   bool bold_;

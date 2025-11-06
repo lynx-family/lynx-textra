@@ -32,8 +32,7 @@ class TestShape : public RunDelegate {
   float GetAdvance() const override { return width_; }
   void Draw(ICanvasHelper* canvas, float x, float y) override {
     auto paint = canvas->CreatePainter();
-    paint->SetFillStyle(FillStyle::kFill);
-    paint->SetColor(0xFF00FF00);
+    paint->SetFillColor(0xFF00FF00);
     float left = x;
     float top = y;
     canvas->DrawRect(left, top, left + width_, top + height_, paint.get());

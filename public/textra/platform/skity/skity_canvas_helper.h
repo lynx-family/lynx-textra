@@ -136,21 +136,19 @@ class SkityCanvasHelper : public ICanvasHelper {
       return p->platform_painter_.get();
     }
     paint_.Reset();
-    paint_.SetStrokeWidth(painter->GetStrokeWidth());
     paint_.SetTextSize(painter->GetTextSize());
-    paint_.SetColor(painter->GetColor());
-    switch (painter->GetFillStyle()) {
-      case FillStyle::kFill:
-        paint_.SetStyle(skity::Paint::kFill_Style);
-        break;
-      case FillStyle::kStroke:
-        paint_.SetStyle(skity::Paint::kStroke_Style);
-        break;
-      case FillStyle::kStrokeAndFill:
-        paint_.SetStyle(skity::Paint::kStrokeAndFill_Style);
-        break;
-      default:
-        paint_.SetStyle(skity::Paint::kFill_Style);
+    bool need_fill = false;
+    if (painter->GetFillColor() != TTColor::UNDEFINED) {
+      paint_.SetFillColor(painter->GetFillColor());
+      need_fill = true;
+      paint_.SetStyle(skity::Paint::kFill_Style);
+    }
+
+    if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
+      paint_.SetStrokeColor(painter->GetStrokeColor());
+      paint_.SetStrokeWidth(painter->GetStrokeWidth());
+      paint_.SetStyle(need_fill ? skity::Paint::kStrokeAndFill_Style
+                                : skity::Paint::kStroke_Style);
     }
     return &paint_;
   }

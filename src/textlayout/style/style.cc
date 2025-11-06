@@ -3,7 +3,6 @@
 // LICENSE file in the root directory of this source tree.
 
 #include <textra/style.h>
-#include <textra/text_line.h>
 
 #include <memory>
 #include <utility>
@@ -14,109 +13,49 @@
 namespace ttoffice {
 namespace tttext {
 const Style& Style::DefaultStyle() {
-  static const Style DEFAULT_STYLE{
-      {{}, FontStyle::Normal(), 0},           // FontDescriptorList
-      10.f * 96 / 72,                         // TextSize
-      1.f,                                    // TextScale
-      TTColor::BLACK,                         // FgColor
-      TTColor::UNDEFINED,                     // BgColor
-      TTColor{},                              // DecorationColor
-      DecorationType::kNone,                  // DecorationType
-      LineType::kSolid,                       // DecorationStyle
-      1.0f,                                   // DecorationThicknessMultiplier
-      false,                                  // Bold
-      false,                                  // Italic
-      CharacterVerticalAlignment::kBaseLine,  // VerticalAlignment
-      0.f,                                    // WordSpacing
-      0.f,                                    // LetterSpacing
-      {},                                     // TextShadowList
-      nullptr,                                // Foreground Painter
-      nullptr,                                // Background Painter
-      WordBreakType::kNormal,                 // WordBreakType
-      0,                                      // Baseline Offset
-      Style::FullFlag};
+  static const Style DEFAULT_STYLE;
   return DEFAULT_STYLE;
 }
-Style::Style()
-    : text_size_(0),
-      text_scale_(1),
-      fg_color_(),
-      bg_color_(),
-      decoration_color_(TTColor::UNDEFINED),
-      decoration_type_(DecorationType::kNone),
-      decoration_style_(LineType::kSolid),
-      decoration_thickness_multiplier_(1.f),
-      bold_(false),
-      italic_(false),
-      vertical_alignment_(CharacterVerticalAlignment::kBaseLine),
-      word_spacing_(0.f),
-      letter_spacing_(0.f),
-      fg_painter_(0),
-      bg_painter_(0),
-      word_break_(WordBreakType::kNormal),
-      baseline_offset_(0),
-      flag_(0) {}
-Style::Style(FontDescriptor font_descriptor, float text_size, float text_scale,
-             const TTColor& fg_color, const TTColor& bg_color,
-             const TTColor& decoration_color, DecorationType decoration_type,
-             LineType decoration_style, float decoration_thickness_multiplier,
-             bool bold, bool italic,
-             CharacterVerticalAlignment vertical_alignment, float word_spacing,
-             float letter_spacing, const TextShadowList& text_shadow_list,
-             Painter* foreground_painter, Painter* background_painter,
-             WordBreakType word_break, float baseline_offset, uint32_t flag)
-    : font_descriptor_({std::move(font_descriptor)}),
-      text_size_(text_size),
-      text_scale_(text_scale),
-      fg_color_(fg_color),
-      bg_color_(bg_color),
-      decoration_color_(decoration_color),
-      decoration_type_(decoration_type),
-      decoration_style_(decoration_style),
-      decoration_thickness_multiplier_(decoration_thickness_multiplier),
-      bold_(bold),
-      italic_(italic),
-      vertical_alignment_(vertical_alignment),
-      word_spacing_(word_spacing),
-      letter_spacing_(letter_spacing),
-      fg_painter_(foreground_painter),
-      bg_painter_(background_painter),
-      word_break_(word_break),
-      baseline_offset_(0),
-      text_shadow_list_(text_shadow_list),
-      flag_(flag) {}
-Style::Style(const Style& style) : Style() { *this = style; }
+Style::Style() = default;
+Style::Style(const Style& style) { *this = style; }
 Style& Style::operator=(const Style& other) {
   if (&other == this) return *this;
-  if (other.HasFontDescriptor()) SetFontDescriptor(other.GetFontDescriptor());
-  if (other.HasTextSize()) SetTextSize(other.GetTextSize());
-  if (other.HasTextScale()) SetTextScale(other.GetTextScale());
-  if (other.HasForegroundColor())
+  if (other.HasAttribute(kFontDescriptor))
+    SetFontDescriptor(other.GetFontDescriptor());
+  if (other.HasAttribute(kTextSize)) SetTextSize(other.GetTextSize());
+  if (other.HasAttribute(kTextScale)) SetTextScale(other.GetTextScale());
+  if (other.HasAttribute(kForegroundColor))
     SetForegroundColor(other.GetForegroundColor());
-  if (other.HasBackgroundColor())
+  if (other.HasAttribute(kBackgroundColor))
     SetBackgroundColor(other.GetBackgroundColor());
-  if (other.HasDecorationColor())
+  if (other.HasAttribute(kDecorationColor))
     SetDecorationColor(other.GetDecorationColor());
-  if (other.HasDecorationType()) SetDecorationType(other.GetDecorationType());
-  if (other.HasDecorationStyle())
+  if (other.HasAttribute(kDecorationType))
+    SetDecorationType(other.GetDecorationType());
+  if (other.HasAttribute(kDecorationStyle))
     SetDecorationStyle(other.GetDecorationStyle());
-  if (other.HasDecorationThicknessMultiplier())
+  if (other.HasAttribute(kDecorationThicknessMultiplier))
     SetDecorationThicknessMultiplier(other.GetDecorationThicknessMultiplier());
-  if (other.HasBold()) SetBold(other.GetBold());
-  if (other.HasItalic()) SetItalic(other.GetItalic());
-  if (other.HasVerticalAlignment())
+  if (other.HasAttribute(kTextStrokeStyle)) {
+    text_stroke_ = other.text_stroke_;
+  }
+  if (other.HasAttribute(kBold)) SetBold(other.GetBold());
+  if (other.HasAttribute(kItalic)) SetItalic(other.GetItalic());
+  if (other.HasAttribute(kVerticalAlignment))
     SetVerticalAlignment(other.GetVerticalAlignment());
-  if (other.HasWordSpacing()) SetWordSpacing(other.GetWordSpacing());
-  if (other.HasLetterSpacing()) SetLetterSpacing(other.GetLetterSpacing());
-  if (other.HasTextShadowList()) SetTextShadowList(other.GetTextShadowList());
-  if (other.HasForegroundPainter())
+  if (other.HasAttribute(kWordSpacing)) SetWordSpacing(other.GetWordSpacing());
+  if (other.HasAttribute(kLetterSpacing))
+    SetLetterSpacing(other.GetLetterSpacing());
+  if (other.HasAttribute(kTextShadowList))
+    SetTextShadowList(other.GetTextShadowList());
+  if (other.HasAttribute(kForegroundPainter))
     SetForegroundPainter(other.GetForegroundPainter());
-  if (other.HasBackgroundPainter())
+  if (other.HasAttribute(kBackgroundPainter))
     SetBackgroundPainter(other.GetBackgroundPainter());
-  if (other.HasWordBreak()) {
+  if (other.HasAttribute(kWordBreak)) {
     SetWordBreak(other.GetWordBreak());
   }
-  if (other.HasBaselineOffset()) {
+  if (other.HasAttribute(kBaselineOffset)) {
     SetBaselineOffset(other.GetBaselineOffset());
   }
   return *this;

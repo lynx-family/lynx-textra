@@ -32,6 +32,12 @@ class L_EXPORT TTColor {
  public:
   bool operator==(const TTColor& other) const { return value_ == other.value_; }
   bool operator!=(const TTColor& other) const { return !(*this == other); }
+  bool operator==(const uint32_t plain_color) const {
+    return value_ == plain_color;
+  }
+  bool operator!=(const uint32_t plain_color) const {
+    return this->value_ != plain_color;
+  }
   void operator=(const uint32_t& color) { SetColor(color); }
   operator uint32_t() const { return value_; }
 
@@ -45,6 +51,10 @@ class L_EXPORT TTColor {
   uint8_t GetRed() const { return (value_ >> 16) & 0xff; }
   uint8_t GetGreen() const { return (value_ >> 8) & 0xff; }
   uint8_t GetBlue() const { return (value_) & 0xff; }
+  float GetAlphaRatio() const { return GetAlpha() / 255.f; }
+  float GetRedRatio() const { return GetRed() / 255.f; }
+  float GetGreenRatio() const { return GetGreen() / 255.f; }
+  float GetBlueRatio() const { return GetBlue() / 255.f; }
   std::string ToHexString() const;
 
  public:
