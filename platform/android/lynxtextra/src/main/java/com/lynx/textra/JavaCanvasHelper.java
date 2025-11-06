@@ -202,7 +202,21 @@ public class JavaCanvasHelper {
     float x2 = TTTextUtils.Dp2Px(stream.readFloat());
     float y2 = TTTextUtils.Dp2Px(stream.readFloat());
     Paint p = ReadPaint(stream, paint_);
-    canvas_.drawLine(x1, y1, x2, y2, p);
+    p.setColor(color_);
+    if (color_ != 0 && stroke_color_ == color_) {
+      p.setStyle(Paint.Style.FILL_AND_STROKE);
+      canvas_.drawLine(x1, y1, x2, y2, p);
+    } else {
+      if (color_ != 0) {
+        p.setStyle(Paint.Style.FILL);
+        canvas_.drawLine(x1, y1, x2, y2, p);
+      }
+      if (stroke_color_ != 0) {
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(stroke_color_);
+        canvas_.drawLine(x1, y1, x2, y2, p);
+      }
+    }
   }
 
   protected void drawRect(BBufferInputStream stream) throws IOException {
@@ -211,7 +225,21 @@ public class JavaCanvasHelper {
     float r = TTTextUtils.Dp2Px(stream.readFloat());
     float b = TTTextUtils.Dp2Px(stream.readFloat());
     Paint p = ReadPaint(stream, paint_);
-    canvas_.drawRect(l, t, r, b, p);
+    p.setColor(color_);
+    if (color_ != 0 && stroke_color_ == color_) {
+      p.setStyle(Paint.Style.FILL_AND_STROKE);
+      canvas_.drawRect(l, t, r, b, p);
+    } else {
+      if (color_ != 0) {
+        p.setStyle(Paint.Style.FILL);
+        canvas_.drawRect(l, t, r, b, p);
+      }
+      if (stroke_color_ != 0) {
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(stroke_color_);
+        canvas_.drawRect(l, t, r, b, p);
+      }
+    }
   }
 
   protected void drawRoundRect(BBufferInputStream stream) throws IOException {
@@ -221,10 +249,32 @@ public class JavaCanvasHelper {
     float b = TTTextUtils.Dp2Px(stream.readFloat());
     float radii = TTTextUtils.Dp2Px(stream.readFloat());
     Paint p = ReadPaint(stream, paint_);
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      canvas_.drawRoundRect(l, t, r, b, radii, radii, p);
+    p.setColor(color_);
+    if (color_ != 0 && stroke_color_ == color_) {
+      p.setStyle(Paint.Style.FILL_AND_STROKE);
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        canvas_.drawRoundRect(l, t, r, b, radii, radii, p);
+      } else {
+        canvas_.drawRect(l, t, r, b, p);
+      }
     } else {
-      canvas_.drawRect(l, t, r, b, p);
+      if (color_ != 0) {
+        p.setStyle(Paint.Style.FILL);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+          canvas_.drawRoundRect(l, t, r, b, radii, radii, p);
+        } else {
+          canvas_.drawRect(l, t, r, b, p);
+        }
+      }
+      if (stroke_color_ != 0) {
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(stroke_color_);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+          canvas_.drawRoundRect(l, t, r, b, radii, radii, p);
+        } else {
+          canvas_.drawRect(l, t, r, b, p);
+        }
+      }
     }
   }
 
@@ -242,7 +292,21 @@ public class JavaCanvasHelper {
     float y = TTTextUtils.Dp2Px(stream.readFloat());
     float r = TTTextUtils.Dp2Px(stream.readFloat());
     Paint p = ReadPaint(stream, paint_);
-    canvas_.drawCircle(x, y, r, p);
+    p.setColor(color_);
+    if (color_ != 0 && stroke_color_ == color_) {
+      p.setStyle(Paint.Style.FILL_AND_STROKE);
+      canvas_.drawCircle(x, y, r, p);
+    } else {
+      if (color_ != 0) {
+        p.setStyle(Paint.Style.FILL);
+        canvas_.drawCircle(x, y, r, p);
+      }
+      if (stroke_color_ != 0) {
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(stroke_color_);
+        canvas_.drawCircle(x, y, r, p);
+      }
+    }
   }
 
   protected void drawArc(BBufferInputStream stream) throws IOException {
@@ -260,8 +324,22 @@ public class JavaCanvasHelper {
     Path path = new Path();
     ReadPath(path, stream);
     path.close();
-    Paint paint = ReadPaint(stream, paint_);
-    canvas_.drawPath(path, paint);
+    Paint p = ReadPaint(stream, paint_);
+    p.setColor(color_);
+    if (color_ != 0 && stroke_color_ == color_) {
+      p.setStyle(Paint.Style.FILL_AND_STROKE);
+      canvas_.drawPath(path, p);
+    } else {
+      if (color_ != 0) {
+        p.setStyle(Paint.Style.FILL);
+        canvas_.drawPath(path, p);
+      }
+      if (stroke_color_ != 0) {
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(stroke_color_);
+        canvas_.drawPath(path, p);
+      }
+    }
   }
 
   protected void drawArcTo(BBufferInputStream stream) throws IOException {
@@ -291,7 +369,21 @@ public class JavaCanvasHelper {
     Paint p = ReadPaint(stream, paint_);
     p.setFakeBoldText(is_bold_);
     p.setTextSkewX(is_italic_ ? -0.25f : 0f);
-    canvas_.drawText(text_, 0, char_count, x, y, p);
+    p.setColor(color_);
+    if (color_ != 0 && stroke_color_ == color_) {
+      p.setStyle(Paint.Style.FILL_AND_STROKE);
+      canvas_.drawText(text_, 0, char_count, x, y, p);
+    } else {
+      if (color_ != 0) {
+        p.setStyle(Paint.Style.FILL);
+        canvas_.drawText(text_, 0, char_count, x, y, p);
+      }
+      if (stroke_color_ != 0) {
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(stroke_color_);
+        canvas_.drawText(text_, 0, char_count, x, y, p);
+      }
+    }
   }
 
   protected void drawGlyphs(BBufferInputStream stream) throws IOException {
@@ -358,23 +450,10 @@ public class JavaCanvasHelper {
     painter.setAntiAlias(true);
     painter.setStrokeWidth(TTTextUtils.Dp2Px(stream.readFloat()));
     color_ = stream.readInt();
-    painter.setColor(color_);
+    stroke_color_ = stream.readInt();
     text_size_ = TTTextUtils.Dp2Px(stream.readFloat());
     painter.setTextSize(text_size_);
     int flag = stream.readByte();
-    switch (flag & 0x3) {
-      case 0:
-        painter.setStyle(Paint.Style.FILL);
-        break;
-      case 1:
-        painter.setStyle(Paint.Style.STROKE);
-        break;
-      case 2:
-        painter.setStyle(Paint.Style.FILL_AND_STROKE);
-        break;
-      case 3:
-        break;
-    }
     is_bold_ = (flag & (1 << 2)) > 0;
     is_italic_ = (flag & (1 << 3)) > 0;
     is_underline_ = (flag & (1 << 4)) > 0;
@@ -439,6 +518,7 @@ public class JavaCanvasHelper {
   protected float text_size_;
 
   protected int color_;
+  protected int stroke_color_;
   protected Paint mPainter = new Paint();
   protected char[] text_ = new char[20];
 }

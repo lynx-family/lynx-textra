@@ -190,6 +190,8 @@ void StyleManager::SetStyle(Style* style, uint64_t value,
       return style->SetDecorationStyle(static_cast<LineType>(value));
     case AttributeType::kDecorationThicknessMultiplier:
       return style->SetDecorationThicknessMultiplier(UnPackValue<float>(value));
+    case AttributeType::kTextStrokeStyle:
+      return style->SetTextStrokeValue(value);
     case AttributeType::kBold:
       return style->SetBold(value);
     case AttributeType::kItalic:
@@ -224,6 +226,8 @@ AttributesRangeList::ValueType StyleManager::GetStyleValue(
       return static_cast<uint64_t>(style->GetDecorationStyle());
     case AttributeType::kDecorationThicknessMultiplier:
       return PackValue(style->GetDecorationThicknessMultiplier());
+    case AttributeType::kTextStrokeStyle:
+      return style->GetTextStrokeValue();
     case AttributeType::kBold:
       return (uint64_t)style->GetBold();
     case AttributeType::kItalic:

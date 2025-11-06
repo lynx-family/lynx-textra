@@ -16,10 +16,10 @@ TEST(StyleTest, AttributeSetterGetterAndFlag) {
   {                                                                         \
     /* Arrange */                                                           \
     Style style;                                                            \
-    EXPECT_FALSE(style.Has##ATTRIBUTE_NAME());                              \
+    EXPECT_FALSE(style.HasAttribute(k##ATTRIBUTE_NAME));                    \
     /* Act and Assert */                                                    \
     style.Set##ATTRIBUTE_NAME(Style::DefaultStyle().Get##ATTRIBUTE_NAME()); \
-    EXPECT_TRUE(style.Has##ATTRIBUTE_NAME());                               \
+    EXPECT_TRUE(style.HasAttribute(k##ATTRIBUTE_NAME));                     \
     EXPECT_TRUE(COMPARE(style.Get##ATTRIBUTE_NAME(),                        \
                         Style::DefaultStyle().Get##ATTRIBUTE_NAME()));      \
   }
@@ -43,6 +43,18 @@ TEST(StyleTest, AttributeSetterGetterAndFlag) {
   SET_ATTRIBUTE_AND_CHECK_RESULT(BackgroundPainter, std::equal_to<>{});
   SET_ATTRIBUTE_AND_CHECK_RESULT(WordBreak, std::equal_to<>{});
   SET_ATTRIBUTE_AND_CHECK_RESULT(BaselineOffset, ttoffice::FloatsEqual);
+  {
+    Style style;
+    EXPECT_FALSE(style.HasAttribute(kTextStrokeStyle));
+    style.SetTextStrokeValue(Style::DefaultStyle().GetTextStrokeValue());
+    EXPECT_TRUE(style.HasAttribute(kTextStrokeStyle));
+    EXPECT_TRUE(std::equal_to<>{}(style.GetTextStrokeValue(),
+                                  Style::DefaultStyle().GetTextStrokeValue()));
+    style.SetTextStrokeStyle(TTColor::RED, 25);
+    EXPECT_TRUE(std::equal_to<>{}(style.GetTextStrokeColor().GetPlainColor(),
+                                  TTColor::RED));
+    EXPECT_TRUE(ttoffice::FloatsEqual(style.GetTextStrokeWidth(), 25.f));
+  }
   // SET_ATTRIBUTE_AND_CHECK_RESULT(TextShadowList, /* no operator== */);
 }
 
@@ -67,7 +79,7 @@ TEST(StyleTest, ChangingSomeAttributesResetsShapeStyle) {
 TEST(StyleTest, Reset) {
   Style style;
   style.SetBackgroundColor(TTColor(TTColor::BLUE));
-  EXPECT_TRUE(style.HasBackgroundColor());
+  EXPECT_TRUE(style.HasAttribute(kBackgroundColor));
   style.Reset();
-  EXPECT_FALSE(style.HasBackgroundColor());
+  EXPECT_FALSE(style.HasAttribute(kBackgroundColor));
 }

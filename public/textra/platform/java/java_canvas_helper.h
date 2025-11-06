@@ -167,19 +167,10 @@ class JavaCanvasHelper : public ICanvasHelper {
  private:
   void WritePaint(Painter* painter) {
     stream_.WriteFloat(painter->GetStrokeWidth());
-    stream_.WriteInt32(painter->GetColor());
+    stream_.WriteInt32(painter->GetFillColor());
+    stream_.WriteInt32(painter->GetStrokeColor());
     stream_.WriteFloat(painter->GetTextSize());
     int8_t flag = 0;
-    switch (painter->GetFillStyle()) {
-      case FillStyle::kFill:
-        break;
-      case FillStyle::kStroke:
-        flag = flag | 1;
-        break;
-      case FillStyle::kStrokeAndFill:
-        flag = flag | 2;
-        break;
-    }
     if (painter->IsBold()) {
       flag = flag | (1 << 2);
     }

@@ -117,8 +117,7 @@ void LayoutDrawer::DrawLineBackground(TextLine* i_line,
       auto painter = style.GetBackgroundPainter();
       if (painter == nullptr) {
         painter = default_painter.get();
-        painter->SetFillStyle(FillStyle::kFill);
-        painter->SetColor(style.GetBackgroundColor());
+        painter->SetFillColor(style.GetBackgroundColor());
       }
       canvas_->DrawRect(rect[0], line->GetLineTop(), rect[0] + rect[2],
                         line->GetLineBottom(), painter);
@@ -162,8 +161,8 @@ void LayoutDrawer::DrawLineDecoration(TextLine* i_line,
           break;
       }
       auto painter = canvas_->CreatePainter();
-      painter->SetFillStyle(FillStyle::kStrokeAndFill);
-      painter->SetColor(decorate_style.GetDecorationColor());
+      painter->SetFillColor(decorate_style.GetDecorationColor());
+      painter->SetStrokeColor(decorate_style.GetDecorationColor());
       auto stroke_width = painter->GetStrokeWidth();
       switch (decorate_style.GetDecorationStyle()) {
         case LineType::kSolid: {
@@ -305,7 +304,7 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
       style_manager->GetStyleRange(
           &style_range, run->GetStartCharPos() + piece_start,
           Style::ForegroundColorFlag | Style::ForegroundPainterFlag |
-              Style::BaselineOffsetFlag);
+              Style::BaselineOffsetFlag | Style::TextStrokeStyleFlag);
       piece_end = std::min(char_end_pos, style_range.GetRange().GetEnd() -
                                              run->GetStartCharPos());
       style = &style_range.GetStyle();
@@ -320,12 +319,14 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
         painter->SetFontFamily(fd.font_family_list_[0]);
       }
       painter->SetTextSize(layout_style.GetTextSize());
-      painter->SetColor(style->GetForegroundColor());
+      painter->SetFillColor(style->GetForegroundColor());
       painter->SetBold(layout_style.GetBold());
       painter->SetItalic(layout_style.GetItalic());
+      painter->SetStrokeColor(style->GetTextStrokeColor());
+      painter->SetStrokeWidth(style->GetTextStrokeWidth());
     } else {
       // prefer text size in style object
-      if (layout_style.HasTextSize()) {
+      if (layout_style.HasAttribute(kTextSize)) {
         painter->SetTextSize(layout_style.GetTextSize());
       }
     }

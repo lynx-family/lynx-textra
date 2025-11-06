@@ -70,7 +70,7 @@ class AGCanvasHelper : public ICanvasHelper {
   void DrawLine(float x1, float y1, float x2, float y2,
                 tttext::Painter* painter) override {
     auto* pen = OH_Drawing_PenCreate();
-    OH_Drawing_PenSetColor(pen, painter->GetColor());
+    OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
     OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
     OH_Drawing_CanvasAttachPen(canvas_, pen);
     OH_Drawing_CanvasDrawLine(canvas_, x1, y1, x2, y2);
@@ -81,29 +81,20 @@ class AGCanvasHelper : public ICanvasHelper {
   void DrawRect(float left, float top, float right, float bottom,
                 tttext::Painter* painter) override {
     auto* brush = OH_Drawing_BrushCreate();
-    OH_Drawing_BrushSetColor(brush, painter->GetColor());
     auto* pen = OH_Drawing_PenCreate();
-    OH_Drawing_PenSetColor(pen, painter->GetColor());
-    OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
-    auto fill_style = painter->GetFillStyle();
-    if (fill_style == FillStyle::kFill ||
-        fill_style == FillStyle::kStrokeAndFill) {
+    if (painter->GetFillColor() != TTColor::UNDEFINED) {
+      OH_Drawing_BrushSetColor(brush, painter->GetFillColor());
       OH_Drawing_CanvasAttachBrush(canvas_, brush);
     }
-    if (fill_style == FillStyle::kStroke ||
-        fill_style == FillStyle::kStrokeAndFill) {
+    if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
+      OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
+      OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
       OH_Drawing_CanvasAttachPen(canvas_, pen);
     }
     auto* rect = OH_Drawing_RectCreate(left, top, right, bottom);
     OH_Drawing_CanvasDrawRect(canvas_, rect);
-    if (fill_style == FillStyle::kFill ||
-        fill_style == FillStyle::kStrokeAndFill) {
-      OH_Drawing_CanvasDetachBrush(canvas_);
-    }
-    if (fill_style == FillStyle::kStroke ||
-        fill_style == FillStyle::kStrokeAndFill) {
-      OH_Drawing_CanvasDetachPen(canvas_);
-    }
+    OH_Drawing_CanvasDetachBrush(canvas_);
+    OH_Drawing_CanvasDetachPen(canvas_);
     OH_Drawing_BrushDestroy(brush);
     OH_Drawing_PenDestroy(pen);
     OH_Drawing_RectDestroy(rect);
@@ -111,30 +102,21 @@ class AGCanvasHelper : public ICanvasHelper {
   void DrawRoundRect(float left, float top, float right, float bottom,
                      float radius, tttext::Painter* painter) override {
     auto* brush = OH_Drawing_BrushCreate();
-    OH_Drawing_BrushSetColor(brush, painter->GetColor());
     auto* pen = OH_Drawing_PenCreate();
-    OH_Drawing_PenSetColor(pen, painter->GetColor());
-    OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
-    auto fill_style = painter->GetFillStyle();
-    if (fill_style == FillStyle::kFill ||
-        fill_style == FillStyle::kStrokeAndFill) {
+    if (painter->GetFillColor() != TTColor::UNDEFINED) {
+      OH_Drawing_BrushSetColor(brush, painter->GetFillColor());
       OH_Drawing_CanvasAttachBrush(canvas_, brush);
     }
-    if (fill_style == FillStyle::kStroke ||
-        fill_style == FillStyle::kStrokeAndFill) {
+    if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
+      OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
+      OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
       OH_Drawing_CanvasAttachPen(canvas_, pen);
     }
     auto* rect = OH_Drawing_RectCreate(left, top, right, bottom);
     auto* round_rect = OH_Drawing_RoundRectCreate(rect, radius, radius);
     OH_Drawing_CanvasDrawRoundRect(canvas_, round_rect);
-    if (fill_style == FillStyle::kFill ||
-        fill_style == FillStyle::kStrokeAndFill) {
-      OH_Drawing_CanvasDetachBrush(canvas_);
-    }
-    if (fill_style == FillStyle::kStroke ||
-        fill_style == FillStyle::kStrokeAndFill) {
-      OH_Drawing_CanvasDetachPen(canvas_);
-    }
+    OH_Drawing_CanvasDetachBrush(canvas_);
+    OH_Drawing_CanvasDetachPen(canvas_);
     OH_Drawing_BrushDestroy(brush);
     OH_Drawing_PenDestroy(pen);
     OH_Drawing_RectDestroy(rect);
@@ -147,29 +129,19 @@ class AGCanvasHelper : public ICanvasHelper {
   void DrawCircle(float x, float y, float radius,
                   tttext::Painter* painter) override {
     auto* brush = OH_Drawing_BrushCreate();
-    OH_Drawing_BrushSetColor(brush, painter->GetColor());
     auto* pen = OH_Drawing_PenCreate();
-    OH_Drawing_PenSetColor(pen, painter->GetColor());
-    OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
-    auto fill_style = painter->GetFillStyle();
-    if (fill_style == FillStyle::kFill ||
-        fill_style == FillStyle::kStrokeAndFill) {
+    if (painter->GetFillColor() != TTColor::UNDEFINED) {
+      OH_Drawing_BrushSetColor(brush, painter->GetFillColor());
       OH_Drawing_CanvasAttachBrush(canvas_, brush);
     }
-    if (fill_style == FillStyle::kStroke ||
-        fill_style == FillStyle::kStrokeAndFill) {
+    if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
+      OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
+      OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
       OH_Drawing_CanvasAttachPen(canvas_, pen);
     }
     auto* point = OH_Drawing_PointCreate(x, y);
     OH_Drawing_CanvasDrawCircle(canvas_, point, radius);
-    if (fill_style == FillStyle::kFill ||
-        fill_style == FillStyle::kStrokeAndFill) {
-      OH_Drawing_CanvasDetachBrush(canvas_);
-    }
-    if (fill_style == FillStyle::kStroke ||
-        fill_style == FillStyle::kStrokeAndFill) {
-      OH_Drawing_CanvasDetachPen(canvas_);
-    }
+    OH_Drawing_CanvasDetachBrush(canvas_);
     OH_Drawing_BrushDestroy(brush);
     OH_Drawing_PenDestroy(pen);
     OH_Drawing_PointDestroy(point);
@@ -235,25 +207,18 @@ class AGCanvasHelper : public ICanvasHelper {
    * */
   void DrawPath(Path* path, tttext::Painter* painter) override {
     auto* ag_path = OH_Drawing_PathCreate();
-    OH_Drawing_Brush* brush = OH_Drawing_BrushCreate();
-    OH_Drawing_Pen* pen = OH_Drawing_PenCreate();
-    if (painter->GetFillStyle() == FillStyle::kFill) {
-      // Create brush, this example fills closed paths with color, so brush is
-      // needed
-      OH_Drawing_BrushSetColor(brush, painter->GetColor());
-      // Set brush in canvas
+    auto* brush = OH_Drawing_BrushCreate();
+    auto* pen = OH_Drawing_PenCreate();
+    if (painter->GetFillColor() != TTColor::UNDEFINED) {
+      OH_Drawing_BrushSetColor(brush, painter->GetFillColor());
       OH_Drawing_CanvasAttachBrush(canvas_, brush);
-    } else {
-      // Create pen object
-      // Set pen stroke color
-      OH_Drawing_PenSetColor(pen, painter->GetColor());
-      // Set pen line width
+    }
+    if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
+      OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
       OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
-      // Set pen corner style
-      OH_Drawing_PenSetJoin(pen, LINE_ROUND_JOIN);
-      // Set pen in canvas
       OH_Drawing_CanvasAttachPen(canvas_, pen);
     }
+
     BuildPath(ag_path, path);
     OH_Drawing_CanvasDrawPath(canvas_, ag_path);
     OH_Drawing_PathDestroy(ag_path);
@@ -288,13 +253,20 @@ class AGCanvasHelper : public ICanvasHelper {
     }
     OH_Drawing_TextBlob* textBlob = OH_Drawing_TextBlobBuilderMake(builder);
     auto* brush = OH_Drawing_BrushCreate();
-    OH_Drawing_BrushSetColor(brush, painter->GetColor());
-    OH_Drawing_CanvasAttachBrush(canvas_, brush);
+    auto* pen = OH_Drawing_PenCreate();
+    if (painter->GetFillColor() != TTColor::UNDEFINED) {
+      OH_Drawing_BrushSetColor(brush, painter->GetFillColor());
+      OH_Drawing_CanvasAttachBrush(canvas_, brush);
+    }
+    if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
+      OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
+      OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
+      OH_Drawing_CanvasAttachPen(canvas_, pen);
+    }
 
-    OH_Drawing_Pen* pen = nullptr;
-    if (painter->IsBold()) {
+    if (painter->IsBold() && painter->GetStrokeColor() == TTColor::UNDEFINED) {
       pen = OH_Drawing_PenCreate();
-      OH_Drawing_PenSetColor(pen, painter->GetColor());
+      OH_Drawing_PenSetColor(pen, painter->GetFillColor());
       OH_Drawing_PenSetWidth(pen, painter->GetTextSize() / 40);
       OH_Drawing_CanvasAttachPen(canvas_, pen);
     }
@@ -306,10 +278,8 @@ class AGCanvasHelper : public ICanvasHelper {
     OH_Drawing_CanvasDetachBrush(canvas_);
     OH_Drawing_BrushDestroy(brush);
 
-    if (pen != nullptr) {
-      OH_Drawing_CanvasDetachPen(canvas_);
-      OH_Drawing_PenDestroy(pen);
-    }
+    OH_Drawing_CanvasDetachPen(canvas_);
+    OH_Drawing_PenDestroy(pen);
     OH_Drawing_CanvasRestore(canvas_);
   }
   void DrawRunDelegate(const RunDelegate* delegate, float left, float top,
