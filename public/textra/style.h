@@ -238,8 +238,8 @@ class L_EXPORT Style {
     text_stroke_.style_.color_ = color;
     if (std::isinf(thickness)) thickness = 0.0f;
     auto clamped_thickness =
-        std::clamp(thickness * 10, 0.0f,
-                   static_cast<float>(std::numeric_limits<uint16_t>::max()));
+        std::fmin(std::fmax(thickness * 10, 0.0f),
+                  static_cast<float>(std::numeric_limits<uint16_t>::max()));
     text_stroke_.style_.fixed_10x_thickness_ = std::round(clamped_thickness);
     flag_ |= TextStrokeStyleFlag;
   }
