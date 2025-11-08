@@ -397,17 +397,13 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
         CGContextSetTextDrawingMode(context_, kCGTextStroke);
       }
     }
-    if (fill_color != TTColor::UNDEFINED) {
-      CGContextSetRGBFillColor(
-          context_, fill_color.GetRedRatio(), fill_color.GetGreenRatio(),
-          fill_color.GetBlueRatio(), fill_color.GetAlphaRatio());
-    }
-    if (stroke_color != TTColor::UNDEFINED) {
-      CGContextSetRGBStrokeColor(
-          context_, stroke_color.GetRedRatio(), stroke_color.GetGreenRatio(),
-          stroke_color.GetBlueRatio(), stroke_color.GetAlphaRatio());
-      CGContextSetLineWidth(context_, painter->GetStrokeWidth());
-    }
+    CGContextSetRGBFillColor(
+        context_, fill_color.GetRedRatio(), fill_color.GetGreenRatio(),
+        fill_color.GetBlueRatio(), fill_color.GetAlphaRatio());
+    CGContextSetRGBStrokeColor(
+        context_, stroke_color.GetRedRatio(), stroke_color.GetGreenRatio(),
+        stroke_color.GetBlueRatio(), stroke_color.GetAlphaRatio());
+    CGContextSetLineWidth(context_, painter->GetStrokeWidth());
     return mode;
   }
 
