@@ -23,6 +23,7 @@ LayoutResult TextLayoutImpl::LayoutEx(Paragraph* i_para, LayoutRegion* page,
   LayoutResult result = LayoutResult::kNormal;
   auto* para = TTDYNAMIC_CAST<ParagraphImpl*>(i_para);
   para->SetShaper(shaper);
+  para->TransformLayoutStyleOnlyOnce();
   para->FormatRunList();
   auto& pos = context.GetPositionRef();
   std::unique_ptr<TextLineImpl> current_line = nullptr;

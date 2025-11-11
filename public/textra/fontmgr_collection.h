@@ -37,6 +37,10 @@ class L_EXPORT FontmgrCollection {
   static constexpr char kDefaultFontFamily[] = "sans-serif";
   size_t getFontManagersCount() const;
 
+  void SetDefaultSystemFontFamily(std::string familyName) {
+    default_system_font_family_ = familyName;
+  }
+
   std::vector<TypefaceRef> findTypefaces(const FontDescriptor& fd) const;
 
   TypefaceRef defaultFallback(Unichar unicode, FontStyle fontStyle,
@@ -73,6 +77,7 @@ class L_EXPORT FontmgrCollection {
                             FontStyle fontStyle) const;
 
   bool fEnableFontFallback = true;
+  std::string default_system_font_family_ = kDefaultFontFamily;
   mutable std::unordered_map<FontDescriptor, std::vector<TypefaceRef>,
                              FontDescriptor::Hasher>
       fTypefaces;

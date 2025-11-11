@@ -146,6 +146,7 @@ class ParagraphImpl : public Paragraph {
   void SetShaper(TTShaper* shaper) { shaper_ = shaper; }
   void ClearLayout() { formated_ = false; }
   RunDelegate* GetRunDelegateForChar(uint32_t char_index) const;
+  void TransformLayoutStyleOnlyOnce();
 
  private:
   BaseRun* GetRun(uint32_t idx) const {
@@ -163,6 +164,7 @@ class ParagraphImpl : public Paragraph {
 
  protected:
   ParagraphStyle paragraph_style_;
+  bool style_transformed_;
   bool formated_;
   TTString content_;
   std::unique_ptr<StyleManager> style_manager_;

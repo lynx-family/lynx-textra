@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include <jni.h>
+#include <sys/system_properties.h>
 #include <textra/icu_wrapper.h>
 #include <textra/platform/java/java_typeface.h>
 #include <textra/platform/java/tttext_jni_proxy.h>
@@ -17,6 +18,7 @@ constexpr char CLASS_JAVA_TYPEFACE[] = "com/lynx/textra/JavaTypeface";
 constexpr char CLASS_JAVA_SHAPERESULT[] = "com/lynx/textra/JavaShapeResult";
 constexpr char CLASS_JAVA_SHAPER[] = "com/lynx/textra/JavaShaper";
 constexpr char CLASS_JAVA_FONTMANAGER[] = "com/lynx/textra/JavaFontManager";
+constexpr char CLASS_JAVA_TTTEXTUTILS[] = "com/lynx/textra/TTTextUtils";
 JavaVM* TTTextJNIProxy::java_vm_ = nullptr;
 jfieldID TTTextJNIProxy::JavaShapeResult_field_glyph_count_ = nullptr;
 jfieldID TTTextJNIProxy::JavaShapeResult_field_glyphs_ = nullptr;
@@ -36,6 +38,10 @@ jmethodID TTTextJNIProxy::JavaFontManager_method_onMatchTypefaceIndex_ =
     nullptr;
 jmethodID TTTextJNIProxy::JavaTypeface_method_GetFontMetrics = nullptr;
 jmethodID TTTextJNIProxy::JavaTypeface_method_GetTextBounds = nullptr;
+
+std::unique_ptr<ScopedGlobalRef> TTTextJNIProxy::tttext_utils_class_ = nullptr;
+jmethodID TTTextJNIProxy::TTTextUtils_method_SystemFontStyleAdjust_ = nullptr;
+jmethodID TTTextJNIProxy::TTTextUtils_method_SystemDefaultFamilyName_ = nullptr;
 
 TTTextJNIProxy::TTTextJNIProxy() = default;
 TTTextJNIProxy::~TTTextJNIProxy() = default;
@@ -103,6 +109,16 @@ void TTTextJNIProxy::InitialJNI(JNIEnv* env) {
   JavaTypeface_method_GetTextBounds = GetMethod(
       env, clzz_JavaTypeface, INSTANCE_METHOD, "GetTextBounds", "([CF)[F");
   env->DeleteLocalRef(clzz_JavaTypeface);
+  auto clzz_TTTextUtils = GetClass(env, CLASS_JAVA_TTTEXTUTILS);
+  tttext_utils_class_ =
+      std::make_unique<ScopedGlobalRef>(env, clzz_TTTextUtils);
+  TTTextUtils_method_SystemFontStyleAdjust_ =
+      GetMethod(env, clzz_TTTextUtils, MethodType::STATIC_METHOD,
+                "SystemFontStyleAdjust", "(FS)[B");
+  TTTextUtils_method_SystemDefaultFamilyName_ =
+      GetMethod(env, clzz_TTTextUtils, MethodType::STATIC_METHOD,
+                "SystemDefaultFamilyName", "()Ljava/lang/String;");
+  env->DeleteLocalRef(clzz_TTTextUtils);
 }
 jstring TTTextJNIProxy::CreateJavaStringFromU32(JNIEnv* env,
                                                 const char32_t* str,
@@ -122,6 +138,37 @@ jstring TTTextJNIProxy::CreateJavaStringFromU8(JNIEnv* env, const char* str,
   return env->NewString(reinterpret_cast<const jchar*>(u16string.c_str()),
                         u16string.length());
 }
+void TTTextJNIProxy::SystemFontStyleAdjust(float* font_size,
+                                           uint16_t* font_weight) {
+  auto* env = TTTextJNIProxy::GetCurrentJNIEnv();
+  jfloat jfont_size = *font_size;
+  jshort jfont_weight = *font_weight;
+  auto byte_array = (jbyteArray)env->CallStaticObjectMethod(
+      static_cast<jclass>(TTTextJNIProxy::tttext_utils_class_->get()),
+      TTTextJNIProxy::TTTextUtils_method_SystemFontStyleAdjust_, jfont_size,
+      jfont_weight);
+  auto byte_length = env->GetArrayLength(byte_array);
+  TTASSERT(byte_length == 6);
+  if (byte_length == 6) {
+    auto byte = env->GetByteArrayElements(byte_array, nullptr);
+    memcpy(font_size, byte, 4);
+    memcpy(font_weight, byte + 4, 2);
+  }
+}
+
+std::string TTTextJNIProxy::SystemDefaultFamilyName() {
+  auto* env = TTTextJNIProxy::GetCurrentJNIEnv();
+  jstring jstr = (jstring)env->CallStaticObjectMethod(
+      static_cast<jclass>(TTTextJNIProxy::tttext_utils_class_->get()),
+      TTTextJNIProxy::TTTextUtils_method_SystemDefaultFamilyName_);
+  const char* cstr = env->GetStringUTFChars(jstr, nullptr);
+  std::string result(cstr);
+  env->ReleaseStringUTFChars(jstr, cstr);
+  env->DeleteLocalRef(jstr);
+
+  return result;
+}
+
 }  // namespace tttext
 }  // namespace ttoffice
 
@@ -182,6 +229,34 @@ static JNINativeMethod tttext_methods[] = {
      reinterpret_cast<void*>(TTTextNativeGetDefaultFontManager)},
 };
 
+extern "C" JNIEXPORT jint JNICALL TTTextUtilsNativeGetSystemProp(JNIEnv* env,
+                                                                 jclass clazz,
+                                                                 jstring key) {
+  auto font_manager =
+      tttext::TTTextJNIProxy::GetInstance().GetDefaultFontManager();
+  if (key == nullptr) {
+    return 0;
+  }
+
+  const char* keyStr = env->GetStringUTFChars(key, nullptr);
+  char value[PROP_VALUE_MAX] = {0};
+  int len = __system_property_get(keyStr, value);
+  env->ReleaseStringUTFChars(key, keyStr);
+
+  if (len <= 0) {
+    return 0;
+  }
+
+  // cast to int
+  int intValue = atoi(value);
+  return intValue;
+}
+
+static JNINativeMethod tttext_utils_methods[] = {
+    {"nativeGetSystemPropInt", "(Ljava/lang/String;)I",
+     reinterpret_cast<void*>(TTTextUtilsNativeGetSystemProp)},
+};
+
 int RegisterJNIMethods(JNIEnv* env, const char* class_name,
                        JNINativeMethod* methods, jint num_methods) {
   jclass clazz = env->FindClass(class_name);
@@ -223,6 +298,9 @@ Java_com_lynx_textra_TTText_nativeInitialCache(JNIEnv* env, jclass clzz) {
 
   RegisterJNIMethods(env, "com/lynx/textra/TTText", tttext_methods,
                      std::size(tttext_methods));
+
+  RegisterJNIMethods(env, "com/lynx/textra/TTTextUtils", tttext_utils_methods,
+                     std::size(tttext_utils_methods));
 
   tttext::TTTextJNIProxy::InitialJNI(env);
   tttext::TTTextJNIProxy::GetInstance().Initial();

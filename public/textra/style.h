@@ -23,6 +23,7 @@ class GhostRun;
 class ShapeStyle;
 class StyleManager;
 class ParagraphImpl;
+class ShaperSkShaper;
 
 union DecorationStyle {
   uint64_t value = 0;
@@ -53,6 +54,7 @@ union DecorationStyle {
 class L_EXPORT Style {
   friend BaseRun;
   friend ParagraphImpl;
+  friend ShaperSkShaper;
   using FlagType = AttrType;
   using TextShadowList = std::vector<TextShadow>;
 

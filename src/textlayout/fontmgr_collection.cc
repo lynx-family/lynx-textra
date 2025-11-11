@@ -6,6 +6,9 @@
 #ifdef SK_SHAPER_HARFBUZZ_AVAILABLE
 #include "src/ports/shaper/skshaper/sk_shaper.h"
 #endif
+#ifdef TTTEXT_OS_ANDROID
+#include <textra/platform/java/tttext_jni_proxy.h>
+#endif
 
 namespace ttoffice {
 namespace tttext {
@@ -54,7 +57,7 @@ std::vector<TypefaceRef> FontmgrCollection::findTypefaces(
   }
 
   if (typefaces.empty()) {
-    auto match = matchTypeface("sans-serif", font_style);
+    auto match = matchTypeface(default_system_font_family_, font_style);
     if (match) {
       typefaces.emplace_back(match);
     }

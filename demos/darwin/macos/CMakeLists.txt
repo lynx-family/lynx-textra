@@ -125,7 +125,7 @@ target_compile_options(ttreaderdemo PRIVATE ${ASAN_COMPILE_OPTION})
 target_include_directories(ttreaderdemo PRIVATE ${skia_include})
 
 remove_definitions(-DSKP_TEST)
-add_subdirectory(${TEXTLAYOUT_DIRECTORY}/thirdparty/glfw-3.3.7 glfw.out)
+add_subdirectory(${TEXTLAYOUT_DIRECTORY}/thirdparty/glfw glfw.out)
 function(init_target target)
     target_sources(${target} PRIVATE
             )

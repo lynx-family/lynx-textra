@@ -39,7 +39,7 @@ deps = {
     'third_party/skity': {
         "type": "solution",
         "url": "https://github.com/lynx-family/skity",
-        "commit": "a7a2e4562451130d97e59e7b823dd1eea3a9747d",
+        "commit": "705ceef0ec7ab825358e747c76bba6f964424023",
         "deps_file": "hab/DEPS",
         "ignore_in_git": True,
     },
@@ -49,11 +49,23 @@ deps = {
         "ignore_in_git": True,
         "commit": "f29eda648547b36aa594c4116c7764a6c8a079b9",
     },
+    "third_party/skity/third_party/wuffs": {
+        "type": "git",
+        "url": "https://github.com/google/wuffs-mirror-release-c.git",
+        "ignore_in_git": True,
+        "commit": "a29749ebe0be57d2b19d8406475bd2326d0f1a85",
+    },
     "third_party/skity/third_party/libwebp": {
         "type": "git",
         "url": "https://github.com/webmproject/libwebp.git",
         "ignore_in_git": True,
         "commit": "4fa21912338357f89e4fd51cf2368325b59e9bd9"
+    },
+    "third_party/skity/third_party/pugixml": {
+        "type": "git",
+        "url": "https://github.com/zeux/pugixml.git",
+        "ignore_in_git": True,
+        "commit": "ee86beb30e4973f5feffe3ce63bfa4fbadf72f38",
     },
     'third_party/rapidjson': {
         'type': 'git',

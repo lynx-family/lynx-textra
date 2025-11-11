@@ -55,7 +55,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Install Common Dependencies
         uses: ./.github/actions/common-deps
-      - name: Run macOS build check
+      - name: Run macOS build check - mtl_app_demo
         run: |
           source tools/envsetup.sh
           buildtools/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Release -DSKITY_MTL_BACKEND=OFF -G Ninja -S . -B cmake-build-test
@@ -84,13 +84,16 @@ jobs:
         uses: actions/checkout@v4.2.2
       - name: Install Common Dependencies
         uses: ./.github/actions/common-deps
-      - name: Build Example App
+      - name: Install Android SDK CMake
         run: |
           source tools/envsetup.sh
           pushd demos/android
+          echo $ANDROID_HOME
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          sdkmanager --sdk_root=$ANDROID_HOME --install "cmake;3.18.1"
           ./gradlew :app:assembleRelease
           ./gradlew :perftest:assembleRelease
-          # ./gradlew :skitydemo:assembleRelease
+          ./gradlew :skitydemo:assembleDebug
           popd
 
   ios-example-build-check:
