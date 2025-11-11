@@ -11,6 +11,7 @@
 #include <textra/platform/java/scoped_global_ref.h>
 
 #include <memory>
+#include <string>
 namespace ttoffice {
 namespace tttext {
 class TTTextJNIProxy {
@@ -35,6 +36,9 @@ class TTTextJNIProxy {
                                          uint32_t len);
   static jstring CreateJavaStringFromU8(JNIEnv* env, const char* str,
                                         uint32_t len);
+  static void SystemFontStyleAdjust(float* font_size, uint16_t* font_weight);
+
+  static std::string SystemDefaultFamilyName();
 
  private:
   std::shared_ptr<JavaFontManager> font_manager_;
@@ -57,6 +61,9 @@ class TTTextJNIProxy {
   static jmethodID JavaFontManager_method_onMatchTypefaceIndex_;
   static jmethodID JavaTypeface_method_GetFontMetrics;
   static jmethodID JavaTypeface_method_GetTextBounds;
+  static std::unique_ptr<ScopedGlobalRef> tttext_utils_class_;
+  static jmethodID TTTextUtils_method_SystemFontStyleAdjust_;
+  static jmethodID TTTextUtils_method_SystemDefaultFamilyName_;
 };
 }  // namespace tttext
 }  // namespace ttoffice

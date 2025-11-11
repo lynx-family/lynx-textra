@@ -51,5 +51,5 @@ target_link_libraries( # Specifies the target library.
         ${log-lib}
         skity
         EGL
-        GLESv3
+        GLESv2
         z)

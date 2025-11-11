@@ -11,12 +11,14 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.lynx.textra.TTText;
+import com.lynx.textra.TTTextUtils;
 
 public class MainActivity extends AppCompatActivity {
   static {
     TTText.Initial(true);
     System.loadLibrary("skity_demo");
   }
+
   private SkityGLView mView;
 
   @Override
@@ -25,44 +27,37 @@ public class MainActivity extends AppCompatActivity {
 
     DisplayMetrics metrics = getResources().getDisplayMetrics();
 
-    // 创建根布局 LinearLayout
-    LinearLayout rootLayout = new LinearLayout(this);
-    rootLayout.setOrientation(LinearLayout.VERTICAL); // 垂直方向
+    TTTextUtils.context = getApplicationContext();
 
-    // 设置 LayoutParams，全屏
+    // Adjust the layout to place the TextView closer to the custom-rendered view for easier
+    // comparison.
+    LinearLayout rootLayout = new LinearLayout(this);
+    rootLayout.setOrientation(LinearLayout.VERTICAL);
+
     LinearLayout.LayoutParams rootParams = new LinearLayout.LayoutParams(
         LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT);
     rootLayout.setLayoutParams(rootParams);
-
-    // 创建 TextView
     TextView textView = new TextView(this);
-    textView.setText("测试字重, test font weight, 😄🇨🇳");
-    textView.setBackgroundColor(Color.LTGRAY);
+    textView.setText("第11章, test font weight, 😄🇨🇳");
     textView.setTextColor(Color.BLACK);
     textView.setTextSize(60.f / metrics.density);
     //    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
     //      textView.setFontVariationSettings("'wght' 600");
     //    }
 
-    // TextView 的 LayoutParams
     LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
         LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
     textView.setLayoutParams(textParams);
 
     mView = new SkityGLView(this, new SkityGLRender());
 
-    // GLView LayoutParams，让它占剩余空间
     LinearLayout.LayoutParams glParams =
-        new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0,
-            1.0f // weight = 1，占剩余空间
-        );
+        new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f);
     mView.setLayoutParams(glParams);
 
-    // 添加到根布局
     rootLayout.addView(textView);
     rootLayout.addView(mView);
 
-    // 设置 Activity 的内容视图
     setContentView(rootLayout);
   }
 

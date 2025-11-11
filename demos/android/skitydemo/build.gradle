@@ -20,7 +20,6 @@ android {
                 abiFilters = rootProject.ext.abiList
             }
         }
-//        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -28,7 +27,7 @@ android {
             externalNativeBuild {
                 cmake {
                     cppFlags "-DDEBUG=1"
-                    arguments '-DBUILD_TYPE=debug', '-DANDROID_STL=' + getCppLib(), '-DSKITY_CODEC_MODULE=OFF'
+                    arguments '-DBUILD_TYPE=debug', '-DANDROID_STL=' + getCppLib(), '-DSKITY_CODEC_MODULE=OFF', '-DSKITY_BUILD_INSTALL=OFF'
                 }
             }
             minifyEnabled false
@@ -39,7 +38,7 @@ android {
             externalNativeBuild {
                 cmake {
                     cppFlags "-DPERFLOG=0"
-                    arguments '-DBUILD_TYPE=release', '-DANDROID_STL=' + getCppLib(), '-DSKITY_CODEC_MODULE=OFF'
+                    arguments '-DBUILD_TYPE=release', '-DANDROID_STL=' + getCppLib(), '-DSKITY_CODEC_MODULE=OFF', '-DSKITY_BUILD_INSTALL=OFF'
                 }
             }
             signingConfig signingConfigs.debug

@@ -11,6 +11,7 @@
 #include <textra/layout_definition.h>
 #include <textra/macro.h>
 #include <textra/text_layout.h>
+#include <textra/tttext_context.h>
 
 #include <array>
 #include <memory>
@@ -39,7 +40,8 @@ class TTShaper {
   const FontmgrCollection& GetFontCollection() const noexcept {
     return font_collection_;
   };
-  void SetContext(TTTextContext& context) { context_ = &context; }
+  virtual void SetContext(TTTextContext& context) { context_ = &context; }
+  virtual void ProcessShapeStyleTransform(Style& style) {}
   virtual void ProcessBidirection(const char32_t* text, uint32_t length,
                                   WriteDirection write_direction,
                                   uint32_t* visual_map, uint32_t* logical_map,

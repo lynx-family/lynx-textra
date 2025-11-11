@@ -4,6 +4,10 @@
 
 #include "src/ports/shaper/skshaper/shaper_skshaper.h"
 
+#ifdef TTTEXT_OS_ANDROID
+#include <textra/platform/java/tttext_jni_proxy.h>
+#endif
+
 #include <utility>
 #include <vector>
 
@@ -105,11 +109,29 @@ class ShapingBlockReader : public PlatformShapingResultReader {
   uint32_t text_count_;
 };
 
+void ShaperSkShaper::SetContext(TTTextContext& context) {
+  TTShaper::SetContext(context);
+  if (context_->IsEnableSystemFontAdjust()) {
+#ifdef TTTEXT_OS_ANDROID
+    auto fm = TTTextJNIProxy::SystemDefaultFamilyName();
+    font_collection_.SetDefaultSystemFontFamily(fm);
+#endif
+  }
+}
+void ShaperSkShaper::ProcessShapeStyleTransform(Style& style) {
+  if (!context_ || !context_->IsEnableSystemFontAdjust()) return;
+#ifdef TTTEXT_OS_ANDROID
+  auto font_size = style.text_size_;
+  auto font_weight = style.font_descriptor_.font_style_.GetWeight();
+  TTTextJNIProxy::GetInstance().SystemFontStyleAdjust(&font_size, &font_weight);
+  style.text_size_ = font_size;
+  style.font_descriptor_.font_style_.SetWeight(font_weight);
+#endif
+}
 void ShaperSkShaper::OnShapeText(const ShapeKey& key,
                                  ShapeResult* result) const {
   shaper_->shape(key.text_.c_str(), static_cast<uint32_t>(key.text_.length()),
                  key.style_, key.rtl_);
-  //  TTASSERT(shaper_->fResolvedBlocks.size() == 1);
   const ShapingBlockReader reader(shaper_->fResolvedBlocks);
   result->AppendPlatformShapingResult(reader);
 }

@@ -68,6 +68,14 @@ class L_EXPORT TTTextContext {
     harmony_shaper_force_low_api_ = harmonyShaperForceLowAPI;
   }
 
+  /**
+   *@brief Enable font style adjustments based on different systems.
+   */
+  bool IsEnableSystemFontAdjust() const { return enable_system_font_adjust_; }
+  void SetEnableSystemFontAdjust(bool enable_system_font_adjust) {
+    enable_system_font_adjust_ = enable_system_font_adjust;
+  }
+
   // Layout state getters/setters
  public:
   void Reset();
@@ -87,6 +95,7 @@ class L_EXPORT TTTextContext {
   bool last_line_can_overflow_{true};
   bool skip_spacing_before_first_line_{false};
   bool harmony_shaper_force_low_api_{false};
+  bool enable_system_font_adjust_{true};
   // Layout States
   std::unique_ptr<LayoutPosition> position_;
   float layout_bottom_{0};

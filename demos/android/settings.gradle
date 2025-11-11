@@ -3,5 +3,3 @@ include ':perftest'
 include ':skitydemo'
 include ':lynxtextra'
 project(":lynxtextra").projectDir = new File("../../platform/android/lynxtextra")
-
-rootProject.name = "LynxTextraDemo"

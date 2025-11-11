@@ -27,6 +27,8 @@ class ShaperSkShaper : public TTShaper {
   ~ShaperSkShaper() override;
 
  public:
+  void SetContext(TTTextContext& context) override;
+  void ProcessShapeStyleTransform(Style& style) override;
   void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
 
  protected:

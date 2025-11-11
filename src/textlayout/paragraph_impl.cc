@@ -27,6 +27,7 @@ std::unique_ptr<Paragraph> Paragraph::Create() {
 }
 ParagraphImpl::ParagraphImpl()
     : Paragraph(),
+      style_transformed_(false),
       formated_(false),
       style_manager_(std::make_unique<StyleManager>()),
       boundary_analyst_(nullptr),
@@ -456,6 +457,13 @@ RunDelegate* ParagraphImpl::GetRunDelegateForChar(uint32_t char_index) const {
       run->GetType() != RunType::kFloatObject)
     return nullptr;
   return run->GetRunDelegate();
+}
+void ParagraphImpl::TransformLayoutStyleOnlyOnce() {
+  if (style_transformed_) return;
+  style_transformed_ = true;
+  for (auto& run : run_lst_) {
+    shaper_->ProcessShapeStyleTransform(run->layout_style_);
+  }
 }
 
 #ifdef TTTEXT_DEBUG

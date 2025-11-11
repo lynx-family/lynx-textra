@@ -33,6 +33,7 @@ JavaShaper::JavaShaper(const FontmgrCollection& font_collection)
   }
   java_instance_ = std::make_unique<ScopedGlobalRef>(env, inst);
 }
+
 void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
   auto& fd = key.style_.GetFontDescriptor();
   auto& proxy = TTTextJNIProxy::GetInstance();

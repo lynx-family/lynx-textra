@@ -22,7 +22,7 @@ class AndroidGLExample : public Renderer {
     style.SetFontDescriptor({{""}, FontStyle::Normal(), 0});
     style.SetForegroundColor(TTColor::BLACK);
     style.SetTextSize(60);
-    paragraph_->AddTextRun(&style, "测试字重, test font weight, 😄🇨🇳");
+    paragraph_->AddTextRun(&style, "第11章, test font weight, 😄🇨🇳");
     auto region = std::make_unique<LayoutRegion>(1000, 1000);
     text_layout_->LayoutEx(paragraph_.get(), region.get(), context_);
     region_ = std::move(region);

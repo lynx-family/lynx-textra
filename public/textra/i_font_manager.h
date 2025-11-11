@@ -8,6 +8,7 @@
 #include <textra/i_typeface_helper.h>
 
 #include <memory>
+#include <string>
 
 namespace ttoffice {
 namespace tttext {

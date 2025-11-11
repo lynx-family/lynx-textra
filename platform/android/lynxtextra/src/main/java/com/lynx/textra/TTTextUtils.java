@@ -4,7 +4,11 @@
 
 package com.lynx.textra;
 
+import android.content.Context;
+
 public class TTTextUtils {
+  public static Context context;
+
   public static void SetDpi(float dpi) {
     synchronized (TTTextUtils.class) {
       density_ = dpi / 160.f;
@@ -28,4 +32,22 @@ public class TTTextUtils {
   }
 
   public static float density_ = 1;
+
+  public static byte[] SystemFontStyleAdjust(float font_size, short font_weight) {
+    BBufferOutputStream bout = new BBufferOutputStream(6);
+    bout.writeFloat(font_size);
+
+    PlatformFontCaps strategy = PlatformFontCaps.Factory.getStrategy(context);
+    short new_weight = strategy.adjust(font_weight);
+    bout.writeShort(new_weight);
+
+    return bout.getByteArray();
+  }
+
+  public static String SystemDefaultFamilyName() {
+    PlatformFontCaps strategy = PlatformFontCaps.Factory.getStrategy(context);
+    return strategy.defaultFamilyName();
+  }
+
+  public native static int nativeGetSystemPropInt(String key);
 }
