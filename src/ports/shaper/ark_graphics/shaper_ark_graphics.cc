@@ -261,6 +261,7 @@ void ShaperArkGraphics::ShapingTextWithLowAPILevel(const ShapeKey& key,
                          : font_desc.font_family_list_[0].c_str();
   auto tf_typeface =
       font_mgr->matchFamilyStyle(font_family, font_desc.font_style_);
+  auto default_typeface = tf_typeface;
   auto text_len = static_cast<uint32_t>(key.text_.length());
   AGShapingResult shaping_result;
   shaping_result.ct_advances_.resize(text_len);
@@ -304,7 +305,8 @@ void ShaperArkGraphics::ShapingTextWithLowAPILevel(const ShapeKey& key,
           RunPiece new_piece(piece.offset_ + zero_start, k - zero_start);
           run_pieces_.emplace_back(new_piece);
         }
-        shaping_result.ct_indices_[piece.offset_ + k] = piece.offset_ + k;
+        //        shaping_result.ct_indices_[piece.offset_ + k] = piece.offset_
+        //        + k;
         shaping_result.ct_advances_[piece.offset_ + k][0] = glyph_advances[k];
         shaping_result.ct_advances_[piece.offset_ + k][1] = 0;
         shaping_result.typeface_[piece.offset_ + k] = tf_typeface;
@@ -338,6 +340,10 @@ void ShaperArkGraphics::ShapingTextWithLowAPILevel(const ShapeKey& key,
     shaping_result.ct_position_[k][0] = advance_x;
     shaping_result.ct_position_[k][1] = 0;
     advance_x += shaping_result.ct_advances_[k][0];
+    shaping_result.ct_indices_[k] = k;
+    if (shaping_result.typeface_[k] == nullptr) {
+      shaping_result.typeface_[k] = default_typeface;
+    }
   }
 
   shaping_result.text_length_ = text_len;
