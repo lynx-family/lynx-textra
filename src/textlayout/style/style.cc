@@ -37,7 +37,7 @@ Style& Style::operator=(const Style& other) {
   if (other.HasAttribute(kDecorationThicknessMultiplier))
     SetDecorationThicknessMultiplier(other.GetDecorationThicknessMultiplier());
   if (other.HasAttribute(kTextStrokeStyle)) {
-    text_stroke_ = other.text_stroke_;
+    SetTextStrokeValue(other.GetTextStrokeValue());
   }
   if (other.HasAttribute(kBold)) SetBold(other.GetBold());
   if (other.HasAttribute(kItalic)) SetItalic(other.GetItalic());
@@ -58,6 +58,7 @@ Style& Style::operator=(const Style& other) {
   if (other.HasAttribute(kBaselineOffset)) {
     SetBaselineOffset(other.GetBaselineOffset());
   }
+  flag_ = other.flag_;
   return *this;
 }
 Style::~Style() = default;
