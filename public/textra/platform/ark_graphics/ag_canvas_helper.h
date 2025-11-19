@@ -142,6 +142,7 @@ class AGCanvasHelper : public ICanvasHelper {
     auto* point = OH_Drawing_PointCreate(x, y);
     OH_Drawing_CanvasDrawCircle(canvas_, point, radius);
     OH_Drawing_CanvasDetachBrush(canvas_);
+    OH_Drawing_CanvasDetachPen(canvas_);
     OH_Drawing_BrushDestroy(brush);
     OH_Drawing_PenDestroy(pen);
     OH_Drawing_PointDestroy(point);
