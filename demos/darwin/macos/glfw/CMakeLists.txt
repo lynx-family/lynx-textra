@@ -9,4 +9,5 @@ target_link_libraries(gl_app_demo
         "-framework MetalKit"
         "-framework Metal"
         skity
+        glfw
 )

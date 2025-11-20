@@ -89,6 +89,8 @@ jobs:
           source tools/envsetup.sh
           pushd demos/android
           ./gradlew :app:assembleRelease
+          ./gradlew :perftest:assembleRelease
+          # ./gradlew :skitydemo:assembleRelease
           popd
 
   ios-example-build-check:

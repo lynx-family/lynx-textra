@@ -26,10 +26,8 @@ LayoutResult TextLayout::LayoutEx(Paragraph* para, LayoutRegion* page,
                                   TTTextContext& context) const {
   TTASSERT(para);
   TTASSERT(page);
-  shaper_->ApplyShaperOption(ShaperOption::kHarmonyShaperForceLowAPI,
-                             context.IsHarmonyShaperForceLowAPI());
+  shaper_->SetContext(context);
   return TextLayoutImpl::LayoutEx(para, page, context, shaper_.get());
 }
-
 }  // namespace tttext
 }  // namespace ttoffice

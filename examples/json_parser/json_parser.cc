@@ -127,7 +127,7 @@ Style ParseStyle(const Value& style_data) {
       const auto& font_style_data = font_descriptor_data["font_style"];
 
       // Parse weight
-      FontStyle::Weight font_weight = FontStyle::kNormal_Weight;
+      auto font_weight = FontStyle::kNormal_Weight;
       if (HasOptionalField(font_style_data, "weight")) {
         auto weight = GetRequiredField<std::string>(font_style_data, "weight");
         if (weight == "kInvisible")
@@ -157,7 +157,7 @@ Style ParseStyle(const Value& style_data) {
       }
 
       // Parse width
-      FontStyle::Width font_width = FontStyle::kNormal_Width;
+      auto font_width = FontStyle::kNormal_Width;
       if (HasOptionalField(font_style_data, "width")) {
         auto width = GetRequiredField<std::string>(font_style_data, "width");
         if (width == "kUltraCondensed")
@@ -183,7 +183,7 @@ Style ParseStyle(const Value& style_data) {
       }
 
       // Parse slant
-      FontStyle::Slant font_slant = FontStyle::kUpright_Slant;
+      auto font_slant = FontStyle::kUpright_Slant;
       if (HasOptionalField(font_style_data, "slant")) {
         auto slant = GetRequiredField<std::string>(font_style_data, "slant");
         if (slant == "kUpright") {
