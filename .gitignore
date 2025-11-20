@@ -5,6 +5,7 @@
 .vscode/
 **/build/**
 **/.gradle/
+**/local.properties
 **/.cxx/
 **/.externalNativeBuild/
 third_party/

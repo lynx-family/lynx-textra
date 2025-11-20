@@ -8,4 +8,5 @@ target_link_libraries(mtl_app_demo PUBLIC
         "-framework Metal"
         "-framework IOKit"
         skity
+        glfw
 )

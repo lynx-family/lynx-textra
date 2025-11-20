@@ -15,73 +15,82 @@ namespace tttext {
 /**
  * @brief Stores font variation properties (weight, width, slant).
  */
+using Weight = uint16_t;
+using Width = uint8_t;
+using Slant = uint8_t;
 class L_EXPORT FontStyle {
  public:
-  enum Weight : uint16_t {
-    kInvisible_Weight = 0,
-    kThin_Weight = 100,
-    kExtraLight_Weight = 200,
-    kLight_Weight = 300,
-    kNormal_Weight = 400,
-    kMedium_Weight = 500,
-    kSemiBold_Weight = 600,
-    kBold_Weight = 700,
-    kExtraBold_Weight = 800,
-    kBlack_Weight = 900,
-    kExtraBlack_Weight = 1000,
-  };
+  static constexpr Weight kInvisible_Weight = 0;
+  static constexpr Weight kThin_Weight = 100;
+  static constexpr Weight kExtraLight_Weight = 200;
+  static constexpr Weight kLight_Weight = 300;
+  static constexpr Weight kNormal_Weight = 400;
+  static constexpr Weight kMedium_Weight = 500;
+  static constexpr Weight kSemiBold_Weight = 600;
+  static constexpr Weight kBold_Weight = 700;
+  static constexpr Weight kExtraBold_Weight = 800;
+  static constexpr Weight kBlack_Weight = 900;
+  static constexpr Weight kExtraBlack_Weight = 1000;
 
-  enum Width : uint8_t {
-    kUltraCondensed_Width = 1,
-    kExtraCondensed_Width = 2,
-    kCondensed_Width = 3,
-    kSemiCondensed_Width = 4,
-    kNormal_Width = 5,
-    kSemiExpanded_Width = 6,
-    kExpanded_Width = 7,
-    kExtraExpanded_Width = 8,
-    kUltraExpanded_Width = 9,
-  };
+  static constexpr Width kUltraCondensed_Width = 1;
+  static constexpr Width kExtraCondensed_Width = 2;
+  static constexpr Width kCondensed_Width = 3;
+  static constexpr Width kSemiCondensed_Width = 4;
+  static constexpr Width kNormal_Width = 5;
+  static constexpr Width kSemiExpanded_Width = 6;
+  static constexpr Width kExpanded_Width = 7;
+  static constexpr Width kExtraExpanded_Width = 8;
+  static constexpr Width kUltraExpanded_Width = 9;
 
-  enum Slant : uint8_t {
-    kUpright_Slant,
-    kItalic_Slant,
-    kOblique_Slant,
-  };
+  static constexpr Slant kUpright_Slant = 0;
+  static constexpr Slant kItalic_Slant = 1;
+  static constexpr Slant kOblique_Slant = 2;
 
-  constexpr FontStyle(Weight weight, Width width, Slant slant)
-      : value_(static_cast<uint16_t>(weight) +
-               (static_cast<uint8_t>(width) << 16) +
-               (static_cast<uint8_t>(slant) << 24)) {}
+  constexpr FontStyle(Weight weight, Width width, uint8_t slant)
+      : pack_value_(PackValue{
+            .part = {.weight_ = weight, .width_ = width, .slant_ = slant}}) {}
 
   constexpr FontStyle()
       : FontStyle{kNormal_Weight, kNormal_Width, kUpright_Slant} {}
 
-  bool operator==(const FontStyle& rhs) const { return value_ == rhs.value_; }
-  bool operator!=(const FontStyle& rhs) const { return value_ != rhs.value_; }
+  bool operator==(const FontStyle& rhs) const {
+    return pack_value_.value_ == rhs.pack_value_.value_;
+  }
+  bool operator!=(const FontStyle& rhs) const {
+    return pack_value_.value_ != rhs.pack_value_.value_;
+  }
 
-  Weight GetWeight() const { return static_cast<Weight>(value_ & 0xFFFF); }
-  Width GetWidth() const { return static_cast<Width>(value_ >> 16 & 0xFF); }
-  Slant GetSlant() const { return static_cast<Slant>(value_ >> 24 & 0xFF); }
+  Weight GetWeight() const { return pack_value_.part.weight_; }
+  Width GetWidth() const { return pack_value_.part.width_; }
+  Slant GetSlant() const { return pack_value_.part.slant_; }
+  void SetWeight(Weight weight) { pack_value_.part.weight_ = weight; }
+  void SetWidth(Width width) { pack_value_.part.width_ = width; }
+  void SetSlant(Slant slant) { pack_value_.part.slant_ = slant; }
 
   static constexpr FontStyle Normal() {
-    return {Weight::kNormal_Weight, Width::kNormal_Width,
-            Slant::kUpright_Slant};
+    return {kNormal_Weight, kNormal_Width, kUpright_Slant};
   }
   static constexpr FontStyle Bold() {
-    return {Weight::kBold_Weight, Width::kNormal_Width, Slant::kUpright_Slant};
+    return {kBold_Weight, kNormal_Width, kUpright_Slant};
   }
   static constexpr FontStyle Italic() {
-    return {Weight::kNormal_Weight, Width::kNormal_Width, Slant::kItalic_Slant};
+    return {kNormal_Weight, kNormal_Width, kItalic_Slant};
   }
   static constexpr FontStyle BoldItalic() {
-    return {Weight::kBold_Weight, Width::kNormal_Width, Slant::kItalic_Slant};
+    return {kBold_Weight, kNormal_Width, kItalic_Slant};
   }
 
-  int32_t Value() const { return value_; }
+  int32_t Value() const { return pack_value_.value_; }
 
  private:
-  int32_t value_;
+  union PackValue {
+    int32_t value_;
+    struct {
+      uint16_t weight_;
+      uint8_t width_;
+      uint8_t slant_;
+    } part;
+  } pack_value_;
 };
 
 /**

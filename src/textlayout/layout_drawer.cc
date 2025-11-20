@@ -382,12 +382,12 @@ void LayoutDrawer::DrawGlyphsOrText(const BaseRun* run, uint16_t* glyphs,
   if (desired_font_style != font->FontStyle()) {
     auto wantedWeight = desired_font_style.GetWeight();
     const bool fakeBold =
-        wantedWeight >= FontStyle::Weight::kSemiBold_Weight &&
+        wantedWeight >= FontStyle::kSemiBold_Weight &&
         (int32_t)wantedWeight - (int32_t)font->FontStyle().GetWeight() >= 200;
     auto need_italic =
-        desired_font_style.GetSlant() == FontStyle::Slant::kItalic_Slant;
-    const bool fakeItalic = need_italic && font->FontStyle().GetSlant() !=
-                                               FontStyle::Slant::kItalic_Slant;
+        desired_font_style.GetSlant() == FontStyle::kItalic_Slant;
+    const bool fakeItalic =
+        need_italic && font->FontStyle().GetSlant() != FontStyle::kItalic_Slant;
     p->SetBold(fakeBold);
     p->SetItalic(fakeItalic);
   }

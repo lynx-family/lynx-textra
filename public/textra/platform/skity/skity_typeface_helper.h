@@ -20,9 +20,9 @@ class SkityTypefaceHelper : public tttext::ITypefaceHelper {
         typeface_(std::move(typeface)) {
     skity::FontStyle skity_font_style = typeface_->GetFontStyle();
     font_style_ = tttext::FontStyle(
-        static_cast<tttext::FontStyle::Weight>(skity_font_style.weight()),
-        static_cast<tttext::FontStyle::Width>(skity_font_style.width()),
-        static_cast<tttext::FontStyle::Slant>(skity_font_style.slant()));
+        static_cast<tttext::Weight>(skity_font_style.weight()),
+        static_cast<tttext::Width>(skity_font_style.width()),
+        static_cast<tttext::Slant>(skity_font_style.slant()));
   }
   ~SkityTypefaceHelper() override = default;
 

@@ -42,7 +42,7 @@ class TTShaper {
   const FontmgrCollection& GetFontCollection() const noexcept {
     return font_collection_;
   };
-  virtual void ApplyShaperOption(ShaperOption key, uint32_t value) {}
+  void SetContext(TTTextContext& context) { context_ = &context; }
   virtual void ProcessBidirection(const char32_t* text, uint32_t length,
                                   WriteDirection write_direction,
                                   uint32_t* visual_map, uint32_t* logical_map,
@@ -54,6 +54,7 @@ class TTShaper {
 
  protected:
   FontmgrCollection font_collection_;
+  TTTextContext* context_;
 };
 
 class ShapeStyle {

@@ -19,13 +19,14 @@ execute_process(
 message(STATUS "Result: ${result}")
 execute_process(
         COMMAND python3 ${PROJECT_SOURCE_DIR}/tools/build_cmake_environment.py
-            --gn-args "${BUILD_TYPE} use_flutter_cxx=false use_xcode=true"
+        --gn-args "${BUILD_TYPE} use_flutter_cxx=false use_xcode=true"
         OUTPUT_VARIABLE result
         OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 message(STATUS "Result: ${result}")
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/skity skity.out)
+add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/glfw glfw.out)
 
 # According to the build variant, 
 # import the CMakeLists-impl.cmake file to compile the native methods.

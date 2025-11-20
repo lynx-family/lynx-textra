@@ -31,7 +31,7 @@ namespace tttext {
  */
 class L_EXPORT FontmgrCollection {
  public:
-  FontmgrCollection() = delete;
+  FontmgrCollection() = default;
   explicit FontmgrCollection(FontManagerRef default_font_mgr);
 
   static constexpr char kDefaultFontFamily[] = "sans-serif";
@@ -72,7 +72,7 @@ class L_EXPORT FontmgrCollection {
   TypefaceRef matchTypeface(const std::string& familyName,
                             FontStyle fontStyle) const;
 
-  bool fEnableFontFallback;
+  bool fEnableFontFallback = true;
   mutable std::unordered_map<FontDescriptor, std::vector<TypefaceRef>,
                              FontDescriptor::Hasher>
       fTypefaces;

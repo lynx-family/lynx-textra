@@ -30,24 +30,30 @@ deps = {
         "commit": "f90543d272e2e2edc5b3cdf8ead0b5b3eebceef5",
         "ignore_in_git": True,
     },
+    "third_party/wuffs": {
+        "type": "git",
+        "url": "https://github.com/google/wuffs-mirror-release-c.git",
+        "ignore_in_git": True,
+        "commit": "a29749ebe0be57d2b19d8406475bd2326d0f1a85",
+    },
     'third_party/skity': {
         "type": "solution",
         "url": "https://github.com/lynx-family/skity",
-        "commit": "fed200b18481503c797a8f712fa315fe54df045d",
+        "commit": "a7a2e4562451130d97e59e7b823dd1eea3a9747d",
         "deps_file": "hab/DEPS",
         "ignore_in_git": True,
-    },
-    "third_party/skity/third_party/libpng": {
-        "type": "git",
-        "url": "https://github.com/pnggroup/libpng.git",
-        "ignore_in_git": True,
-        "commit": "f5e92d76973a7a53f517579bc95d61483bf108c0",
     },
     "third_party/skity/third_party/libjpeg-turbo": {
         "type": "git",
         "url": "https://github.com/libjpeg-turbo/libjpeg-turbo.git",
         "ignore_in_git": True,
         "commit": "f29eda648547b36aa594c4116c7764a6c8a079b9",
+    },
+    "third_party/skity/third_party/libwebp": {
+        "type": "git",
+        "url": "https://github.com/webmproject/libwebp.git",
+        "ignore_in_git": True,
+        "commit": "4fa21912338357f89e4fd51cf2368325b59e9bd9"
     },
     'third_party/rapidjson': {
         'type': 'git',
@@ -58,7 +64,7 @@ deps = {
     "third_party/glfw": {
         "type": "git",
         "url": "https://github.com/glfw/glfw",
-        "commit": "b42da9f09d6732784223ba5f9a0bda6433366ba8",
+        "commit": "7b6aead9fb88b3623e3b3725ebb42670cbe4c579",
         "ignore_in_git": True,
         "condition": system in ["linux", "darwin", "windows"],
     },

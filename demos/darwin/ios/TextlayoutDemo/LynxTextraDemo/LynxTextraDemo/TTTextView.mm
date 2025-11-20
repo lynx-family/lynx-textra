@@ -54,9 +54,9 @@
   //  auto str = "میں بہت بڑا مداح ہوں!";
   //  auto str = "❄️ 冬日慵懒";
   FontDescriptor fd;
-  fd.font_style_ = FontStyle(FontStyle::Weight::kMedium_Weight,
-                             FontStyle::Width::kNormal_Width,
-                             FontStyle::Slant::kUpright_Slant);
+  fd.font_style_ =
+      FontStyle(FontStyle::kMedium_Weight, FontStyle::kNormal_Width,
+                FontStyle::kUpright_Slant);
   tttext::Style style;
   style.SetFontDescriptor(fd);
   style.SetTextSize(24);

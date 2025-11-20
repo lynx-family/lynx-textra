@@ -264,26 +264,26 @@ CFAttributedStringRef ShaperCoreText::GenerateAttributeString(
   CFRelease(cf_string);
   return attr_text;
 }
-static float ConvertFontWeight(FontStyle::Weight weight) {
+static float ConvertFontWeight(tttext::Weight weight) {
 #ifdef TTTEXT_OS_MAC
   switch (weight) {
-    case FontStyle::Weight::kThin_Weight:
+    case FontStyle::kThin_Weight:
       return NSFontWeightUltraLight;
-    case FontStyle::Weight::kExtraLight_Weight:
+    case FontStyle::kExtraLight_Weight:
       return NSFontWeightThin;
-    case FontStyle::Weight::kLight_Weight:
+    case FontStyle::kLight_Weight:
       return NSFontWeightLight;
-    case FontStyle::Weight::kNormal_Weight:
+    case FontStyle::kNormal_Weight:
       return NSFontWeightRegular;
-    case FontStyle::Weight::kMedium_Weight:
+    case FontStyle::kMedium_Weight:
       return NSFontWeightMedium;
-    case FontStyle::Weight::kSemiBold_Weight:
+    case FontStyle::kSemiBold_Weight:
       return NSFontWeightSemibold;
-    case FontStyle::Weight::kBold_Weight:
+    case FontStyle::kBold_Weight:
       return NSFontWeightBold;
-    case FontStyle::Weight::kExtraBold_Weight:
+    case FontStyle::kExtraBold_Weight:
       return NSFontWeightHeavy;
-    case FontStyle::Weight::kBlack_Weight:
+    case FontStyle::kBlack_Weight:
       return NSFontWeightBlack;
     default:
       return NSFontWeightRegular;
@@ -291,23 +291,23 @@ static float ConvertFontWeight(FontStyle::Weight weight) {
 #endif
 #ifdef TTTEXT_OS_IOS
   switch (weight) {
-    case FontStyle::Weight::kThin_Weight:
+    case FontStyle::kThin_Weight:
       return UIFontWeightUltraLight;
-    case FontStyle::Weight::kExtraLight_Weight:
+    case FontStyle::kExtraLight_Weight:
       return UIFontWeightThin;
-    case FontStyle::Weight::kLight_Weight:
+    case FontStyle::kLight_Weight:
       return UIFontWeightLight;
-    case FontStyle::Weight::kNormal_Weight:
+    case FontStyle::kNormal_Weight:
       return UIFontWeightRegular;
-    case FontStyle::Weight::kMedium_Weight:
+    case FontStyle::kMedium_Weight:
       return UIFontWeightMedium;
-    case FontStyle::Weight::kSemiBold_Weight:
+    case FontStyle::kSemiBold_Weight:
       return UIFontWeightSemibold;
-    case FontStyle::Weight::kBold_Weight:
+    case FontStyle::kBold_Weight:
       return UIFontWeightBold;
-    case FontStyle::Weight::kExtraBold_Weight:
+    case FontStyle::kExtraBold_Weight:
       return UIFontWeightHeavy;
-    case FontStyle::Weight::kBlack_Weight:
+    case FontStyle::kBlack_Weight:
       return UIFontWeightBlack;
     default:
       return UIFontWeightRegular;

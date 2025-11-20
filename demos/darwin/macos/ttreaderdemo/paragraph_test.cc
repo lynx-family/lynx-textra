@@ -934,9 +934,8 @@ void ParagraphTest::TestLineHeight(ICanvasHelper* canvas, float width) const {
 void ParagraphTest::TestFontCollection(ICanvasHelper* canvas,
                                        float width) const {
 #ifndef ANDROID
-  FontStyle font_style(FontStyle::Weight::kNormal_Weight,
-                       FontStyle::Width::kNormal_Width,
-                       FontStyle::Slant::kUpright_Slant);
+  FontStyle font_style(FontStyle::kNormal_Weight, FontStyle::kNormal_Width,
+                       FontStyle::kUpright_Slant);
   auto default_font_mgr = font_collection_->GetDefaultFontManager();
   auto asset_font_mgr = font_collection_->GetAssetFontManager();
   auto menlo_typeface = default_font_mgr->matchFamilyStyle("Menlo", font_style);

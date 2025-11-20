@@ -592,14 +592,14 @@ bool OneLineShaper::shape(const char32_t* content, uint32_t len,
     // typeface's attributes do not match the intended font style.
     auto wanted_weight = style.GetFontDescriptor().font_style_.GetWeight();
     const bool fakeBold =
-        wanted_weight >= FontStyle::Weight::kSemiBold_Weight &&
+        wanted_weight >= FontStyle::kSemiBold_Weight &&
         static_cast<int32_t>(wanted_weight) -
                 static_cast<int32_t>(typeface->FontStyle().GetWeight()) >=
             200;
     auto need_italic = style.GetFontDescriptor().font_style_.GetSlant() ==
-                       FontStyle::Slant::kItalic_Slant;
+                       FontStyle::kItalic_Slant;
     const bool fakeItalic = need_italic && typeface->FontStyle().GetSlant() !=
-                                               FontStyle::Slant::kItalic_Slant;
+                                               FontStyle::kItalic_Slant;
     font.SetFakeBold(fakeBold);
     font.SetSkewX(fakeItalic ? -0.25 : 0);
 
