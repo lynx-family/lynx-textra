@@ -130,6 +130,17 @@ inline bool StringEqual(const char* str1, const char* str2) {
 inline bool StringEqual(const char* str1, uint32_t len1, const char* str2) {
   return StringEqual(str1, len1, str2, static_cast<uint32_t>(strlen(str2)));
 }
+inline bool U32StringEqual(const char32_t* str1, uint32_t len1,
+                           const char32_t* str2, uint32_t len2) {
+  return len1 == len2 && (memcmp(str1, str2, len1 * 4) == 0);
+}
+inline bool U32StringEqual(const char32_t* str1, const char32_t* str2) {
+  return U32StringEqual(str1, U32Strlen(str1), str2, U32Strlen(str2));
+}
+inline bool U32StringEqual(const char32_t* str1, uint32_t len1,
+                           const char32_t* str2) {
+  return U32StringEqual(str1, len1, str2, U32Strlen(str2));
+}
 std::u32string U8StringToU32(const char* u8str, uint32_t length);
 std::u32string U16StringToU32(const char16_t* u16str, uint32_t length);
 std::u16string U32StringToU16(const char32_t* u32str, uint32_t length);

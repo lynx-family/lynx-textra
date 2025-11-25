@@ -17,6 +17,7 @@ group("default") {
       "demos/darwin/macos/ttreaderdemo:ttreaderdemo",
       "examples/json_parser:json_parser",
       "examples/json_parser_exe:json_to_image_app",
+      "platform/mac:lynxtextra",
     ]
   }
   if (is_ios) {

@@ -6,8 +6,8 @@
 #include <textra/font_info.h>
 #include <textra/style.h>
 
-#include "tt_shaper.h"
-#include "utils/float_comparison.h"
+#include "src/textlayout/tt_shaper.h"
+#include "src/textlayout/utils/float_comparison.h"
 
 using namespace ttoffice::tttext;
 

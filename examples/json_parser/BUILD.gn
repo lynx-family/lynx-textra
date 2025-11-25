@@ -5,6 +5,7 @@
 config("json_parser_public") {
   include_dirs = [
     ".",
+    "//public",
     "//ROOT",
   ]
 }
@@ -14,10 +15,7 @@ static_library("json_parser") {
   public_configs = [ ":json_parser_public" ]
   public = [ "json_parser.h" ]
   sources = [ "json_parser.cc" ]
-  deps = [
-    "//src:lynxtextra_static",
-    "//third_party/rapidjson",
-  ]
+  deps = [ "//third_party/rapidjson" ]
 
   metadata = {
     exclude_files = [ "//third_party/rapidjson/include/rapidjson/msinttypes/*" ]

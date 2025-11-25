@@ -9,4 +9,5 @@ target_link_libraries(mtl_app_demo PUBLIC
         "-framework IOKit"
         skity
         glfw
+        lynxtextra
 )

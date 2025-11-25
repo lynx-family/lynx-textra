@@ -25,6 +25,7 @@ class TextLayoutTest : public ::testing::Test {
     // FontInfo always returns -0.75 ascent and 0.25 descent, multiplied by
     // font_size
     auto mock_typeface = std::make_shared<NiceMock<MockTypefaceHelper>>();
+    testing::Mock::AllowLeak(mock_typeface.get());
     ON_CALL(*mock_typeface, OnCreateFontInfo(_, _))
         .WillByDefault(Invoke([](FontInfo* info, float font_size) {
           *info = FontInfo(-0.75 * font_size, 0.25 * font_size, font_size);

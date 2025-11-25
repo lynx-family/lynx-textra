@@ -25,9 +25,10 @@ std::string TTStringPiece::ToString() const {
   return std::string(tt_string_->Data() + u8_start, u8_end - u8_start);
 }
 std::u32string TTStringPiece::ToUTF32() const {
+  if (GetCharCount() == 0) return U"";
   auto* start = tt_string_->Data() + CharPosToUtf8Pos(0);
   auto* end = tt_string_->Data() + CharPosToUtf8Pos(GetCharCount());
-  return base::U8StringToU32(std::string(start, end - start));
+  return base::U8StringToU32(start, static_cast<uint32_t>(end - start));
 }
 #ifdef TTTEXT_DEBUG
 void TTStringPiece::UpdateContent() {
