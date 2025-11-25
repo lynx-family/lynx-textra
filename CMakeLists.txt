@@ -30,8 +30,8 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/glfw glfw.out)
 
 # According to the build variant, 
 # import the CMakeLists-impl.cmake file to compile the native methods.
-add_subdirectory("src")
-add_subdirectory("demos/darwin/macos/glfw")
+#add_subdirectory("src")
+add_subdirectory("platform/mac")
 add_subdirectory("demos/darwin/macos/mtl")
 add_subdirectory("test")
 add_subdirectory("examples/json_parser")

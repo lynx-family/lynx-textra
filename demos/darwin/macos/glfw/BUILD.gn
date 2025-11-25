@@ -25,12 +25,10 @@ executable("gl_app_demo") {
     "$gl_app_root/third_party/skity/module/codec/include",
     "$gl_app_root/",
     "$gl_app_root/src/ports",
+    "$gl_app_root/public/",
   ]
 
-  deps = [
-    "$gl_app_root/src:lynxtextra_static",
-    "$gl_app_root/third_party/glfw:glfw",
-  ]
+  deps = [ "$gl_app_root/third_party/glfw:glfw" ]
 
   frameworks = [
     "AppKit.framework",

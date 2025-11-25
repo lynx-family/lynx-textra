@@ -31,12 +31,12 @@ jobs:
         run: |
           source tools/envsetup.sh
           gn gen out/macos_debug --args='is_debug=true use_flutter_cxx=false'
-          ninja -C out/macos_debug lynxtextra_static
+          ninja -C out/macos_debug lynxtextra
       - name: Run MacOS Release build check
         run: |
           source tools/envsetup.sh
           gn gen out/macos_release --args='is_debug=false use_flutter_cxx=false'
-          ninja -C out/macos_release lynxtextra_static
+          ninja -C out/macos_release lynxtextra
       - name: Run macOS example build check
         run: |
           source tools/envsetup.sh

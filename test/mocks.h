@@ -9,7 +9,7 @@
 #include <textra/i_canvas_helper.h>
 #include <textra/i_typeface_helper.h>
 
-#include "tt_shaper.h"
+#include "src/textlayout/tt_shaper.h"
 
 namespace ttoffice {
 namespace tttext {

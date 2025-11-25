@@ -8,7 +8,7 @@
 #include <textra/font_info.h>
 
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 
 #include "src/textlayout/tt_shaper.h"
@@ -77,23 +77,14 @@ using ShapeResultRef = std::shared_ptr<tttext::ShapeResult>;
 #include "src/textlayout/utils/lru_cache.h"
 namespace android {
 template <>
-inline uint32_t hash_type<ttoffice::tttext::ShapeKey>(
-    const ttoffice::tttext::ShapeKey& key) {
-  return hash_type((uint64_t)key.hash_);
+inline uint32_t hash_type<tttext::ShapeKey>(const tttext::ShapeKey& key) {
+  return hash_type(static_cast<uint64_t>(key.hash_));
 }
 }  // namespace android
 
 #endif
 
 namespace std {
-// template <>
-// struct hash<ttoffice::textlayout::ShapeStyle> {
-//   auto operator()(const ttoffice::textlayout::ShapeStyle& record) const
-//       -> size_t {
-//     return record.hash_;
-//   }
-// };
-
 template <>
 struct hash<const tttext::ShapeKey> {
   size_t operator()(const tttext::ShapeKey& record) const noexcept {
@@ -114,8 +105,8 @@ namespace tttext {
 class ShapeCache final {
  public:
   static ShapeCache& GetInstance() {
-    static ShapeCache instance;
-    return instance;
+    static ShapeCache* instance = new ShapeCache();
+    return *instance;
   }
 
   ShapeCache(const ShapeCache& other) = delete;
@@ -127,7 +118,7 @@ class ShapeCache final {
 
  public:
   void AddToCache(const ShapeKey& key, const ShapeResultRef& result) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
 #ifdef USE_LRU_CACHE
     TTASSERT(shape_cache_.get(key) == nullptr);
     shape_cache_.put(key, result);
@@ -137,7 +128,7 @@ class ShapeCache final {
 #endif
   }
   std::shared_ptr<ShapeResult> Find(const ShapeKey& key) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::shared_lock lock(mutex_);
 #ifdef USE_LRU_CACHE
     auto iter = shape_cache_.get(key);
     return iter == nullptr ? nullptr : *iter;
@@ -155,7 +146,7 @@ class ShapeCache final {
 #else
   std::unordered_map<const ShapeKey, ShapeResultRef> shape_cache_;
 #endif
-  std::mutex mutex_;
+  mutable std::shared_mutex mutex_{};
 };
 }  // namespace tttext
 }  // namespace ttoffice

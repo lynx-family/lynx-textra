@@ -7,8 +7,8 @@
 #include <textra/run_delegate.h>
 #include <textra/text_layout.h>
 
-#include "run/base_run.h"
 #include "src/textlayout/paragraph_impl.h"
+#include "src/textlayout/run/base_run.h"
 #include "test_src.h"
 #include "test_utils.h"
 

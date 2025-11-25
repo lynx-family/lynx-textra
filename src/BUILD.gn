@@ -18,7 +18,7 @@ declare_args() {
   prj_root = rebase_path("..")
   enable_javashaper = is_android
   enable_skshaper = is_android || is_mac || is_harmony || is_win
-  enable_ctshaper = is_ios
+  enable_ctshaper = is_ios || is_mac
   enable_harmony = is_harmony
   enable_minikin = false
 }
@@ -127,6 +127,9 @@ textlayout_public_headers = [
   "$prj_root/public/textra/platform/ios/ios_canvas_base.h",
   "$prj_root/public/textra/platform/ios/ios_font_manager.h",
   "$prj_root/public/textra/platform/ios/typeface_coretext.h",
+  "$prj_root/public/textra/platform/mac/mac_canvas_base.h",
+  "$prj_root/public/textra/platform/mac/mac_font_manager.h",
+  "$prj_root/public/textra/platform/mac/typeface_coretext.h",
   "$prj_root/public/textra/platform/skity/skity_canvas_helper.h",
   "$prj_root/public/textra/platform/skity/skity_font_manager_coretext.h",
   "$prj_root/public/textra/platform/skity/skity_font_manager.h",
@@ -139,22 +142,6 @@ textlayout_public_headers = [
   "$prj_root/public/textra/platform_helper.h",
   "$prj_root/public/textra/tt_path.h",
 ]
-
-static_library("lynxtextra_static") {
-  output_name = "lynxtextra_static"
-  public_configs = [ ":textlayout_public" ]
-  configs += [ ":textlayout_internal" ]
-  deps = [ ":textlayout" ]
-  public = textlayout_public_headers
-}
-
-shared_library("lynxtextra_shared") {
-  output_name = "lynxtextra_shared"
-  public_configs = [ ":textlayout_public" ]
-  configs += [ ":textlayout_internal" ]
-  deps = [ ":textlayout" ]
-  public = textlayout_public_headers
-}
 
 source_set("textlayout") {
   defines = []
@@ -305,7 +292,7 @@ source_set("textlayout") {
 config("javashaper_public") {
   include_dirs = [
     "$prj_root/src/ports/shaper/java",
-    "$prj_root/public/textra",
+    "$prj_root/public",
     "$prj_root/",
   ]
   defines = [ "ENABLE_JAVASHAPER" ]
@@ -332,7 +319,7 @@ source_set("javashaper") {
 config("skshaper_public") {
   include_dirs = [
     "$prj_root/src/ports/shaper/skshaper/",
-    "$prj_root/public/textra",
+    "$prj_root/public",
     "$prj_root/",
   ]
   defines = [ "ENABLE_SKSHAPER" ]
@@ -341,7 +328,7 @@ source_set("skshaper") {
   public_configs = [ ":skshaper_public" ]
 
   include_dirs = [
-    "$prj_root/public/textra",
+    "$prj_root/public",
     #    "$prj_root/src/ports/shaper/skshaper/",
     #    "$prj_root/thirdparty/externals/harfbuzz/src",
     #    "//ROOT",

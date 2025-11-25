@@ -10,4 +10,5 @@ target_link_libraries(gl_app_demo
         "-framework Metal"
         skity
         glfw
+        lynxtextra
 )

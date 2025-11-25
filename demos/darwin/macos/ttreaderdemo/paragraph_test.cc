@@ -449,23 +449,22 @@ void ParagraphTest::TestLineSpacing(ICanvasHelper* canvas, float width) const {
   // clang-format on
   TextLayout layout(font_collection_, shaper_type_);
   auto page_ptr = std::make_unique<LayoutRegion>(width, 10000);
-  auto& page = *page_ptr;
   TTTextContext context;
   context.SetSkipSpacingBeforeFirstLine(false);
   context.SetLastLineCanOverflow(false);
-  layout.Layout(&paragraph, &page, context);
+  layout.Layout(&paragraph, page_ptr.get(), context);
   LayoutDrawer drawer(canvas);
-  drawer.DrawLayoutPage(&page);
+  drawer.DrawLayoutPage(page_ptr.get());
   auto paint = canvas->CreatePainter();
   paint->SetStrokeColor(TTColor::BLACK);
-  canvas->DrawRect(0, 0, page.GetPageWidth(), font_size, paint.get());
+  canvas->DrawRect(0, 0, page_ptr->GetPageWidth(), font_size, paint.get());
 
   paragraph.GetParagraphStyle().SetLineHeightInPercent(1);
   page_ptr = std::make_unique<LayoutRegion>(width, 10000);
   context.SetSkipSpacingBeforeFirstLine(false);
   context.SetLastLineCanOverflow(false);
   context.Reset();
-  layout.Layout(&paragraph, &page, context);
+  layout.Layout(&paragraph, page_ptr.get(), context);
   canvas->Save();
   canvas->Translate(width, 0);
   drawer.DrawLayoutPage(page_ptr.get());
@@ -513,23 +512,22 @@ void ParagraphTest::TestMaxLine(ICanvasHelper* canvas, float width) const {
   // clang-format on
   TextLayout layout(font_collection_, shaper_type_);
   auto page_ptr = std::make_unique<LayoutRegion>(width, 10000);
-  auto& page = *page_ptr;
   TTTextContext context;
   context.SetSkipSpacingBeforeFirstLine(false);
   context.SetLastLineCanOverflow(false);
-  layout.Layout(&paragraph, &page, context);
+  layout.Layout(&paragraph, page_ptr.get(), context);
   LayoutDrawer drawer(canvas);
-  drawer.DrawLayoutPage(&page);
+  drawer.DrawLayoutPage(page_ptr.get());
   auto paint = canvas->CreatePainter();
   paint->SetStrokeColor(TTColor::BLACK);
-  canvas->DrawRect(0, 0, page.GetPageWidth(), font_size, paint.get());
+  canvas->DrawRect(0, 0, page_ptr->GetPageWidth(), font_size, paint.get());
 
   paragraph.GetParagraphStyle().SetMaxLines(0);
   page_ptr = std::make_unique<LayoutRegion>(width, 10000);
   context.SetSkipSpacingBeforeFirstLine(false);
   context.SetLastLineCanOverflow(false);
   context.Reset();
-  layout.Layout(&paragraph, &page, context);
+  layout.Layout(&paragraph, page_ptr.get(), context);
   canvas->Save();
   canvas->Translate(width, 0);
   drawer.DrawLayoutPage(page_ptr.get());

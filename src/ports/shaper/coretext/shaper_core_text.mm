@@ -8,11 +8,17 @@
 #import <objc/NSObjCRuntime.h>
 #endif
 
-#ifdef TTTEXT_OS_IOS
+#if TARGET_OS_IOS
+#define USE_UIKIT
+#elif TARGET_OS_MAC
+#define USE_APPKIT
+#endif
+
+#ifdef USE_UIKIT
 #import <UIKit/UIKit.h>
 #endif
 
-#ifdef TTTEXT_OS_MAC
+#ifdef USE_APPKIT
 #import <AppKit/AppKit.h>
 #endif
 
@@ -265,7 +271,7 @@ CFAttributedStringRef ShaperCoreText::GenerateAttributeString(
   return attr_text;
 }
 static float ConvertFontWeight(tttext::Weight weight) {
-#ifdef TTTEXT_OS_MAC
+#ifdef USE_APPKIT
   switch (weight) {
     case FontStyle::kThin_Weight:
       return NSFontWeightUltraLight;
@@ -289,7 +295,7 @@ static float ConvertFontWeight(tttext::Weight weight) {
       return NSFontWeightRegular;
   }
 #endif
-#ifdef TTTEXT_OS_IOS
+#ifdef USE_UIKIT
   switch (weight) {
     case FontStyle::kThin_Weight:
       return UIFontWeightUltraLight;
@@ -325,11 +331,11 @@ CFDictionaryRef ShaperCoreText::GenerateAttributes(const ShapeKey& key) const {
   auto& fd = style.GetFontDescriptor();
   auto platform_font = fd.platform_font_;
   if (platform_font != 0) {
-#ifdef TTTEXT_OS_MAC
+#ifdef USE_APPKIT
     ct_font = CTFontCreateWithFontDescriptor(CTFontCopyFontDescriptor(ct_font),
                                              text_size, nullptr);
 #endif
-#ifdef TTTEXT_OS_IOS
+#ifdef USE_UIKIT
     UIFont* ui_font = (__bridge UIFont*)((void*)platform_font);
     if (ui_font != nullptr) {
       ct_font = (__bridge_retained CTFontRef)
@@ -362,7 +368,7 @@ CFDictionaryRef ShaperCoreText::GenerateAttributes(const ShapeKey& key) const {
   }
   if (ct_font == nullptr) {
     if (default_font_desc_ == nullptr) {
-#ifdef TTTEXT_OS_MAC
+#ifdef USE_APPKIT
       //    ct_font =
       //    CTFontCreateWithFontDescriptor(CTFontCopyFontDescriptor(ct_font),
       //                                             text_size, nullptr);
@@ -376,7 +382,7 @@ CFDictionaryRef ShaperCoreText::GenerateAttributes(const ShapeKey& key) const {
         ct_font = CTFontCreateWithName(CFSTR("Helvetica"), text_size, NULL);
       }
 #endif
-#ifdef TTTEXT_OS_IOS
+#ifdef USE_UIKIT
       CGFloat fontWeight = ConvertFontWeight(fd.font_style_.GetWeight());
       if (style.FakeBold()) {
         ct_font = (__bridge CTFontRef)[UIFont boldSystemFontOfSize:text_size];
@@ -398,3 +404,5 @@ CFDictionaryRef ShaperCoreText::GenerateAttributes(const ShapeKey& key) const {
 }
 }  // namespace tttext
 }  // namespace ttoffice
+#undef USE_UIKIT
+#undef USE_APPKIT

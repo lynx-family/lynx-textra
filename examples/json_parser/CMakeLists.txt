@@ -68,6 +68,7 @@ elseif (APPLE)
               "-framework IOKit"
               skity
               skity-codec
+              lynxtextra
     )
 
 endif()

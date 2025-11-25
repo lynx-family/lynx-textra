@@ -8,11 +8,11 @@
 #include <memory>
 #include <unordered_map>
 
-#include "paragraph_impl.h"
-#include "run/base_run.h"
-#include "run/ghost_run.h"
+#include "src/textlayout/paragraph_impl.h"
+#include "src/textlayout/run/base_run.h"
+#include "src/textlayout/run/ghost_run.h"
+#include "src/textlayout/tt_shaper.h"
 #include "test/test_utils.h"
-#include "tt_shaper.h"
 
 using namespace ttoffice::tttext;
 

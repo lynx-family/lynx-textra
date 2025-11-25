@@ -10,7 +10,7 @@
 
 #include <memory>
 
-#include "text_line_impl.h"
+#include "src/textlayout/text_line_impl.h"
 
 using namespace ::testing;
 using namespace ttoffice::tttext;

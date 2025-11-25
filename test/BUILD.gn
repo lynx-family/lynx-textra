@@ -37,7 +37,7 @@ executable("TextLayoutLiteTest") {
 
   include_dirs = [
     "//",
-    "//public/textlayout",
+    "//public",
   ]
 
   deps = [
