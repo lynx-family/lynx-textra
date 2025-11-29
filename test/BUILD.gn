@@ -30,6 +30,7 @@ executable("TextLayoutLiteTest") {
     "test_src.h",
     "test_utils.h",
     "text_layout_test.cc",
+    "text_line_test.cc",
     "text_test.cc",
     "tt_shaper_test.cc",
     "tttext_context_test.cc",
