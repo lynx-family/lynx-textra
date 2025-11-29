@@ -27,6 +27,8 @@
 #include <textra/i_canvas_helper.h>
 #include <textra/style.h>
 
+#include <algorithm>
+
 #include "src/textlayout/utils/u_8_string.h"
 
 namespace ttoffice {
@@ -144,13 +146,15 @@ class CTShapingResult : public PlatformShapingResultReader {
                           advances + glyph_count);
       ct_indices_.insert(ct_indices_.begin(), indices, indices + glyph_count);
       typeface_.insert(typeface_.begin(), glyph_count, typeface);
+      ct_position_.insert(ct_position_.begin(), position,
+                          position + glyph_count);
     } else {
       ct_glyphs_.insert(ct_glyphs_.end(), glyphs, glyphs + glyph_count);
       ct_advances_.insert(ct_advances_.end(), advances, advances + glyph_count);
       ct_indices_.insert(ct_indices_.end(), indices, indices + glyph_count);
       typeface_.insert(typeface_.end(), glyph_count, typeface);
+      ct_position_.insert(ct_position_.end(), position, position + glyph_count);
     }
-    ct_position_.insert(ct_position_.end(), position, position + glyph_count);
     text_length_ += char_count;
   }
 
@@ -214,6 +218,13 @@ void ShaperCoreText::OnShapeText(const ShapeKey& key,
       std::reverse(ct_advances.begin(), ct_advances.end());
       std::reverse(ct_indices.begin(), ct_indices.end());
       std::reverse(ct_position.begin(), ct_position.end());
+      auto iter = ct_advances.rbegin();
+      while (iter != ct_advances.rend()) {
+        if (iter->width < 0 && iter != ct_advances.rbegin()) {
+          (iter - 1)->width += iter->width;
+        }
+        iter++;
+      }
     }
     for (auto k = 0; k < glyph_count; k++) {
       ct_indices[k] = u16_char_map[ct_indices[k]];
