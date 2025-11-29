@@ -244,21 +244,20 @@ void LayoutDrawer::DrawDrawerPiece(const TextLine* line,
     std::vector<float> pos_x(glyph_count);
     std::vector<float> pos_y(glyph_count);
     float char_x_pos = 0.f;
-    float min_x = 0.f;
     for (uint32_t k = 0; k < glyph_count; k++) {
       auto invert_glyph_id =
           glyph_start + (run->IsRtl() ? glyph_count - k - 1 : k);
-      pos_y[k] = result.Positions(invert_glyph_id)[1];
-      pos_x[k] = char_x_pos;
       auto adv = result.Advances(invert_glyph_id)[0];
-      char_x_pos += adv;
-      min_x = std::fmin(min_x, char_x_pos);
+      pos_y[k] = result.Positions(invert_glyph_id)[1];
+      if (adv < 0) {
+        pos_x[k] = char_x_pos - adv;
+      } else {
+        pos_x[k] = char_x_pos;
+        char_x_pos += adv;
+      }
       if (FloatsLarger(adv, 0)) {
         char_x_pos += run->GetLayoutStyle().GetLetterSpacing();
       }
-    }
-    for (auto& xx : pos_x) {
-      xx -= min_x;
     }
     auto draw_glyph_offset =
         result.CharToGlyph(char_start_in_piece + piece_start) - glyph_start;
