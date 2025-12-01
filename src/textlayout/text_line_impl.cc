@@ -152,6 +152,30 @@ void TextLineImpl::CreateDrawerPiece() {
       }
     }
   }
+  auto last = drawer_list_.rbegin();
+  while (last != drawer_list_.rend()) {
+    auto& drawer = *last;
+    auto start_char_index = drawer->GetStartCharPosInParagraph();
+    auto last_char_index = drawer->GetEndCharPosInParagraph();
+    auto content = paragraph_->GetContent();
+    while (last_char_index > start_char_index) {
+      if (!base::IsSpaceChar(content.GetUnicode(last_char_index - 1))) {
+        break;
+      }
+      drawer->RemoveLastChar(1);
+      last_char_index--;
+    }
+    if (last_char_index == start_char_index) {
+      TTASSERT(drawer->GetStartCharPosInParagraph() ==
+               drawer->GetEndCharPosInParagraph());
+      ++last;
+      continue;
+    }
+    break;
+  }
+  if (last != drawer_list_.rend()) {
+    drawer_list_.erase(last.base(), drawer_list_.end());
+  }
 }
 void TextLineImpl::InsertDrawerPiece(
     std::unique_ptr<DrawerPiece> drawer_piece) {

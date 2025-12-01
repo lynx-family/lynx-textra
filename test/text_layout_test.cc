@@ -227,7 +227,8 @@ TEST_F(TextLayoutTest, ParagraphStyle_HorizontalAlignment) {
     auto* second_line = region->GetLine(1);
     EXPECT_FLOAT_EQ(first_line->GetLineLeft(), 0.f);
     EXPECT_FLOAT_EQ(second_line->GetLineLeft(), 0.f);
-    EXPECT_FLOAT_EQ(first_line->GetLineRight(), page_width);
+    EXPECT_FLOAT_EQ(first_line->GetLineRight(),
+                    5);  // remove trailing space white
     // TODO: Fix implementation and uncomment the test below
     // (Also see ParagraphStyle_LastLineFollowHorizontalAlign)
     // EXPECT_LT(second_line->GetLineRight(), page_width);
