@@ -41,6 +41,13 @@ class RunRange {
   CharPos GetEndCharPosInParagraph() const {
     return end_char_ + run_->GetStartCharPos();
   }
+  void RemoveLastChar(uint32_t count = 1) {
+    if (end_char_ - start_char_ < count) {
+      end_char_ = start_char_;
+    } else {
+      end_char_ -= count;
+    }
+  }
   uint32_t GetCharCount() const {
     return GetEndCharPosInParagraph() - GetStartCharPosInParagraph();
   }
