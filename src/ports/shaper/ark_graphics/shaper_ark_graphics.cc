@@ -197,7 +197,7 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
   shaping_result.typeface_.resize(glyph_count);
 
   auto glyph_runs = ohos_shaping_funcs_->TextLineGetGlyphRuns_(line);
-  auto glyph_runs_count = OH_Drawing_GetDrawingArraySize(glyph_runs);
+  auto glyph_runs_count = ohos_shaping_funcs_->GetDrawingArraySize_(glyph_runs);
   auto glyph_idx = 0;
   for (auto k = 0; k < glyph_runs_count; k++) {
     auto* run = ohos_shaping_funcs_->GetRunByIndex_(glyph_runs, k);
