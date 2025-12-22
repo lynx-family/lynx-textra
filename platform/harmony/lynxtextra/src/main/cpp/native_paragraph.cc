@@ -4,11 +4,12 @@
 
 #include "native_paragraph.h"
 
+#include <textra/paragraph_style.h>
+
 #include "arkui_base_node.h"
 #include "harmony_run_delegate.h"
 #include "js_value_helper.h"
 #include "napi_init.h"
-#include "paragraph_style.h"
 
 namespace ttoffice {
 namespace tttext {

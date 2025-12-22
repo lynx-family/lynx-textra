@@ -5,13 +5,13 @@
 #include "native_text_node.h"
 
 #include <native_drawing/drawing_canvas.h>
+#include <textra/fontmgr_collection.h>
+#include <textra/layout_drawer.h>
+#include <textra/platform_helper.h>
 #include <window_manager/oh_display_manager.h>
 
-#include "fontmgr_collection.h"
-#include "layout_drawer.h"
 #include "napi_init.h"
 #include "native_paragraph.h"
-#include "platform_helper.h"
 #include "src/textlayout/layout_position.h"
 
 namespace ttoffice {
