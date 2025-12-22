@@ -282,6 +282,8 @@ class AGCanvasHelper : public ICanvasHelper {
     OH_Drawing_CanvasDetachPen(canvas_);
     OH_Drawing_PenDestroy(pen);
     OH_Drawing_CanvasRestore(canvas_);
+    OH_Drawing_TextBlobDestroy(textBlob);
+    OH_Drawing_TextBlobBuilderDestroy(builder);
   }
   void DrawRunDelegate(const RunDelegate* delegate, float left, float top,
                        float right, float bottom,
