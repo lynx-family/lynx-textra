@@ -378,6 +378,8 @@ void LayoutDrawer::DrawGlyphsOrText(const BaseRun* run, uint16_t* glyphs,
   if (glyph_count == 0) return;
   auto desired_font_style =
       run->GetShapeStyle().GetFontDescriptor().font_style_;
+  auto orig_bold = p->IsBold();
+  auto orig_italic = p->IsItalic();
   if (desired_font_style != font->FontStyle()) {
     auto wantedWeight = desired_font_style.GetWeight();
     const bool fakeBold =
@@ -394,6 +396,8 @@ void LayoutDrawer::DrawGlyphsOrText(const BaseRun* run, uint16_t* glyphs,
   /* tricky rtl implemention */
   canvas_->DrawGlyphs(font, glyph_count, glyphs, nullptr, run->IsRtl() ? 1 : 0,
                       ox, oy, pos_x, pos_y, p);
+  p->SetBold(orig_bold);
+  p->SetItalic(orig_italic);
 #if defined(DRAW_LINE_BOX)
   auto painter = canvas_->CreatePainter();
   painter->SetFillStyle(FillStyle::kStroke);
