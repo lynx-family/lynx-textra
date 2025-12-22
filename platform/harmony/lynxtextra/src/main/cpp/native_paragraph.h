@@ -5,10 +5,11 @@
 #ifndef PLATFORM_HARMONY_LYNXTEXTRA_SRC_MAIN_CPP_NATIVE_PARAGRAPH_H_
 #define PLATFORM_HARMONY_LYNXTEXTRA_SRC_MAIN_CPP_NATIVE_PARAGRAPH_H_
 
+#include <textra/paragraph.h>
+
 #include <list>
 
 #include "harmony_run_delegate.h"
-#include "paragraph.h"
 
 namespace ttoffice {
 namespace tttext {

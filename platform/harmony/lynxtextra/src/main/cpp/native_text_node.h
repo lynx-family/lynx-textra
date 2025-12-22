@@ -5,15 +5,16 @@
 #ifndef PLATFORM_HARMONY_LYNXTEXTRA_SRC_MAIN_CPP_NATIVE_TEXT_NODE_H_
 #define PLATFORM_HARMONY_LYNXTEXTRA_SRC_MAIN_CPP_NATIVE_TEXT_NODE_H_
 
+#include <textra/i_font_manager.h>
+#include <textra/macro.h>
+#include <textra/paragraph.h>
+#include <textra/text_layout.h>
+
 #include <list>
 
 #include "arkui_node.h"
 #include "i_document_view.h"
-#include "i_font_manager.h"
-#include "macro.h"
 #include "native_paragraph.h"
-#include "paragraph.h"
-#include "text_layout.h"
 
 using namespace NativeModule;
 namespace ttoffice {

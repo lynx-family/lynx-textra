@@ -4,10 +4,10 @@
 
 #ifndef I_DOCUMENT_VIEW_H
 #define I_DOCUMENT_VIEW_H
-#include <cstdint>
+#include <textra/i_canvas_helper.h>
+#include <textra/layout_definition.h>
 
-#include "i_canvas_helper.h"
-#include "layout_definition.h"
+#include <cstdint>
 
 namespace ttoffice {
 class IDocumentView {

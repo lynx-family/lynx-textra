@@ -7,12 +7,12 @@
 
 #include <arkui/native_node.h>
 #include <arkui/native_type.h>
+#include <textra/macro.h>
 
 #include <cassert>
 #include <cstdint>
 
 #include "arkui_base_node.h"
-#include "macro.h"
 
 namespace NativeModule {
 class ArkUINode : public ArkUIBaseNode {

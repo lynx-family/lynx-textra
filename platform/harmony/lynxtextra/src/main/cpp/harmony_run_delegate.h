@@ -5,8 +5,9 @@
 #ifndef PLATFORM_HARMONY_LYNXTEXTRA_SRC_MAIN_CPP_HARMONY_RUN_DELEGATE_H_
 #define PLATFORM_HARMONY_LYNXTEXTRA_SRC_MAIN_CPP_HARMONY_RUN_DELEGATE_H_
 
+#include <textra/run_delegate.h>
+
 #include "arkui_node.h"
-#include "run_delegate.h"
 
 namespace ttoffice {
 namespace tttext {
