@@ -155,6 +155,9 @@ void TextLineImpl::CreateDrawerPiece() {
   auto last = drawer_list_.rbegin();
   while (last != drawer_list_.rend()) {
     auto& drawer = *last;
+    if (drawer->GetRun()->IsGhostRun()) {
+      break;
+    }
     auto start_char_index = drawer->GetStartCharPosInParagraph();
     auto last_char_index = drawer->GetEndCharPosInParagraph();
     auto content = paragraph_->GetContent();
