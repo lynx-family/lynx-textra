@@ -113,6 +113,7 @@ ParagraphTest::GetTestCases() {
           {"TestModifyHAlignAfterLayout",
            &ParagraphTest::TestModifyHAlignAfterLayout},
           {"TestApplyStyleInRange", &ParagraphTest::TestApplyStyleInRange},
+          {"TestTextShadow", &ParagraphTest::TestTextShadow},
       };
   return kTestCases;
 }
@@ -1592,4 +1593,26 @@ void ParagraphTest::TestApplyStyleInRange(ICanvasHelper* canvas,
                 LayoutMode::kIndefinite);
 }
 
+void ParagraphTest::TestTextShadow(ICanvasHelper* canvas, float width) const {
+  Style style;
+  style.SetTextSize(24);
+  auto para = Paragraph::Create();
+  para->GetParagraphStyle().SetDefaultStyle(style);
+  para->AddTextRun(nullptr, "一段文本");
+  Style text_shadow = style;
+  std::vector<TextShadow> shadow_list;
+  TextShadow shadow;
+  shadow.color_ = TTColor::GREEN;
+  shadow.offset_[0] = 5;
+  shadow.offset_[1] = 5;
+  shadow.blur_radius_ = 0.5;
+  shadow_list.emplace_back(shadow);
+  text_shadow.SetTextShadowList(shadow_list);
+  para->AddTextRun(&text_shadow, "TextShadow");
+  Style style1;
+  style1.SetForegroundColor(TTColor(0xffff0000));
+  para->ApplyStyleInRange(style1, 10, 20);
+  DrawParagraph(canvas, *para, width, LayoutMode::kDefinite,
+                LayoutMode::kIndefinite);
+}
 #pragma clang diagnostic pop

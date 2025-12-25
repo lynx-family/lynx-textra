@@ -303,7 +303,8 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
       style_manager->GetStyleRange(
           &style_range, run->GetStartCharPos() + piece_start,
           Style::ForegroundColorFlag | Style::ForegroundPainterFlag |
-              Style::BaselineOffsetFlag | Style::TextStrokeStyleFlag);
+              Style::BaselineOffsetFlag | Style::TextStrokeStyleFlag |
+              Style::TextShadowListFlag);
       piece_end = std::min(char_end_pos, style_range.GetRange().GetEnd() -
                                              run->GetStartCharPos());
       style = &style_range.GetStyle();
@@ -323,6 +324,8 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
       painter->SetItalic(layout_style.GetItalic());
       painter->SetStrokeColor(style->GetTextStrokeColor());
       painter->SetStrokeWidth(style->GetTextStrokeWidth());
+      if (!style->GetTextShadowList().empty())
+        painter->SetShadowList(style->GetTextShadowList());
     } else {
       // prefer text size in style object
       if (layout_style.HasAttribute(kTextSize)) {
