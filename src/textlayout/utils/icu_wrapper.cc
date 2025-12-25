@@ -147,7 +147,9 @@ static void init_icudata_version() {
 
 static void* do_dlsym(void** handle, const char* name) {
   pthread_once(&once_control, &init_icudata_version);
-
+  if (!valid_library) {
+    return nullptr;
+  }
   std::vector<char> versioned_symbol_name(strlen(name) +
                                           sizeof(g_icudata_version));
   snprintf(versioned_symbol_name.data(), versioned_symbol_name.size(), "%s%s",
@@ -162,6 +164,9 @@ UBreakIterator* brk_open(UBreakIteratorType type, const char* locale,
   typedef decltype(&ubrk_open) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubrk_open"));
+  if (!ptr) {
+    return nullptr;
+  }
   return ptr(type, locale, text, textLength, status);
 }
 
@@ -169,6 +174,9 @@ void brk_close(UBreakIterator* bi) {
   typedef decltype(&ubrk_close) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubrk_close"));
+  if (!ptr) {
+    return;
+  }
   ptr(bi);
 }
 
@@ -176,6 +184,9 @@ int32_t brk_first(UBreakIterator* bi) {
   typedef decltype(&ubrk_first) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubrk_first"));
+  if (!ptr) {
+    return UBRK_DONE;
+  }
   return ptr(bi);
 }
 
@@ -183,6 +194,9 @@ int32_t brk_next(UBreakIterator* bi) {
   typedef decltype(&ubrk_next) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubrk_next"));
+  if (!ptr) {
+    return UBRK_DONE;
+  }
   return ptr(bi);
 }
 
@@ -191,6 +205,9 @@ void brk_setText(UBreakIterator* bi, const UChar* text, int32_t textLength,
   typedef decltype(&ubrk_setText) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubrk_setText"));
+  if (!ptr) {
+    return;
+  }
   return ptr(bi, text, textLength, status);
 }
 
@@ -198,6 +215,10 @@ UScriptCode uscript_getScript(uint32_t codepoint, UErrorCode* pErrorCode) {
   typedef decltype(&uscript_getScript) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "uscript_getScript"));
+  if (!ptr) {
+    *pErrorCode = U_FILE_ACCESS_ERROR;
+    return USCRIPT_INVALID_CODE;
+  }
   return ptr(codepoint, pErrorCode);
 }
 
@@ -211,6 +232,10 @@ UBiDi* ubidi_openSized(int32_t maxLength, int32_t maxRunCount,
   typedef decltype(&ubidi_openSized) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubidi_openSized"));
+  if (!ptr) {
+    *pErrorCode = U_FILE_ACCESS_ERROR;
+    return nullptr;
+  }
   return ptr(maxLength, maxRunCount, pErrorCode);
 }
 
@@ -225,6 +250,10 @@ void ubidi_setPara(UBiDi* pBiDi, const UChar* text, int32_t length,
   typedef decltype(&ubidi_setPara) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubidi_setPara"));
+  if (!ptr) {
+    *pErrorCode = U_FILE_ACCESS_ERROR;
+    return;
+  }
   ptr(pBiDi, text, length, paraLevel, embeddingLevels, pErrorCode);
 }
 
@@ -239,6 +268,9 @@ UBiDiDirection ubidi_getDirection(const UBiDi* pBiDi) {
   typedef decltype(&ubidi_getDirection) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubidi_getDirection"));
+  if (!ptr) {
+    return UBIDI_LTR;
+  }
   return ptr(pBiDi);
 }
 
@@ -250,15 +282,21 @@ void ubidi_close(UBiDi* pBiDi) {
   typedef decltype(&ubidi_close) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubidi_close"));
+  if (!ptr) {
+    return;
+  }
   ptr(pBiDi);
 }
 
 void ICUWrapper::ubidiClose(UBiDi* pBiDi) { return tttext::ubidi_close(pBiDi); }
 
-void icu_break_char(UBreakIterator* breaker, const UChar* text,
-                    uint32_t textLength, uint8_t* res) {
+UErrorCode icu_break_char(UBreakIterator* breaker, const UChar* text,
+                          uint32_t textLength, uint8_t* res) {
   UErrorCode status = U_ZERO_ERROR;
   brk_setText(breaker, text, textLength, &status);
+  if (status != U_ZERO_ERROR) {
+    return status;
+  }
   auto curr = brk_first(breaker);
   while (curr != UBRK_DONE) {
     curr = brk_next(breaker);
@@ -267,12 +305,16 @@ void icu_break_char(UBreakIterator* breaker, const UChar* text,
     }
     res[curr - 1] = true;
   }
+  return status;
 }
 
-void icu_break_word(UBreakIterator* breaker, const UChar* text,
-                    uint32_t textLength, uint8_t* res) {
+UErrorCode icu_break_word(UBreakIterator* breaker, const UChar* text,
+                          uint32_t textLength, uint8_t* res) {
   UErrorCode status = U_ZERO_ERROR;
   brk_setText(breaker, text, textLength, &status);
+  if (status != U_ZERO_ERROR) {
+    return status;
+  }
   auto curr = brk_first(breaker);
   while (curr != UBRK_DONE) {
     curr = brk_next(breaker);
@@ -281,12 +323,16 @@ void icu_break_word(UBreakIterator* breaker, const UChar* text,
     }
     res[curr - 1] = true;
   }
+  return status;
 }
 
-void icu_break_line(UBreakIterator* breaker, const UChar* text,
-                    uint32_t textLength, uint8_t* res) {
+UErrorCode icu_break_line(UBreakIterator* breaker, const UChar* text,
+                          uint32_t textLength, uint8_t* res) {
   UErrorCode status = U_ZERO_ERROR;
   brk_setText(breaker, text, textLength, &status);
+  if (status != U_ZERO_ERROR) {
+    return status;
+  }
   auto curr = brk_first(breaker);
   while (curr != UBRK_DONE) {
     curr = brk_next(breaker);
@@ -295,6 +341,7 @@ void icu_break_line(UBreakIterator* breaker, const UChar* text,
     }
     res[curr - 1] = true;
   }
+  return status;
 }
 
 UBiDi* bidi_openSized(int32_t maxLength, int32_t maxRunCount,
@@ -302,6 +349,10 @@ UBiDi* bidi_openSized(int32_t maxLength, int32_t maxRunCount,
   typedef decltype(&ubidi_openSized) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubidi_openSized"));
+  if (!ptr) {
+    *pErrorCode = U_FILE_ACCESS_ERROR;
+    return nullptr;
+  }
   return ptr(maxLength, maxRunCount, pErrorCode);
 }
 
@@ -309,6 +360,9 @@ void bidi_close(UBiDi* para) {
   typedef decltype(&ubidi_close) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubidi_close"));
+  if (!ptr) {
+    return;
+  }
   // ubidi_close(para);
   return ptr(para);
 }
@@ -320,6 +374,10 @@ void bidi_setPara(UBiDi* pBiDi, const UChar* text, int32_t length,
   typedef decltype(&ubidi_setPara) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubidi_setPara"));
+  if (!ptr) {
+    *pErrorCode = U_FILE_ACCESS_ERROR;
+    return;
+  }
   return ptr(pBiDi, text, length, paraLevel, embeddingLevels, pErrorCode);
 }
 
@@ -328,6 +386,10 @@ const UBiDiLevel* bidi_getLevels(UBiDi* content, UErrorCode* pErrorCode) {
   typedef decltype(&ubidi_getLevels) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubidi_getLevels"));
+  if (!ptr) {
+    *pErrorCode = U_FILE_ACCESS_ERROR;
+    return nullptr;
+  }
   return ptr(content, pErrorCode);
 }
 
@@ -337,6 +399,10 @@ void bidi_getVisualMap(UBiDi* pBiDi, int32_t* indexMap,
   typedef decltype(&ubidi_getVisualMap) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "ubidi_getVisualMap"));
+  if (!ptr) {
+    *pErrorCode = U_FILE_ACCESS_ERROR;
+    return;
+  }
   return ptr(pBiDi, indexMap, pErrorCode);
 }
 
@@ -346,6 +412,10 @@ void bidi_getLogicalMap(UBiDi* pBiDi, int32_t* indexMap,
   typedef decltype(&ubidi_getLogicalMap) FuncPtr;
   static auto ptr = reinterpret_cast<FuncPtr>(
       do_dlsym(&handle_common, "ubidi_getLogicalMap"));
+  if (!ptr) {
+    *pErrorCode = U_FILE_ACCESS_ERROR;
+    return;
+  }
   return ptr(pBiDi, indexMap, pErrorCode);
 }
 
@@ -379,9 +449,21 @@ ICUWrapper& ICUWrapper::GetInstance() {
   return wrapper;
 }
 
+void DefaultBidiResult(const uint32_t length, uint8_t* bidi_levels,
+                       uint32_t* visual_map, uint32_t* logical_map) {
+  for (auto index = 0u; index < length; index++) {
+    bidi_levels[index] = UBIDI_DEFAULT_LTR;
+    visual_map[index] = index;
+    logical_map[index] = index;
+  }
+}
+
 void ICUWrapper::BidiInit(const char32_t* u32_content, const uint32_t& length,
                           WriteDirection direction, uint8_t* bidi_levels,
                           uint32_t* visual_map, uint32_t* logical_map) {
+  if (!valid_library) {
+    return DefaultBidiResult(length, bidi_levels, visual_map, logical_map);
+  }
   int para_l = UBIDI_DEFAULT_LTR;
   if (direction == WriteDirection::kLTR || direction == WriteDirection::kTTB) {
     para_l = UBIDI_LTR;
@@ -395,13 +477,30 @@ void ICUWrapper::BidiInit(const char32_t* u32_content, const uint32_t& length,
   auto u16_length = u16_string.length();
   if (u16_length == 0) return;
   auto* para = bidi_openSized(u16_length, 0, pErrorCode);
+  if (para == nullptr || ErrorCode != U_ZERO_ERROR) {
+    return DefaultBidiResult(length, bidi_levels, visual_map, logical_map);
+  }
   bidi_setPara(para, reinterpret_cast<const UChar*>(u16_string.c_str()),
                u16_length, para_l, NULL, pErrorCode);
+  if (ErrorCode != U_ZERO_ERROR) {
+    return DefaultBidiResult(length, bidi_levels, visual_map, logical_map);
+  }
   const auto* bidiLevels = bidi_getLevels(para, pErrorCode);
-  auto* vmap = new int32_t[u16_length];
+  if (ErrorCode != U_ZERO_ERROR) {
+    return DefaultBidiResult(length, bidi_levels, visual_map, logical_map);
+  }
+  auto vmap_container = std::make_unique<int32_t[]>(u16_length);
+  auto* vmap = vmap_container.get();
   bidi_getVisualMap(para, vmap, pErrorCode);
-  auto* lmap = new int32_t[u16_length];
+  if (ErrorCode != U_ZERO_ERROR) {
+    return DefaultBidiResult(length, bidi_levels, visual_map, logical_map);
+  }
+  auto lmap_container = std::make_unique<int32_t[]>(u16_length);
+  auto* lmap = lmap_container.get();
   bidi_getLogicalMap(para, lmap, pErrorCode);
+  if (ErrorCode != U_ZERO_ERROR) {
+    return DefaultBidiResult(length, bidi_levels, visual_map, logical_map);
+  }
   auto u16_idx = 0u;
   auto u32_idx = 0;
   while (u16_idx < u16_length) {
@@ -415,8 +514,6 @@ void ICUWrapper::BidiInit(const char32_t* u32_content, const uint32_t& length,
       u16_idx += 1;
     }
   }
-  delete[] vmap;
-  delete[] lmap;
   bidi_close(para);
 }
 
@@ -424,13 +521,24 @@ int8_t ICUWrapper::icu_charType(uint32_t c) {
   typedef decltype(&u_charType) FuncPtr;
   static auto ptr =
       reinterpret_cast<FuncPtr>(do_dlsym(&handle_common, "u_charType"));
+  if (!ptr) {
+    return 0;
+  }
   return ptr(c);
 }
-
+void DefaultBreakResult(uint32_t char_count,
+                        std::vector<BoundaryType>& boundary) {
+  for (auto index = 0u; index < char_count; index++) {
+    boundary[index] = BoundaryType::kLineBreakable;
+  }
+}
 void ICUWrapper::icu_boundary_breaker(const char32_t* u32_content,
                                       uint32_t char_count,
                                       std::vector<BoundaryType>& boundary) {
 #ifndef USE_LIBLINEBREAK
+  if (!valid_library) {
+    return DefaultBreakResult(char_count, boundary);
+  }
   // 1. string32 to string16, and record the position of char32 and correspond
   // char16
   auto u16str = base::U32StringToU16(u32_content, char_count);
@@ -450,8 +558,11 @@ void ICUWrapper::icu_boundary_breaker(const char32_t* u32_content,
   }
   // 2. char break
   std::vector<uint8_t> break_result(u16_to_u32_map.size(), 0);
-  icu_break_char(char_brk_iter_, u16str.data(), u16str.length(),
-                 break_result.data());
+  auto error = icu_break_char(char_brk_iter_, u16str.data(), u16str.length(),
+                              break_result.data());
+  if (error != U_ZERO_ERROR) {
+    return DefaultBreakResult(char_count, boundary);
+  }
   for (size_t i = 0; i < break_result.size(); i++) {
     if (break_result[i]) {
       boundary[u16_to_u32_map[i]] = BoundaryType::kGraphme;
@@ -459,8 +570,11 @@ void ICUWrapper::icu_boundary_breaker(const char32_t* u32_content,
   }
   // 3. word break
   std::fill(break_result.begin(), break_result.end(), 0);
-  icu_break_word(word_brk_iter_, u16str.data(), u16str.length(),
-                 break_result.data());
+  error = icu_break_word(word_brk_iter_, u16str.data(), u16str.length(),
+                         break_result.data());
+  if (error != U_ZERO_ERROR) {
+    return DefaultBreakResult(char_count, boundary);
+  }
   for (size_t i = 0; i < break_result.size(); i++) {
     if (break_result[i]) {
       boundary[u16_to_u32_map[i]] = BoundaryType::kWord;
@@ -468,8 +582,11 @@ void ICUWrapper::icu_boundary_breaker(const char32_t* u32_content,
   }
   // 4. line break
   std::fill(break_result.begin(), break_result.end(), 0);
-  icu_break_line(line_brk_iter_, u16str.data(), u16str.length(),
-                 break_result.data());
+  error = icu_break_line(line_brk_iter_, u16str.data(), u16str.length(),
+                         break_result.data());
+  if (error != U_ZERO_ERROR) {
+    return DefaultBreakResult(char_count, boundary);
+  }
   for (size_t i = 0; i < break_result.size(); i++) {
     if (break_result[i]) {
       boundary[u16_to_u32_map[i]] = BoundaryType::kLineBreakable;
@@ -519,6 +636,9 @@ bool ICUWrapper::icu_hasBinaryProperty(UChar32 c, UProperty which) {
   typedef decltype(&u_hasBinaryProperty) FuncPtr;
   static auto ptr = reinterpret_cast<FuncPtr>(
       do_dlsym(&handle_common, "u_hasBinaryProperty"));
+  if (!ptr) {
+    return false;
+  }
   return ptr(c, which);
 }
 }  // namespace tttext
