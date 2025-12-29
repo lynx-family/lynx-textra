@@ -10,6 +10,7 @@
 #include <textra/style.h>
 #include <textra/tt_color.h>
 
+#include <list>
 #include <map>
 #include <utility>
 #include <vector>
@@ -312,6 +313,7 @@ class StyleManager {
   AttributesRangeList style_list_[kMaxAttrType];
   std::map<AttrType, AttributesRangeList> extra_style_list_;
   Style default_style_;
+  std::list<TextShadowList> text_shadow_list_;
 };
 }  // namespace tttext
 }  // namespace ttoffice

@@ -101,7 +101,12 @@ void StyleManager::ApplyStyleInRange(const Style& style, const uint32_t start,
   for (auto id = kStyleManagerAttrStart; id < kStyleManagerAttrEnd;
        id = static_cast<AttributeType>(id + 1)) {
     if (!style.HasAttribute(id)) continue;
-    const auto value = GetStyleValue(&style, id);
+    auto value = GetStyleValue(&style, id);
+    if (id == kTextShadowList) {
+      text_shadow_list_.push_back(style.GetTextShadowList());
+      value = reinterpret_cast<AttributesRangeList::ValueType>(
+          &text_shadow_list_.back());
+    }
     constexpr auto max_end = Range::MaxIndex();
     const auto end = len > max_end - start ? max_end : start + len;
     style_list_[id].SetRangeValue(Range{start, end}, value);
