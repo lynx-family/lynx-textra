@@ -428,6 +428,7 @@ class L_EXPORT Style {
  public:
   const TextShadowList& GetTextShadowList() const { return text_shadow_list_; }
   void SetTextShadowList(const TextShadowList& val) {
+    if (val.empty()) return;
     text_shadow_list_ = val;
     flag_ |= TextShadowListFlag;
   }
