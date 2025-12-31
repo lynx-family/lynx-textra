@@ -112,7 +112,8 @@ class SkityCanvasHelper : public ICanvasHelper {
                                           shadow.blur_radius_);
           paint->SetMaskFilter(filter);
         }
-        canvas_->DrawTextBlob(text_blob, ox, oy, *paint);
+        canvas_->DrawTextBlob(text_blob, ox + shadow.offset_[0],
+                              oy + shadow.offset_[1], *paint);
       }
     }
 
