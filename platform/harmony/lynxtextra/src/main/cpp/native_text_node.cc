@@ -99,7 +99,7 @@ NativeTextNode::NativeTextNode()
   layout_ =
       std::make_unique<tttext::TextLayout>(&fc, tttext::ShaperType::kSystem);
   context_ = std::make_unique<tttext::TTTextContext>();
-  context_->SetHarmonyShaperForceLowAPI(true);
+  //  context_->SetHarmonyShaperForceLowAPI(true);
 }
 NativeTextNode::~NativeTextNode() {
   // Unregister custom event listener.

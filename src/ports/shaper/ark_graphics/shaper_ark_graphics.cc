@@ -8,6 +8,7 @@
 #include <native_drawing/drawing_font.h>
 #include <native_drawing/drawing_font_mgr.h>
 #include <native_drawing/drawing_point.h>
+#include <native_drawing/drawing_text_font_descriptor.h>
 #include <native_drawing/drawing_text_line.h>
 #include <native_drawing/drawing_text_lineTypography.h>
 #include <native_drawing/drawing_text_run.h>
@@ -18,6 +19,8 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
+
+#include "src/textlayout/utils/u_8_string.h"
 
 namespace ttoffice {
 namespace tttext {
@@ -46,6 +49,8 @@ using OHOS_DestroyRuns = void (*)(OH_Drawing_Array*);
 using OHOS_DestroyTextLine = void (*)(OH_Drawing_TextLine*);
 using OHOS_DestroyLineTypography = void (*)(OH_Drawing_LineTypography*);
 using OHOS_TypographyHandlerAddEncodedText = void (*)(OH_Drawing_TypographyCreate*, const void*, size_t, OH_Drawing_TextEncoding);
+using OHOS_FontSetThemeFontFollowed = OH_Drawing_ErrorCode (*)(OH_Drawing_Font*, bool);
+using OHOS_GetFontCollectionGlobalInstance = OH_Drawing_FontCollection* (*)();
 // clang-format on
 
 struct OHOS_ShapingFuncPtr {
@@ -72,6 +77,8 @@ struct OHOS_ShapingFuncPtr {
   OHOS_DestroyTextLine DestroyTextLine_;
   OHOS_DestroyLineTypography DestroyLineTypography_;
   OHOS_TypographyHandlerAddEncodedText TypographyHandlerAddEncodedText_;
+  OHOS_FontSetThemeFontFollowed FontSetThemeFontFollowed_;
+  OHOS_GetFontCollectionGlobalInstance GetFontCollectionGlobalInstance_;
 };
 static std::unique_ptr<OHOS_ShapingFuncPtr> ohos_shaping_funcs_ = nullptr;
 class AGShapingResult : public PlatformShapingResultReader {
@@ -144,7 +151,13 @@ ShaperArkGraphics::ShaperArkGraphics(
       ohos_shaping_funcs_->DestroyTextLine_ = (OHOS_DestroyTextLine)dlsym(handle, "OH_Drawing_DestroyTextLine");
       ohos_shaping_funcs_->DestroyLineTypography_ = (OHOS_DestroyLineTypography)dlsym(handle, "OH_Drawing_DestroyLineTypography");
       ohos_shaping_funcs_->TypographyHandlerAddEncodedText_ = (OHOS_TypographyHandlerAddEncodedText)dlsym(handle, "OH_Drawing_TypographyHandlerAddEncodedText");
+      ohos_shaping_funcs_->FontSetThemeFontFollowed_ = (OHOS_FontSetThemeFontFollowed)dlsym(handle, "OH_Drawing_FontSetThemeFontFollowed");
+      ohos_shaping_funcs_->GetFontCollectionGlobalInstance_ = (OHOS_GetFontCollectionGlobalInstance)dlsym(handle, "OH_Drawing_GetFontCollectionGlobalInstance");
       // clang-format on
+    }
+    if (ohos_shaping_funcs_->GetFontCollectionGlobalInstance_) {
+      shared_font_collection_ =
+          ohos_shaping_funcs_->GetFontCollectionGlobalInstance_();
     }
   }
 }
@@ -154,8 +167,15 @@ ShaperArkGraphics::~ShaperArkGraphics() {
 }
 void ShaperArkGraphics::OnShapeText(const ShapeKey& key,
                                     ShapeResult* result) const {
+  bool is_only_space_char = true;
+  for (const auto& ch : key.text_) {
+    if (!base::IsSpaceChar(ch)) {
+      is_only_space_char = false;
+      break;
+    }
+  }
   if (!context_->IsHarmonyShaperForceLowAPI() &&
-      ohos_shaping_funcs_->GetRunFont_ != NULL) {
+      ohos_shaping_funcs_->GetRunFont_ != NULL && !is_only_space_char) {
     ShapingTextWithHighAPILevel(key, result);
   } else {
     ShapingTextWithLowAPILevel(key, result);
@@ -180,13 +200,20 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
   OH_Drawing_SetTextStyleFontWeight(text_style,
                                     fd.font_style_.GetWeight() / 100);
   OH_Drawing_TypographyHandlerPushTextStyle(typography_handler, text_style);
+  auto u32_text(key.text_);
+  for (auto& ch : u32_text) {
+    if (ch == '\n') {
+      ch = '\r';
+    }
+  }
+
   ohos_shaping_funcs_->TypographyHandlerAddEncodedText_(
-      typography_handler, key.text_.c_str(), key.text_.length() * 4,
+      typography_handler, u32_text.c_str(), u32_text.length() * 4,
       TEXT_ENCODING_UTF32);
   auto line_typo =
       ohos_shaping_funcs_->CreateLineTypography_(typography_handler);
-  auto line = ohos_shaping_funcs_->LineTypographyCreateLine_(
-      line_typo, 0, key.text_.length());
+  auto line = ohos_shaping_funcs_->LineTypographyCreateLine_(line_typo, 0,
+                                                             u32_text.length());
   uint32_t glyph_count =
       static_cast<uint32_t>(ohos_shaping_funcs_->TextLineGetGlyphCount_(line));
   AGShapingResult shaping_result;
@@ -273,6 +300,10 @@ void ShaperArkGraphics::ShapingTextWithLowAPILevel(const ShapeKey& key,
           std::static_pointer_cast<AGTypefaceHelper>(tf_typeface);
       drawing_font = ag_typeface_helper->GetTypeface();
       OH_Drawing_FontSetTextSize(drawing_font, key.style_.GetFontSize());
+      if (ohos_shaping_funcs_ &&
+          ohos_shaping_funcs_->FontSetThemeFontFollowed_) {
+        ohos_shaping_funcs_->FontSetThemeFontFollowed_(drawing_font, true);
+      }
     }
     auto* glyphs = shaping_result.ct_glyphs_.data() + piece.offset_;
     std::vector<float> glyph_advances(piece_length);
@@ -297,8 +328,6 @@ void ShaperArkGraphics::ShapingTextWithLowAPILevel(const ShapeKey& key,
           RunPiece new_piece(piece.offset_ + zero_start, k - zero_start);
           run_pieces_.emplace_back(new_piece);
         }
-        //        shaping_result.ct_indices_[piece.offset_ + k] = piece.offset_
-        //        + k;
         shaping_result.ct_advances_[piece.offset_ + k][0] = glyph_advances[k];
         shaping_result.ct_advances_[piece.offset_ + k][1] = 0;
         shaping_result.typeface_[piece.offset_ + k] = tf_typeface;
@@ -322,6 +351,10 @@ void ShaperArkGraphics::ShapingTextWithLowAPILevel(const ShapeKey& key,
           std::static_pointer_cast<AGTypefaceHelper>(tf_typeface);
       drawing_font = ag_typeface_helper->GetTypeface();
       OH_Drawing_FontSetTextSize(drawing_font, key.style_.GetFontSize());
+      if (ohos_shaping_funcs_ &&
+          ohos_shaping_funcs_->FontSetThemeFontFollowed_) {
+        ohos_shaping_funcs_->FontSetThemeFontFollowed_(drawing_font, true);
+      }
     }
     shaping_piece(run_piece, drawing_font);
     tf_typeface = nullptr;

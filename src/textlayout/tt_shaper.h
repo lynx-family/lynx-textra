@@ -21,9 +21,6 @@
 
 namespace ttoffice {
 namespace tttext {
-enum class ShaperOption : uint8_t {
-  kHarmonyShaperForceLowAPI,
-};
 class ShapeResult;
 class ShapeKey;
 class ShapeCache;

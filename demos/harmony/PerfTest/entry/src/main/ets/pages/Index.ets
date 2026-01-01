@@ -45,9 +45,9 @@ struct Index {
         .onClick(() => {
           let testCase = this.constructTestCases()
           // this.textNodeController.startTest(testCase)
-          this.textraNodeController.startTest(testCase)
           this.textNativeNodeController.startTest(testCase)
           this.textNativeNewNodeController.startTest(testCase)
+          this.textraNodeController.startTest(testCase)
         })
     }
     .height('100%')
@@ -58,17 +58,12 @@ struct Index {
     let textDecoder = new util.TextDecoder();
     let context = this.getUIContext().getHostContext();
     let rawBuffer = context?.resourceManager.getRawFileContentSync('hlm.txt')
-    let content = textDecoder.decodeToString(rawBuffer)
-    for (let k = 0; k < content.length; k++) {
-      if (content[k] != '\n' && content[k] != '\r') {
-      this.fullContent += content[k];
-      }
-    }
+    this.fullContent = textDecoder.decodeToString(rawBuffer)
   }
 
   constructTestCases(): Array<string> {
     let testCount = 500
-    let testLength = 500
+    let testLength = 50
     let testCase: Array<string> = new Array<string>()
     let testContent = this.fullContent
 
