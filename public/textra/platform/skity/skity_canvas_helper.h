@@ -104,16 +104,17 @@ class SkityCanvasHelper : public ICanvasHelper {
 
     const auto& shadow_list = painter->GetShadowList();
     if (!shadow_list.empty()) {
+      skity::Paint shadow_paint = *paint;
       for (auto& shadow : shadow_list) {
-        paint->SetColor(shadow.color_);
+        shadow_paint.SetColor(shadow.color_);
         if (shadow.blur_radius_ != 0) {
           std::shared_ptr<skity::MaskFilter> filter =
               skity::MaskFilter::MakeBlur(skity::BlurStyle::kNormal,
                                           shadow.blur_radius_);
-          paint->SetMaskFilter(filter);
+          shadow_paint.SetMaskFilter(filter);
         }
         canvas_->DrawTextBlob(text_blob, ox + shadow.offset_[0],
-                              oy + shadow.offset_[1], *paint);
+                              oy + shadow.offset_[1], shadow_paint);
       }
     }
 
