@@ -194,7 +194,8 @@ inline bool IsCJK(char32_t code) {
          (code >= 0x20000 && code <= 0x2ffff);
 }
 inline bool IsSpaceChar(char32_t code) {
-  return code == ' ' || code == '\r' || code == '\n' || code == '\t';
+  return code == ' ' || code == '\r' || code == '\n' || code == '\t' ||
+         code == 0x3000;
 }
 inline bool IsNoneVisibleASCII(char32_t code) { return code < 32; }
 }  // namespace base
