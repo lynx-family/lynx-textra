@@ -1,5 +1,8 @@
 name: Lynx Textra CI Test
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches:
@@ -121,3 +124,23 @@ jobs:
           arch -x86_64 bundle exec pod install
           xcodebuild -workspace TextlayoutDemo.xcworkspace -scheme LynxTextraDemo -configuration Release -arch arm64 -sdk iphoneos SYMROOT=$(pwd)/build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
           xcodebuild -workspace TextlayoutDemo.xcworkspace -scheme TextlayoutDemo -configuration Release -arch arm64 -sdk iphoneos SYMROOT=$(pwd)/build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+
+  linux-skia-demo-build-check:
+    runs-on: lynx-ubuntu-22.04-large
+    timeout-minutes: 60
+    continue-on-error: true
+    steps:
+      - name: Python Setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+      - name: Install Common Dependencies
+        uses: ./.github/actions/common-deps
+      - name: Install Android SDK CMake
+        run: |
+          source tools/envsetup.sh
+          source tools/fetch_and_build_skia.sh
+          buildtools/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Release -DTEXTRA_ENABLE_SKIA=ON -G Ninja -S . -B cmake-build-release
+          buildtools/cmake/bin/cmake --build cmake-build-release -t ttreaderdemo

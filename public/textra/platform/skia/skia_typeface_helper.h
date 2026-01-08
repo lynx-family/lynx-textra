@@ -58,7 +58,7 @@ class SkiaTypefaceHelper : public ITypefaceHelper {
     rect_ltwh[3] = rect.height();
   }
   void GetWidthBounds(float* rect_ltrb, GlyphID glyphs[], uint32_t glyph_count,
-                      float font_size) {}
+                      float font_size) override {}
   const void* GetFontData() const override {
     return asset_ == nullptr ? nullptr : asset_->getMemoryBase();
   }
