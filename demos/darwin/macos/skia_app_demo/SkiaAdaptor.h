@@ -5,8 +5,8 @@
 #ifndef DEMOS_DARWIN_MACOS_SKIA_APP_DEMO_SKIAADAPTOR_H_
 #define DEMOS_DARWIN_MACOS_SKIA_APP_DEMO_SKIAADAPTOR_H_
 
-#include <core/SkFontMgr.h>
-#include <ports/SkFontMgr_directory.h>
+#include <include/core/SkFontMgr.h>
+#include <include/ports/SkFontMgr_directory.h>
 #include <textra/platform/skia/skia_typeface_helper.h>
 
 #include <memory>

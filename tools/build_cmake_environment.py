@@ -49,22 +49,12 @@ def main():
   parser.add_argument('--gn-args', type=str, required=False, help='GN compile arguments.')
   args = parser.parse_args()
   generate_project_json(args.gn_args)
-  # generate_target_cmake("//src:lynxtextra_static")
   generate_target_cmake("//platform/mac:lynxtextra")
   generate_target_cmake("//demos/darwin/macos/glfw:gl_app_demo")
   generate_target_cmake("//demos/darwin/macos/mtl:mtl_app_demo")
   generate_target_cmake("//test:TextLayoutLiteTest")
   generate_target_cmake("//examples/json_parser:json_parser")
   generate_target_cmake("//examples/json_parser_exe:json_to_image_app")
-  # generate_target_cmake("//demos/darwin/macos/skia_app_demo:skia_app_demo")
-  # generate_target_cmake("//demos/darwin/macos/ttreaderdemo:ttreaderdemo")
-  # generate_target_cmake("//demos/darwin/macos/ttreaderdemo:ttreaderdemo")
-#   start_target = args.start_target
-#   cmake_version = args.cmake_version
-#   project_name = args.project_name
-#   compiler_target = args.compiler_target
-#   keep_libs = args.keep_libs
-#   flavor_name = args.flavor_name
   return 0
 if __name__ == "__main__":
   sys.exit(main())

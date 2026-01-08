@@ -9,7 +9,6 @@
 
 #include <textra/platform/skia/skia_canvas_helper.h>
 
-#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -17,7 +16,7 @@
 #include <string>
 #include <vector>
 
-#include "demos/darwin/macos/skia_app_demo/SkiaAdaptor.h"
+#include "SkiaAdaptor.h"
 #include "demos/darwin/macos/ttreaderdemo/paragraph_test.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkGraphics.h"
@@ -40,7 +39,7 @@ Application* Application::Create(int argc, char** argv, void* platformData) {
 }
 
 SkiaAppDemo::SkiaAppDemo(int argc, char** argv, void* platformData)
-    : fBackendType(Window::kNativeGL_BackendType) /*, fRotationAngle(0)*/ {
+    : fBackendType(Window::kMetal_BackendType) /*, fRotationAngle(0)*/ {
   SkGraphics::Init();
 
   fWindow = Windows::CreateNativeWindow(platformData);

@@ -14,14 +14,14 @@
 #include <memory>
 
 #include "include/core/SkBlurTypes.h"
+#include "include/core/SkCanvas.h"
 #include "include/core/SkFont.h"
 #include "include/core/SkFontMetrics.h"
 #include "include/core/SkMaskFilter.h"
 #include "include/core/SkPaint.h"
+#include "include/core/SkPath.h"
 #include "include/core/SkTextBlob.h"
 
-class SkCanvas;
-class SkPath;
 /**
  * @brief A canvas helper implementation backed by the Skia library.
  *
@@ -233,18 +233,19 @@ class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
       return *skia_painter->sk_paint_;
     }
     painter_.setAntiAlias(true);
-    switch (painter->GetFillStyle()) {
-      case tttext::FillStyle::kFill:
-        painter_.setStyle(SkPaint::kFill_Style);
-        break;
-      case tttext::FillStyle::kStroke:
-        painter_.setStyle(SkPaint::kStroke_Style);
-        break;
-      case tttext::FillStyle::kStrokeAndFill:
-        painter_.setStyle(SkPaint::kStrokeAndFill_Style);
-        break;
+    bool need_fill = false;
+    if (painter->GetFillColor() != tttext::TTColor::UNDEFINED) {
+      painter_.setStyle(SkPaint::kFill_Style);
+      painter_.setColor(painter->GetFillColor());
+      need_fill = true;
     }
-    painter_.setColor(painter->GetColor());
+
+    if (painter->GetStrokeColor() != tttext::TTColor::UNDEFINED) {
+      painter_.setColor(painter->GetStrokeColor());
+      painter_.setStrokeWidth(painter->GetStrokeWidth());
+      painter_.setStyle(need_fill ? SkPaint::kStrokeAndFill_Style
+                                  : SkPaint::kStroke_Style);
+    }
     if (painter->IsBold()) {
       painter_.setStyle(SkPaint::kStrokeAndFill_Style);
       painter_.setStrokeWidth(painter->GetStrokeWidth() +

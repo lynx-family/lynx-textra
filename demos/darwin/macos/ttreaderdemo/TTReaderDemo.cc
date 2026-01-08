@@ -4,6 +4,7 @@
 
 #include "demos/darwin/macos/ttreaderdemo/TTReaderDemo.h"
 
+#include <textra/fontmgr_collection.h>
 #include <textra/macro.h>
 #include <textra/platform/skia/skia_canvas_helper.h>
 #include <textra/platform/skia/skia_font_manager.h>
@@ -19,7 +20,6 @@
 #include "include/core/SkStream.h"
 #include "include/encode/SkEncoder.h"
 #include "include/encode/SkPngEncoder.h"
-#include "modules/skparagraph/include/TTText.h"
 
 int MainWork(const char* path, const char* password, const char* output,
              int width, int height, uint32_t test_id, bool count = false) {
