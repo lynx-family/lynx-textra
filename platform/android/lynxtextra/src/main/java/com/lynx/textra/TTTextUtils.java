@@ -37,14 +37,20 @@ public class TTTextUtils {
     BBufferOutputStream bout = new BBufferOutputStream(6);
     bout.writeFloat(font_size);
 
-    PlatformFontCaps strategy = PlatformFontCaps.Factory.getStrategy(context);
-    short new_weight = strategy.adjust(font_weight);
-    bout.writeShort(new_weight);
+    if (context != null) {
+      PlatformFontCaps strategy = PlatformFontCaps.Factory.getStrategy(context);
+      short new_weight = strategy.adjust(font_weight);
+      bout.writeShort(new_weight);
+    } else {
+      bout.writeShort(font_weight);
+    }
 
     return bout.getByteArray();
   }
 
   public static String SystemDefaultFamilyName() {
+    if (context == null)
+      return "sans-serif";
     PlatformFontCaps strategy = PlatformFontCaps.Factory.getStrategy(context);
     return strategy.defaultFamilyName();
   }
