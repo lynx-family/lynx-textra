@@ -95,7 +95,7 @@ class L_EXPORT TTTextContext {
   bool last_line_can_overflow_{true};
   bool skip_spacing_before_first_line_{false};
   bool harmony_shaper_force_low_api_{false};
-  bool enable_system_font_adjust_{true};
+  bool enable_system_font_adjust_{false};
   // Layout States
   std::unique_ptr<LayoutPosition> position_;
   float layout_bottom_{0};
