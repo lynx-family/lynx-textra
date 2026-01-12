@@ -44,21 +44,20 @@ uint32_t TTString::GetBytesCountOfChar(uint32_t idx) const {
   TTASSERT(char_len > 0 && char_len < 5);
   return char_len;
 }
-void TTString::AppendString(const std::string& string) {
-  auto length = string.length();
+void TTString::AppendString(const char* data, uint32_t length) {
   if (length == 0) return;
   utf8_to_char_vec_.reserve(utf8_to_char_vec_.size() + length);
   char_to_utf8_vec_.reserve(char_to_utf8_vec_.size() + length);
   auto current_char_pos = this->GetCharCount();
-  for (uint32_t idx = 0; idx < string.length(); idx++) {
-    if (base::IsUtf8CharStart(string.c_str() + idx)) {
+  for (uint32_t idx = 0; idx < length; idx++) {
+    if (base::IsUtf8CharStart(data + idx)) {
       char_to_utf8_vec_.push_back(idx + Length());
       current_char_pos++;
     }
     utf8_to_char_vec_.emplace_back(current_char_pos - 1);
   }
   char_to_utf8_vec_.shrink_to_fit();
-  string_ += string;
+  string_ += data;
 }
 std::u32string TTString::ToUTF32() const {
   const auto* start = Data() + CharPosToUtf8Pos(0);

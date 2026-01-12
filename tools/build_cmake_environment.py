@@ -29,7 +29,7 @@ def copy_to_project(cmake_path):
     shutil.copy(key, value)
 def generate_project_json(gn_args):
   gn_out_path = os.path.join(GN_DEFAULT_PATH)
-  args = ' --args="' + gn_args + ' use_flutter_cxx=false"' + ' --export-compile-commands'
+  args = ' --args="' + gn_args + '"' + ' --export-compile-commands'
   gn_path = os.path.join(ROOT_PATH, 'buildtools', 'gn', 'gn')
   gn_command = gn_path + ' gen ' + gn_out_path + args + ' --ide=json'
   return subprocess.call(gn_command, shell=True)
@@ -47,14 +47,12 @@ def generate_target_cmake(target_name):
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--gn-args', type=str, required=False, help='GN compile arguments.')
+  parser.add_argument('--target', type=str, required=False, help='target.')
   args = parser.parse_args()
-  generate_project_json(args.gn_args)
-  generate_target_cmake("//platform/mac:lynxtextra")
-  generate_target_cmake("//demos/darwin/macos/glfw:gl_app_demo")
-  generate_target_cmake("//demos/darwin/macos/mtl:mtl_app_demo")
-  generate_target_cmake("//test:TextLayoutLiteTest")
-  generate_target_cmake("//examples/json_parser:json_parser")
-  generate_target_cmake("//examples/json_parser_exe:json_to_image_app")
+  if args.gn_args:
+    generate_project_json(args.gn_args)
+  if args.target:
+    generate_target_cmake(args.target)
   return 0
 if __name__ == "__main__":
   sys.exit(main())

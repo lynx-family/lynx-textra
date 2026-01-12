@@ -41,11 +41,21 @@ class L_EXPORT TTString final : public TTStringInterface {
  public:
   TTString() = default;
   TTString(const TTString& tt_string) : TTString(tt_string.string_) {}
-  L_EXPORT explicit TTString(const char* data)
-      : TTString({data, strlen(data)}) {}
-  explicit TTString(const char* data, uint32_t length)
-      : TTString({data, length}) {}
-  explicit TTString(const std::string& str) { AppendString(str); }
+  L_EXPORT explicit TTString(const char* data) {
+    if (data) {
+      AppendString(data, static_cast<uint32_t>(strlen(data)));
+    }
+  }
+  explicit TTString(const char* data, uint32_t length) {
+    if (data && length > 0) {
+      AppendString(data, length);
+    }
+  }
+  explicit TTString(const std::string& str) {
+    if (!str.empty()) {
+      AppendString(str.data(), static_cast<uint32_t>(str.length()));
+    }
+  }
   explicit TTString(const char32_t* data, uint32_t length)
       : TTString(base::U32StringToU8(data, length)) {}
   L_EXPORT ~TTString() override = default;
@@ -99,7 +109,10 @@ class L_EXPORT TTString final : public TTStringInterface {
   bool operator==(const TTString& other) const {
     return string_ == other.string_;
   }
-  void AppendString(const std::string& string);
+  void AppendString(const std::string& string) {
+    AppendString(string.data(), static_cast<uint32_t>(string.length()));
+  }
+  void AppendString(const char* string, uint32_t length);
   std::u32string ToUTF32() const;
 
  private:
