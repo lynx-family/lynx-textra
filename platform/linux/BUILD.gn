@@ -1,0 +1,14 @@
+import("//config.gni")
+static_library("lynxtextra_static") {
+  output_name = "lynxtextra_static"
+  public_configs = [ "//src:textlayout_public" ]
+
+  deps = [ "//src:textlayout" ]
+}
+
+shared_library("lynxtextra") {
+  output_name = "lynxtextra"
+  public_configs = [ "//src:textlayout_public" ]
+
+  deps = [ "//src:textlayout" ]
+}

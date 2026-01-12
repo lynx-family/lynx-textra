@@ -7,7 +7,7 @@
 
 #include <textra/macro.h>
 
-#include "src/textlayout/utils/tt_point.h"
+#include <cstdint>
 
 namespace ttoffice {
 namespace tttext {

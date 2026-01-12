@@ -62,7 +62,7 @@ class ITypefaceHelper : public std::enable_shared_from_this<ITypefaceHelper> {
 
   virtual uint32_t GetUnitsPerEm() const = 0;
 
-  const FontStyle& FontStyle() const { return font_style_; }
+  const ttoffice::tttext::FontStyle& FontStyle() const { return font_style_; }
 
   uint32_t GetUniqueId() const { return unique_id_; }
 

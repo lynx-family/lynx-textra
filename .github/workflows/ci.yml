@@ -128,7 +128,6 @@ jobs:
   linux-skia-demo-build-check:
     runs-on: lynx-ubuntu-22.04-large
     timeout-minutes: 60
-    continue-on-error: true
     steps:
       - name: Python Setup
         uses: actions/setup-python@v5
@@ -138,9 +137,10 @@ jobs:
         uses: actions/checkout@v4.2.2
       - name: Install Common Dependencies
         uses: ./.github/actions/common-deps
-      - name: Install Android SDK CMake
+      - name: Run Skia demo build check
         run: |
           source tools/envsetup.sh
-          source tools/fetch_and_build_skia.sh
-          buildtools/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Release -DTEXTRA_ENABLE_SKIA=ON -G Ninja -S . -B cmake-build-release
+          # source tools/fetch_and_build_skia.sh
+          python3 build/linux/sysroot_scripts/install-sysroot.py --arch=x64
+          buildtools/cmake/bin/cmake -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DTEXTRA_ENABLE_SKIA=ON -G Ninja -S . -B cmake-build-release
           buildtools/cmake/bin/cmake --build cmake-build-release -t ttreaderdemo

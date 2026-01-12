@@ -6,6 +6,7 @@
 #define SRC_TEXTLAYOUT_UTILS_U_8_STRING_H_
 
 #include <cassert>
+#include <cstring>
 #include <string>
 
 namespace ttoffice {

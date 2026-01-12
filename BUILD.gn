@@ -29,6 +29,9 @@ group("default") {
   if (is_harmony) {
     deps = [ "platform/harmony/lynxtextra:lynxtextra" ]
   }
+  if (is_linux) {
+    deps = [ "platform/linux:lynxtextra" ]
+  }
 }
 
 group("test") {

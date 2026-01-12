@@ -17,7 +17,7 @@ import("//config.gni")
 declare_args() {
   prj_root = rebase_path("..")
   enable_javashaper = is_android
-  enable_skshaper = is_android || is_mac || is_harmony || is_win
+  enable_skshaper = is_android || is_mac || is_harmony || is_win || is_linux
   enable_ctshaper = is_ios || is_mac
   enable_harmony = is_harmony
   enable_minikin = false
@@ -78,6 +78,9 @@ config("textlayout_internal") {
   if (is_win) {
     defines += [ "TTTEXT_OS_WIN" ]
   }
+  if (is_linux) {
+    defines += [ "TTTEXT_OS_LINUX" ]
+  }
 }
 
 config("icu") {
@@ -95,11 +98,7 @@ config("icu") {
 }
 config("icu_static") {
   include_dirs = [ "//third_party/icu/source/common" ]
-  defines = [
-    "USE_ICU",
-    #    "U_DISABLE_RENAMING",
-    #    "ICU_DATA_FOLDER=\"$icudata_path\"",
-  ]
+  defines = [ "USE_ICU" ]
 }
 
 textlayout_public_headers = [
@@ -154,7 +153,8 @@ source_set("textlayout") {
   public = textlayout_public_headers
 
   sources = []
-  if (is_mac || is_linux) {
+
+  if (is_mac) {
     public_configs += [ ":icu_static" ]
     sources += [ "$prj_root/src/textlayout/utils/icu_wrapper_static.cc" ]
     deps += [ "//third_party/icu" ]
@@ -327,12 +327,7 @@ config("skshaper_public") {
 source_set("skshaper") {
   public_configs = [ ":skshaper_public" ]
 
-  include_dirs = [
-    "$prj_root/public",
-    #    "$prj_root/src/ports/shaper/skshaper/",
-    #    "$prj_root/thirdparty/externals/harfbuzz/src",
-    #    "//ROOT",
-  ]
+  include_dirs = [ "$prj_root/public" ]
   configs += [ ":textlayout_internal" ]
   defines = []
   deps = []
