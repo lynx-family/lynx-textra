@@ -69,8 +69,8 @@ message(STATUS "=================GENERATE CMAKE END================")
 # According to the build variant,
 # import the CMakeLists-impl.cmake file to compile the native methods.
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror=shorten-64-to-32 -Wshorten-64-to-32")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=shorten-64-to-32 -Wshorten-64-to-32")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=sign-compare -Wsign-compare")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -flto=full -Wl,--gc-sections -Wl,--hash-style=sysv")
 include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists_impl/impl/${BUILD_TYPE}/${ABI}/CMakeLists-impl.cmake)
 #target_link_libraries(lynxtextra PUBLIC libace_napi.z.so libace_ndk.z.so libnative_drawing.so libnative_display_manager.so)

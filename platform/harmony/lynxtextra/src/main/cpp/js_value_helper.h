@@ -52,7 +52,7 @@ bool JsValueHelperGetStringArrayValue(napi_env env, napi_value js_obj,
     return false;
   }
   str_array.resize(array_len);
-  for (auto k = 0; k < array_len; ++k) {
+  for (auto k = 0u; k < array_len; ++k) {
     napi_value element;
     status = napi_get_element(env, js_obj, k, &element);
     if (status != napi_ok) {

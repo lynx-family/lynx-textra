@@ -79,7 +79,7 @@ class ArkUINode : public ArkUIBaseNode {
   }
 
   void OnInsertChild(const std::shared_ptr<ArkUIBaseNode>& child,
-                     int32_t index) override {
+                     uint32_t index) override {
     auto result =
         nativeModule_->insertChildAt(handle_, child->GetHandle(), index);
     if (result != napi_ok) {
