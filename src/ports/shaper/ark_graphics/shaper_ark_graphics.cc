@@ -190,7 +190,8 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
   OH_Drawing_SetTextStyleFontSize(text_style, key.style_.GetFontSize());
   auto& fd = key.style_.GetFontDescriptor();
   const char** families = new const char*[fd.font_family_list_.size()];
-  for (int k = 0; k < fd.font_family_list_.size(); k++) {
+  for (int32_t k = 0; k < static_cast<int32_t>(fd.font_family_list_.size());
+       k++) {
     families[k] = fd.font_family_list_[k].c_str();
   }
   OH_Drawing_SetTextStyleFontFamilies(
@@ -226,7 +227,7 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
   auto glyph_runs = ohos_shaping_funcs_->TextLineGetGlyphRuns_(line);
   auto glyph_runs_count = ohos_shaping_funcs_->GetDrawingArraySize_(glyph_runs);
   auto glyph_idx = 0;
-  for (auto k = 0; k < glyph_runs_count; k++) {
+  for (auto k = 0; k < static_cast<int32_t>(glyph_runs_count); k++) {
     auto* run = ohos_shaping_funcs_->GetRunByIndex_(glyph_runs, k);
     auto glyph_cnt = ohos_shaping_funcs_->GetRunGlyphCount_(run);
     auto glyph_array = ohos_shaping_funcs_->GetRunGlyphs_(run, 0, glyph_cnt);
@@ -239,7 +240,7 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
     auto font = ohos_shaping_funcs_->GetRunFont_(run);
     auto tf_helper = std::make_shared<AGTypefaceHelper>(font);
 
-    for (auto j = 0; j < glyph_cnt; j++) {
+    for (auto j = 0; j < static_cast<int32_t>(glyph_cnt); j++) {
       shaping_result.ct_glyphs_[glyph_idx + j] =
           ohos_shaping_funcs_->GetRunGlyphsByIndex_(glyph_array, j);
       auto pos =

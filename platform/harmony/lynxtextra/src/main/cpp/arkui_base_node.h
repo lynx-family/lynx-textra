@@ -41,7 +41,8 @@ class ArkUIBaseNode {
     OnRemoveChild(child);
   }
 
-  void InsertChild(const std::shared_ptr<ArkUIBaseNode>& child, int32_t index) {
+  void InsertChild(const std::shared_ptr<ArkUIBaseNode>& child,
+                   uint32_t index) {
     if (index >= children_.size()) {
       AddChild(child);
     } else {
@@ -60,7 +61,7 @@ class ArkUIBaseNode {
   virtual void OnAddChild(const std::shared_ptr<ArkUIBaseNode>& child) {}
   virtual void OnRemoveChild(const std::shared_ptr<ArkUIBaseNode>& child) {}
   virtual void OnInsertChild(const std::shared_ptr<ArkUIBaseNode>& child,
-                             int32_t index) {}
+                             uint32_t index) {}
 
   ArkUI_NodeHandle handle_;
   ArkUI_NativeNodeAPI_1* nativeModule_ = nullptr;
