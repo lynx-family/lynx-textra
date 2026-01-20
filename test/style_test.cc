@@ -16,10 +16,10 @@ TEST(StyleTest, AttributeSetterGetterAndFlag) {
   {                                                                         \
     /* Arrange */                                                           \
     Style style;                                                            \
-    EXPECT_FALSE(style.HasAttribute(k##ATTRIBUTE_NAME));                    \
+    EXPECT_FALSE(style.HasStyleAttribute(Style::ATTRIBUTE_NAME##Flag));     \
     /* Act and Assert */                                                    \
     style.Set##ATTRIBUTE_NAME(Style::DefaultStyle().Get##ATTRIBUTE_NAME()); \
-    EXPECT_TRUE(style.HasAttribute(k##ATTRIBUTE_NAME));                     \
+    EXPECT_TRUE(style.HasStyleAttribute(Style::ATTRIBUTE_NAME##Flag));      \
     EXPECT_TRUE(COMPARE(style.Get##ATTRIBUTE_NAME(),                        \
                         Style::DefaultStyle().Get##ATTRIBUTE_NAME()));      \
   }
@@ -45,9 +45,9 @@ TEST(StyleTest, AttributeSetterGetterAndFlag) {
   SET_ATTRIBUTE_AND_CHECK_RESULT(BaselineOffset, ttoffice::FloatsEqual);
   {
     Style style;
-    EXPECT_FALSE(style.HasAttribute(kTextStrokeStyle));
+    EXPECT_FALSE(style.HasStyleAttribute(Style::TextStrokeStyleFlag));
     style.SetTextStrokeValue(Style::DefaultStyle().GetTextStrokeValue());
-    EXPECT_TRUE(style.HasAttribute(kTextStrokeStyle));
+    EXPECT_TRUE(style.HasStyleAttribute(Style::TextStrokeStyleFlag));
     EXPECT_TRUE(std::equal_to<>{}(style.GetTextStrokeValue(),
                                   Style::DefaultStyle().GetTextStrokeValue()));
     style.SetTextStrokeStyle(TTColor::RED, 25);
@@ -79,7 +79,7 @@ TEST(StyleTest, ChangingSomeAttributesResetsShapeStyle) {
 TEST(StyleTest, Reset) {
   Style style;
   style.SetBackgroundColor(TTColor(TTColor::BLUE));
-  EXPECT_TRUE(style.HasAttribute(kBackgroundColor));
+  EXPECT_TRUE(style.HasStyleAttribute(Style::BackgroundColorFlag));
   style.Reset();
-  EXPECT_FALSE(style.HasAttribute(kBackgroundColor));
+  EXPECT_FALSE(style.HasStyleAttribute(Style::BackgroundColorFlag));
 }

@@ -100,7 +100,7 @@ void StyleManager::ApplyStyleInRange(const Style& style, const uint32_t start,
                                      const uint32_t len) {
   for (auto id = kStyleManagerAttrStart; id < kStyleManagerAttrEnd;
        id = static_cast<AttributeType>(id + 1)) {
-    if (!style.HasAttribute(id)) continue;
+    if (!style.HasStyleAttribute(1u << id)) continue;
     auto value = GetStyleValue(&style, id);
     if (id == kTextShadowList) {
       text_shadow_list_.push_back(style.GetTextShadowList());

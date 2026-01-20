@@ -21,17 +21,17 @@ class GhostRun : public BaseRun {
     boundary_type_ = BoundaryType::kLineBreakable;
     // need ensure the attribute of layout style has default value
     ghost_content_ = TTString{content, length};
-    if (!layout_style_.HasAttribute(kFontDescriptor)) {
+    if (!layout_style_.HasStyleAttribute(Style::FontDescriptorFlag)) {
       layout_style_.SetFontDescriptor(
           Style::DefaultStyle().GetFontDescriptor());
     }
-    if (!layout_style_.HasAttribute(kTextSize)) {
+    if (!layout_style_.HasStyleAttribute(Style::TextSizeFlag)) {
       layout_style_.SetTextSize(Style::DefaultStyle().GetTextSize());
     }
-    if (!layout_style_.HasAttribute(kTextScale)) {
+    if (!layout_style_.HasStyleAttribute(Style::TextScaleFlag)) {
       layout_style_.SetTextScale(Style::DefaultStyle().GetTextScale());
     }
-    if (!layout_style_.HasAttribute(kForegroundPainter)) {
+    if (!layout_style_.HasStyleAttribute(Style::ForegroundPainterFlag)) {
       layout_style_.SetForegroundColor(
           Style::DefaultStyle().GetForegroundColor());
     }
