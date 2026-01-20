@@ -1076,7 +1076,7 @@ void ParagraphTest::TestBaselineOffset(ICanvasHelper* canvas,
   style.SetTextSize(24);
   auto para = Paragraph::Create();
   para->GetParagraphStyle().SetHorizontalAlign(
-      ParagraphHorizontalAlignment::kRight);
+      ParagraphHorizontalAlignment::kLeft);
   para->GetParagraphStyle().SetLineHeightOverride(true);
   para->GetParagraphStyle().SetLineHeightInPercent(1.3);
 
@@ -1086,6 +1086,8 @@ void ParagraphTest::TestBaselineOffset(ICanvasHelper* canvas,
   para->ApplyStyleInRange(style, 3, 1);
   style.SetBaselineOffset(15);
   para->ApplyStyleInRange(style, 4, 1);
+  auto shape = std::make_shared<TestShape>();
+  para->AddShapeRun(&style, shape, false);
   DrawParagraph(canvas, *para, width);
 }
 void ParagraphTest::TestPieceDraw(ICanvasHelper* canvas, float width) const {

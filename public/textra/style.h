@@ -441,6 +441,9 @@ class L_EXPORT Style {
   bool HasAttribute(const AttributeType type) const {
     return flag_ & (1u << type);
   }
+  bool HasStyleAttribute(const AttrType style_flag) const {
+    return flag_ & style_flag;
+  }
 
  public:
   static constexpr AttrType FontDescriptorFlag = 1u << (kFontDescriptor);

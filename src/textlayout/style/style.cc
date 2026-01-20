@@ -20,42 +20,45 @@ Style::Style() = default;
 Style::Style(const Style& style) { *this = style; }
 Style& Style::operator=(const Style& other) {
   if (&other == this) return *this;
-  if (other.HasAttribute(kFontDescriptor))
+  if (other.HasStyleAttribute(Style::FontDescriptorFlag))
     SetFontDescriptor(other.GetFontDescriptor());
-  if (other.HasAttribute(kTextSize)) SetTextSize(other.GetTextSize());
-  if (other.HasAttribute(kTextScale)) SetTextScale(other.GetTextScale());
-  if (other.HasAttribute(kForegroundColor))
+  if (other.HasStyleAttribute(Style::TextSizeFlag))
+    SetTextSize(other.GetTextSize());
+  if (other.HasStyleAttribute(Style::TextScaleFlag))
+    SetTextScale(other.GetTextScale());
+  if (other.HasStyleAttribute(Style::ForegroundColorFlag))
     SetForegroundColor(other.GetForegroundColor());
-  if (other.HasAttribute(kBackgroundColor))
+  if (other.HasStyleAttribute(Style::BackgroundColorFlag))
     SetBackgroundColor(other.GetBackgroundColor());
-  if (other.HasAttribute(kDecorationColor))
+  if (other.HasStyleAttribute(Style::DecorationColorFlag))
     SetDecorationColor(other.GetDecorationColor());
-  if (other.HasAttribute(kDecorationType))
+  if (other.HasStyleAttribute(Style::DecorationTypeFlag))
     SetDecorationType(other.GetDecorationType());
-  if (other.HasAttribute(kDecorationStyle))
+  if (other.HasStyleAttribute(Style::DecorationStyleFlag))
     SetDecorationStyle(other.GetDecorationStyle());
-  if (other.HasAttribute(kDecorationThicknessMultiplier))
+  if (other.HasStyleAttribute(Style::DecorationThicknessMultiplierFlag))
     SetDecorationThicknessMultiplier(other.GetDecorationThicknessMultiplier());
-  if (other.HasAttribute(kTextStrokeStyle)) {
+  if (other.HasStyleAttribute(Style::TextStrokeStyleFlag)) {
     SetTextStrokeValue(other.GetTextStrokeValue());
   }
-  if (other.HasAttribute(kBold)) SetBold(other.GetBold());
-  if (other.HasAttribute(kItalic)) SetItalic(other.GetItalic());
-  if (other.HasAttribute(kVerticalAlignment))
+  if (other.HasStyleAttribute(Style::BoldFlag)) SetBold(other.GetBold());
+  if (other.HasStyleAttribute(Style::ItalicFlag)) SetItalic(other.GetItalic());
+  if (other.HasStyleAttribute(Style::VerticalAlignmentFlag))
     SetVerticalAlignment(other.GetVerticalAlignment());
-  if (other.HasAttribute(kWordSpacing)) SetWordSpacing(other.GetWordSpacing());
-  if (other.HasAttribute(kLetterSpacing))
+  if (other.HasStyleAttribute(Style::WordSpacingFlag))
+    SetWordSpacing(other.GetWordSpacing());
+  if (other.HasStyleAttribute(Style::LetterSpacingFlag))
     SetLetterSpacing(other.GetLetterSpacing());
-  if (other.HasAttribute(kTextShadowList))
+  if (other.HasStyleAttribute(Style::TextShadowListFlag))
     SetTextShadowList(other.GetTextShadowList());
-  if (other.HasAttribute(kForegroundPainter))
+  if (other.HasStyleAttribute(Style::ForegroundPainterFlag))
     SetForegroundPainter(other.GetForegroundPainter());
-  if (other.HasAttribute(kBackgroundPainter))
+  if (other.HasStyleAttribute(Style::BackgroundPainterFlag))
     SetBackgroundPainter(other.GetBackgroundPainter());
-  if (other.HasAttribute(kWordBreak)) {
+  if (other.HasStyleAttribute(Style::WordBreakFlag)) {
     SetWordBreak(other.GetWordBreak());
   }
-  if (other.HasAttribute(kBaselineOffset)) {
+  if (other.HasStyleAttribute(Style::BaselineOffsetFlag)) {
     SetBaselineOffset(other.GetBaselineOffset());
   }
   flag_ = other.flag_;

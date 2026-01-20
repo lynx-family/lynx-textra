@@ -277,6 +277,15 @@ void LayoutDrawer::DrawDrawerPiece(const TextLine* line,
   if (run->GetType() == RunType::kInlineObject) {
     auto y_offset = run_range->GetYOffsetInLine();
     auto y = line->GetLineTop() + y_offset;
+    if (run->GetParagraph() && run->GetParagraph()->style_manager_) {
+      auto& style_manager = run->GetParagraph()->style_manager_;
+      StyleRange sr;
+      style_manager->GetStyleRange(&sr, run->GetStartCharPos(),
+                                   Style::BaselineOffsetFlag);
+      if (sr.GetStyle().HasStyleAttribute(Style::BaselineOffsetFlag)) {
+        y += sr.GetStyle().GetBaselineOffset();
+      }
+    }
     run->GetRunDelegate()->Draw(canvas_, run_range->GetXOffset(),
                                 y + metrics.GetMaxAscent());
   }
@@ -328,7 +337,7 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
         painter->SetShadowList(style->GetTextShadowList());
     } else {
       // prefer text size in style object
-      if (layout_style.HasAttribute(kTextSize)) {
+      if (layout_style.HasStyleAttribute(Style::TextSizeFlag)) {
         painter->SetTextSize(layout_style.GetTextSize());
       }
     }
