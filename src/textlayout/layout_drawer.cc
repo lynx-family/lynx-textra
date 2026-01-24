@@ -277,15 +277,6 @@ void LayoutDrawer::DrawDrawerPiece(const TextLine* line,
   if (run->GetType() == RunType::kInlineObject) {
     auto y_offset = run_range->GetYOffsetInLine();
     auto y = line->GetLineTop() + y_offset;
-    if (run->GetParagraph() && run->GetParagraph()->style_manager_) {
-      auto& style_manager = run->GetParagraph()->style_manager_;
-      StyleRange sr;
-      style_manager->GetStyleRange(&sr, run->GetStartCharPos(),
-                                   Style::BaselineOffsetFlag);
-      if (sr.GetStyle().HasStyleAttribute(Style::BaselineOffsetFlag)) {
-        y += sr.GetStyle().GetBaselineOffset();
-      }
-    }
     run->GetRunDelegate()->Draw(canvas_, run_range->GetXOffset(),
                                 y + metrics.GetMaxAscent());
   }

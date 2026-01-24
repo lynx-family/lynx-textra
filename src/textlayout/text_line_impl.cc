@@ -342,13 +342,21 @@ void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
             cva, container_ascent, container_descent, element_ascent,
             element_descent);
       }
-      drawer->SetYOffsetInLine(y_offset);
       if (drawer->GetRun()->GetType() == RunType::kInlineObject ||
           drawer->GetRun()->GetType() == RunType::kFloatObject) {
+        auto paragraph = run->GetParagraph();
+        if (paragraph) {
+          auto& style_manager = paragraph->style_manager_;
+          auto base_line_offset = style_manager->GetBaselineOffset(
+              drawer->GetRun()->GetStartCharPos());
+          y_offset += base_line_offset;
+        }
+
         auto y = GetLineTop() + y_offset;
         drawer->GetRun()->GetRunDelegate()->SetOffset(
             start_offset, y + metrics.GetMaxAscent());
       }
+      drawer->SetYOffsetInLine(y_offset);
       start_offset += drawer->GetWidthWithIndent() + word_spacing;
     }
   }

@@ -19,6 +19,22 @@ using namespace ::testing;
 
 namespace ttoffice {
 namespace tttext {
+
+class MockInlineObject : public RunDelegate {
+ public:
+  MockInlineObject(float width, float ascent, float descent)
+      : width_(width), ascent_(ascent), descent_(descent) {}
+
+  float GetAscent() const override { return ascent_; }
+  float GetDescent() const override { return descent_; }
+  float GetAdvance() const override { return width_; }
+
+ private:
+  float width_;
+  float ascent_;
+  float descent_;
+};
+
 class TextLayoutTest : public ::testing::Test {
  public:
   std::unique_ptr<MockTTShaper> GetFixedSizeMockShaper() {
@@ -647,5 +663,46 @@ TEST_F(TextLayoutTest, ParagraphStyle_OverflowWrap) {
     }
   }
 }
+TEST_F(TextLayoutTest, InlineObjectWithBaselineOffset) {
+  const float page_width = 100.0f;
+  const float page_height = 100.0f;
+  const float width = 20.0f;
+  const float ascent = -15.0f;
+  const float descent = 5.0f;
+  const float baseline_offset = 10.0f;
+
+  auto layout_helper = [this, width, ascent, descent, baseline_offset,
+                        page_width, page_height]() {
+    auto para = std::make_unique<ParagraphImpl>();
+    Style style;
+    style.SetBaselineOffset(baseline_offset);
+
+    auto inline_obj =
+        std::make_shared<MockInlineObject>(width, ascent, descent);
+    para->AddShapeRun(style, inline_obj, true, false, 0);
+
+    TTTextContext context;
+    TextLayout layout(GetFixedSizeMockShaper());
+    auto region = std::make_unique<LayoutRegion>(page_width, page_height);
+    layout.Layout(para.get(), region.get(), context);
+
+    return std::make_pair(std::move(para), std::move(region));
+  };
+
+  auto [para, region] = layout_helper();
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  auto baseline = line->GetLineBaseLine();
+
+  float rect[4];
+  line->GetCharBoundingRect(rect, 0);
+
+  // rect: [left, top, width, height]
+  EXPECT_FLOAT_EQ(rect[2], width);
+  EXPECT_FLOAT_EQ(rect[3], descent - ascent);
+
+  EXPECT_FLOAT_EQ(rect[1] - baseline, baseline_offset + ascent);
+}
+
 }  // namespace tttext
 }  // namespace ttoffice
