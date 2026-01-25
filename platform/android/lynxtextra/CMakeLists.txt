@@ -10,7 +10,7 @@ message(STATUS ${PROJ_ROOT})
 message(STATUS "BuildType: ${CMAKE_BUILD_TYPE}")
 
 set(FLAVOR "flavor")
-set(GN_ARGS "enable_lto=true,use_flutter_cxx=false,flavor_name=${FLAVOR},enable_16kb_align=true")
+set(GN_ARGS "enable_lto=true,use_flutter_cxx=false,flavor_name=${FLAVOR},enable_16kb_align=true,dynamic_load_harfbuzz=true")
 set(GN_TARGET "//platform/android/lynxtextra:lynxtextra")
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
@@ -38,6 +38,9 @@ execute_process(
 message(STATUS ${result})
 message(STATUS "=================GENERATE CMAKE END================")
 
+set(BUILD_SHARED_LIBS ON)
+add_subdirectory(${PROJ_ROOT}/third_party/harfbuzz harfbuzz.out)
+
 # According to the build variant,
 # import the CMakeLists-impl.cmake file to compile the native methods.
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -flto=full -Wl,--gc-sections -Wl,--hash-style=sysv -fno-rtti -fno-exceptions")
@@ -46,4 +49,5 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists_impl/impl/${FLAVOR}${BUILD_TYPE}/
 find_library(log-lib log)
 target_link_libraries(lynxtextra
         ${log-lib}
+        harfbuzz
 )

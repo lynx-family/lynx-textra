@@ -23,7 +23,6 @@
 		61FE22C12CE9D5B7001CE1AC /* UIView+TextKit2View.m in Sources */ = {isa = PBXBuildFile; fileRef = 61FE22C02CE9D5B7001CE1AC /* UIView+TextKit2View.m */; };
 		6BC8024C621BA674E68F7F2D /* CoreTextTestView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 6BC80B7EE2D1C725740D4033 /* CoreTextTestView.mm */; };
 		6BC807944183052D07FF9FEC /* english.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6BC8060BA16104F2A356F4BA /* english.txt */; };
-		CDC000266D0830BAAF511821 /* libPods-TextlayoutDemo.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7AD75BA1595BA83471C3E71D /* libPods-TextlayoutDemo.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,7 +62,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				616B8D822568011100F1ECB4 /* CoreText.framework in Frameworks */,
-				CDC000266D0830BAAF511821 /* libPods-TextlayoutDemo.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

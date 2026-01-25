@@ -358,6 +358,7 @@ source_set("skshaper") {
       "$prj_root/src/ports/shaper/skshaper/harfbuzz_lib_runtime.cc",
       "$prj_root/src/ports/shaper/skshaper/sk_shaper_platform.cc",
     ]
+    defines += [ "HARFBUZZ_LIB_NAME=\"libharfbuzz.so\"" ]
     public_configs += [ "//third_party/harfbuzz:harfbuzz_config" ]
   } else {
     sources += [

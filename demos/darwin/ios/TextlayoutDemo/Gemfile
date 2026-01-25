@@ -1,15 +1,6 @@
-ruby '~> 2.6'
+ruby '~> 3.3'
 
 source 'https://rubygems.org'
 
-gem "cocoapods", '1.10.1'
-
-# code coverage
-gem "xcodeproj", '1.21.0'
-
-# log
-gem "logger", '1.4.2'
-
-gem "ffi", '1.17.2'
-
-gem "minitest", '5.25.4'
+gem "cocoapods"
+gem "xcodeproj"
