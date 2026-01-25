@@ -14,10 +14,14 @@ static_library("json_parser") {
   output_name = "json_parser"
   public_configs = [ ":json_parser_public" ]
   public = [ "json_parser.h" ]
-  sources = [ "json_parser.cc" ]
+  sources = [
+    "json_parser.cc",
+    "json_parser.h",
+  ]
   deps = [ "//third_party/rapidjson" ]
 
   metadata = {
+    header_mappings_dir = [ "examples" ]
     exclude_files = [ "//third_party/rapidjson/include/rapidjson/msinttypes/*" ]
   }
 }

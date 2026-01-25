@@ -17,8 +17,7 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++17 -DLOCAL_ARM_NEON=TRUE -Wl,-ldl -Wno-unused-command-line-argument"
-                arguments "-DANDROID_TOOLCHAIN=clang",
-                        "-DFLAVOR_NAME=lite"
+                arguments "-DANDROID_TOOLCHAIN=clang"
                 abiFilters = rootProject.ext.abiList
             }
         }
@@ -29,7 +28,7 @@ android {
             externalNativeBuild {
                 cmake {
                     cppFlags '-DDEBUG=1 -DPERFLOG=1 '
-                    arguments '-DBUILD_TYPE=debug', '-DANDROID_STL=c++_shared'
+                    arguments '-DBUILD_TYPE=Debug', '-DANDROID_STL=c++_shared'
                     targets "lynxtextra"
                 }
             }
@@ -41,7 +40,7 @@ android {
             externalNativeBuild {
                 cmake {
                     cppFlags '-DPERFLOG=0'
-                    arguments '-DBUILD_TYPE=release', '-DANDROID_STL=c++_shared'
+                    arguments '-DBUILD_TYPE=Release', '-DANDROID_STL=c++_shared'
                     targets "lynxtextra"
                 }
             }

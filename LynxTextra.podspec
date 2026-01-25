@@ -15,6 +15,7 @@ Pod::Spec.new do |s|
   s.source                   = { :git => "https://github.com/lynx-family/lynx-textra.git", :tag => s.version.to_s }
   s.ios.deployment_target    = "12.0"
   s.requires_arc             = true
+  s.static_framework         = true
 
 
   s.subspec "LynxTextra" do |sp|
@@ -42,6 +43,9 @@ Pod::Spec.new do |s|
                                 "public/textra/platform/java/java_font_manager.h",
                                 "public/textra/platform/java/java_typeface.h",
                                 "public/textra/platform/java/tttext_jni_proxy.h",
+                                "public/textra/platform/mac/mac_canvas_base.h",
+                                "public/textra/platform/mac/mac_font_manager.h",
+                                "public/textra/platform/mac/typeface_coretext.h",
                                 "public/textra/platform/skity/skity_canvas_helper.h",
                                 "public/textra/platform/skity/skity_font_manager.h",
                                 "public/textra/platform/skity/skity_font_manager_coretext.h",
@@ -85,6 +89,9 @@ Pod::Spec.new do |s|
                                 "public/textra/platform/java/java_font_manager.h",
                                 "public/textra/platform/java/java_typeface.h",
                                 "public/textra/platform/java/tttext_jni_proxy.h",
+                                "public/textra/platform/mac/mac_canvas_base.h",
+                                "public/textra/platform/mac/mac_font_manager.h",
+                                "public/textra/platform/mac/typeface_coretext.h",
                                 "public/textra/platform/skity/skity_canvas_helper.h",
                                 "public/textra/platform/skity/skity_font_manager.h",
                                 "public/textra/platform/skity/skity_font_manager_coretext.h",
@@ -154,7 +161,7 @@ Pod::Spec.new do |s|
                                 "src/textlayout/utils/value_utils.h"
 
     sp.pod_target_xcconfig    = {
-                                  "GCC_PREPROCESSOR_DEFINITIONS" => "ENABLE_CTSHAPER TTTEXT_OS_IOS",
+                                  "GCC_PREPROCESSOR_DEFINITIONS" => "TTTEXT_OS_IOS ENABLE_CTSHAPER",
                                   "HEADER_SEARCH_PATHS" => "\"${PODS_TARGET_SRCROOT}/\" \
                                                         \"${PODS_TARGET_SRCROOT}/public/\" \
                                                         \"${PODS_TARGET_SRCROOT}/src/\" \

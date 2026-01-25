@@ -1,0 +1,112 @@
+name: Build and Release SDK
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  github-android-release:
+    runs-on: lynx-ubuntu-22.04-large
+    permissions:
+      contents: write
+    timeout-minutes: 60
+    steps:
+      - name: Python Setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+      - name: Install Common Dependencies
+        uses: ./.github/actions/common-deps
+      - name: Build AAR with Gradle
+        run: |
+          source tools/envsetup.sh
+          pushd platform/android
+          echo $ANDROID_HOME
+          ./gradlew assembleRelease
+          popd
+      - name: Prepare AAR for Upload
+        run: |
+          TAG_NAME=${{ github.event.release.tag_name }}
+          VERSION=${TAG_NAME#v}
+          mkdir -p android-build
+          find . -name "*release.aar" -exec cp {} android-build/lynxtextra-${TAG_NAME}.aar \;
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            android-build/lynxtextra-${{ github.event.release.tag_name }}.aar
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  github-ios-release:
+    runs-on: macos-14
+    permissions:
+      contents: write
+    timeout-minutes: 30
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install Common Dependencies
+        uses: ./.github/actions/common-deps
+      - name: Build XCFramework
+        run: |        
+          source tools/envsetup.sh
+          pushd demos/darwin/ios/TextlayoutDemo
+          source bundle_install.sh
+
+          TAG_NAME=${{ github.event.release.tag_name }}
+          export VERSION=${TAG_NAME#v}
+          export PODSPEC_URL="https://github.com/lynx-family/lynx-textra/releases/download/${TAG_NAME}/LynxTextra-${TAG_NAME}.xcframework.zip"
+
+          xcodebuild archive \
+            -workspace TextlayoutDemo.xcworkspace \
+            -scheme LynxTextra \
+            -archivePath "./build/ios.xcarchive" \
+            -sdk iphoneos \
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARIES_FOR_DISTRIBUTION=YES
+
+          xcodebuild archive \
+            -workspace TextlayoutDemo.xcworkspace \
+            -scheme LynxTextra \
+            -archivePath "./build/sim.xcarchive" \
+            -sdk iphonesimulator \
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARIES_FOR_DISTRIBUTION=YES
+
+          xcodebuild -create-xcframework \
+            -framework "./build/ios.xcarchive/Products/Library/Frameworks/LynxTextra.framework" \
+            -framework "./build/sim.xcarchive/Products/Library/Frameworks/LynxTextra.framework" \
+            -output "./LynxTextra.xcframework"
+
+          zip -r ./LynxTextra-${TAG_NAME}.xcframework.zip LynxTextra.xcframework
+          echo ${VERSION}
+          echo ${PODSPEC_URL}
+          ruby -rerb -e 'puts ERB.new(File.read("LynxTextra.podspec.erb")).result' > ./LynxTextra.podspec
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            demos/darwin/ios/TextlayoutDemo/LynxTextra-${{ github.event.release.tag_name }}.xcframework.zip
+            demos/darwin/ios/TextlayoutDemo/LynxTextra.podspec
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Lint and Publish to CocoaPods
+        working-directory: demos/darwin/ios/TextlayoutDemo
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.REPO_LYNXTEXTRA_COCOAPODS_TRUNK_TOKEN }}
+        run: |
+          xcodebuild -version
+          cat LynxTextra.podspec
+          cp "$GITHUB_WORKSPACE/LICENSE" ./LICENSE
+          bundle exec pod lib lint LynxTextra.podspec --allow-warnings
+          bundle exec pod trunk push LynxTextra.podspec --allow-warnings

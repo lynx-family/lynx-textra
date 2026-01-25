@@ -47,7 +47,7 @@ jobs:
           buildtools/cmake/bin/cmake --build cmake-build-release -t mtl_app_demo
 
   macos-unittest-check:
-    runs-on: lynx-darwin-14-medium
+    runs-on: macos-14
     timeout-minutes: 30
     steps:
       - name: Download Source
@@ -100,7 +100,7 @@ jobs:
           popd
 
   ios-example-build-check:
-    runs-on: lynx-darwin-14-medium
+    runs-on: macos-14
     timeout-minutes: 30
     steps:
       - name: Download Source
@@ -112,16 +112,9 @@ jobs:
         uses: ./.github/actions/common-deps
       - name: Run iOS build check
         run: |
-          set -e
           source tools/envsetup.sh
-          export COCOAPODS_CONVERT_GIT_TO_HTTP=false
-          export LANG=en_US.UTF-8
-          export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          python3 tools/ios_tools/generate_ios_podspec_by_gn.py --target LynxTextra json_parser
           pushd demos/darwin/ios/TextlayoutDemo
-          arch -x86_64 bundle install
-          arch -x86_64 bundle exec pod install
+          source bundle_install.sh
           xcodebuild -workspace TextlayoutDemo.xcworkspace -scheme LynxTextraDemo -configuration Release -arch arm64 -sdk iphoneos SYMROOT=$(pwd)/build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
           xcodebuild -workspace TextlayoutDemo.xcworkspace -scheme TextlayoutDemo -configuration Release -arch arm64 -sdk iphoneos SYMROOT=$(pwd)/build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 

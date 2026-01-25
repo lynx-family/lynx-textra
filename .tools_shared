@@ -31,7 +31,7 @@ checker-config:
       - "src/textlayout/icu_substitute/linebreak/libunibreak"
       - "src/textlayout/icu_substitute/bidi/algorithm"
       - "src/ports/shaper/minikin"
-      - "platform/iOS/LynxTextra"
+      - "platform/darwin"
       - "platform/harmony/lynxtextra"
       - "demos/darwin/macos/demo/demo"
       - "demos/darwin/ios"
