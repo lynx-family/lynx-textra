@@ -43,6 +43,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build Android Release Artifact
+        run: |
+          TAG_NAME=${{ github.event.release.tag_name }}
+          VERSION=${TAG_NAME#v}
+          cd platform/android
+          ./gradlew publish \
+          -Pversion=${VERSION} \
+          -Psigning.keyId=${{ secrets.SIGNING_KEY_ID }} \
+          -Psigning.password=${{ secrets.SIGNING_PASSWORD }} \
+          -Psigning.secretKey=${{ secrets.SIGNING_SECRET_KEY }}
+          ./gradlew zipArtifacts -Pversion=${VERSION} getArtifactList
+          pushd lynxtextra/build/
+          artifact_list=$(<artifact-list)
+          echo "artifact_list=$artifact_list" >> $GITHUB_OUTPUT;
+          popd
+        id: build_artifact
+
+      - name: Publish artifact to maven
+        uses: lynx-infra/maven-publish-action@8f547cf037360752cc9f195d04c2d8f327fee434
+        with:
+          portal_api_token: ${{ secrets.PORTAL_API_TOKEN }}
+          artifact_path_list: ${{ steps.build_artifact.outputs.artifact_list }}
+
   github-ios-release:
     runs-on: macos-14
     permissions:
@@ -87,7 +110,9 @@ jobs:
             -framework "./build/sim.xcarchive/Products/Library/Frameworks/LynxTextra.framework" \
             -output "./LynxTextra.xcframework"
 
-          zip -r ./LynxTextra-${TAG_NAME}.xcframework.zip LynxTextra.xcframework
+          cp "$GITHUB_WORKSPACE/LICENSE" ./LICENSE
+
+          zip -r ./LynxTextra-${TAG_NAME}.xcframework.zip LynxTextra.xcframework LICENSE
           echo ${VERSION}
           echo ${PODSPEC_URL}
           ruby -rerb -e 'puts ERB.new(File.read("LynxTextra.podspec.erb")).result' > ./LynxTextra.podspec
@@ -103,10 +128,6 @@ jobs:
       - name: Lint and Publish to CocoaPods
         working-directory: demos/darwin/ios/TextlayoutDemo
         env:
-          COCOAPODS_TRUNK_TOKEN: ${{ secrets.REPO_LYNXTEXTRA_COCOAPODS_TRUNK_TOKEN }}
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.REPO_LYNX_TEXTRA_COCOAPODS_TRUNK_TOKEN }}
         run: |
-          xcodebuild -version
-          cat LynxTextra.podspec
-          cp "$GITHUB_WORKSPACE/LICENSE" ./LICENSE
-          bundle exec pod lib lint LynxTextra.podspec --allow-warnings
           bundle exec pod trunk push LynxTextra.podspec --allow-warnings
