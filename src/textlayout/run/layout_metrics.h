@@ -65,6 +65,10 @@ class LayoutMetrics {
     // }
   }
 
+  float GetSupOffset() { return -0.33 * GetHeight(); }
+
+  float GetSubOffset() { return 0.2 * GetHeight(); }
+
  private:
   float max_ascent_ = 0;
   float max_descent_ = 0;

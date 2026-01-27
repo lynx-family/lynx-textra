@@ -318,7 +318,7 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
       if (!fd.font_family_list_.empty()) {
         painter->SetFontFamily(fd.font_family_list_[0]);
       }
-      painter->SetTextSize(layout_style.GetTextSize());
+      painter->SetTextSize(layout_style.GetScaledTextSize());
       painter->SetFillColor(style->GetForegroundColor());
       painter->SetBold(layout_style.GetBold());
       painter->SetItalic(layout_style.GetItalic());
@@ -329,7 +329,10 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
     } else {
       // prefer text size in style object
       if (layout_style.HasStyleAttribute(Style::TextSizeFlag)) {
-        painter->SetTextSize(layout_style.GetTextSize());
+        painter->SetTextSize(layout_style.GetScaledTextSize());
+      } else if (layout_style.HasStyleAttribute(Style::TextScaleFlag)) {
+        painter->SetTextSize(painter->GetTextSize() *
+                             layout_style.GetTextScale());
       }
     }
     auto& result = run->shape_result_;
