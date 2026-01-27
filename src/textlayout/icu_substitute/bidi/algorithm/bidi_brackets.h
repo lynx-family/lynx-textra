@@ -9,15 +9,15 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#ifndef BIDI_BIDIBRACKETS_H
-#define BIDI_BIDIBRACKETS_H
+#ifndef SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_BRACKETS_H_
+#define SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_BRACKETS_H_
 #include <unordered_map>
 class BidiBrackets {
  public:
   struct BracketsData {
     char32_t paired;
     int type;
-    BracketsData(char32_t c = 0, int t = 0) {
+    explicit BracketsData(char32_t c = 0, int t = 0) {
       paired = c;
       type = t;
     }
@@ -42,4 +42,4 @@ class BidiBrackets {
   static DtMap mData;
   static DtMap Create_mData();
 };
-#endif  // BIDI_BIDIBRACKETS_H
+#endif  // SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_BRACKETS_H_

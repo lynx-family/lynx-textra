@@ -29,6 +29,9 @@ class ShaperSkShaper : public TTShaper {
  public:
   void SetContext(TTTextContext& context) override;
   void ProcessShapeStyleTransform(Style& style) override;
+  void ProcessBidirection(const char32_t* text, uint32_t length,
+                          WriteDirection write_direction, uint32_t* visual_map,
+                          uint32_t* logical_map, uint8_t* dir_vec) override;
   void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
 
  protected:

@@ -9,15 +9,15 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#ifndef BIDI_BIDIRUN_H
-#define BIDI_BIDIRUN_H
+#ifndef SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_RUN_H_
+#define SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_RUN_H_
 
 class BidiRun {
  public:
-  int start;        /* first logical position of the run */
-  int limit;        /* last visual position of the run +1 */
-  int insertRemove; /* if >0, flags for inserting LRM/RLM before/after run,
-                       if <0, count of bidi controls within run            */
+  int start;         /* first logical position of the run */
+  int limit;         /* last visual position of the run +1 */
+  int insertRemove;  // if >0, flags for inserting LRM/RLM before/after run,
+                     // if <0, count of bidi controls within run
   short level;
 
   BidiRun() { BidiRun(0, 0, 0); }
@@ -53,4 +53,4 @@ class BidiRun {
   short getDirection() { return (level & 1); }
 };
 
-#endif  // BIDI_BIDIRUN_H
+#endif  // SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_RUN_H_

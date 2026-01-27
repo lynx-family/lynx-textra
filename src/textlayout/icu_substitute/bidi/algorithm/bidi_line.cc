@@ -9,10 +9,10 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#include "bidi_line.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi_line.h"
 
-#include "bidi.h"
-#include "bidi_run.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi_run.h"
 short BidiLine::getLevelAt(Bidi* bidi, int charIndex) {
   /* return paraLevel if in the trailing WS run, otherwise the real level */
   if (bidi->direction != Bidi::MIXED || charIndex >= bidi->trailingWSStart) {
@@ -45,9 +45,8 @@ std::vector<short> BidiLine::getLevels(Bidi* bidi) {
     /* this new levels array is set for the line and reflects the WS run */
     bidi->trailingWSStart = length;
   }
-  if (length < bidi->levels.size()) {
-    std::vector<short> levels = std::vector<short>(length);
-    // System.arraycopy(bidi.levels, 0, levels, 0, length);
+  if (length < static_cast<int>(bidi->levels.size())) {
+    std::vector<short> levels(length, 0);
     for (int i = 0; i < length; i++) {
       levels[i] = bidi->levels[i];
     }
@@ -110,7 +109,7 @@ void BidiLine::reorderLine(Bidi* bidi, short minLevel, short maxLevel) {
 
   std::vector<BidiRun>& runs = bidi->runs;
   // BidiRun tempRun;
-  std::vector<short>& levels = bidi->levels;
+  auto* levels = bidi->levels.data();
   int firstRun, endRun, limitRun, runCount;
 
   /*
@@ -223,7 +222,7 @@ void BidiLine::getRuns(Bidi* bidi) {
   } else /* Bidi.MIXED, length>0 */ {
     /* mixed directionality */
     int length = bidi->length, limit;
-    std::vector<short> levels = bidi->levels;
+    auto* levels = bidi->levels.data();
     int i, runCount;
     short level = -1; /* initialize with no valid level */
     /*
@@ -371,7 +370,7 @@ std::vector<uint32_t> BidiLine::getLogicalMap(Bidi* bidi) {
   std::vector<uint32_t> indexMap = std::vector<uint32_t>(bidi->length);
   if (bidi->length > bidi->resultLength) {
     // Arrays.fill(indexMap, Bidi::MAP_NOWHERE);
-    for (int i = 0; i < indexMap.size(); i++) {
+    for (int i = 0; i < static_cast<int>(indexMap.size()); i++) {
       indexMap[i] = Bidi::MAP_NOWHERE;
     }
   }

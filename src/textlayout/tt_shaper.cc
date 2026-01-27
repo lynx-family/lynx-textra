@@ -23,9 +23,6 @@
 #include "src/textlayout/shape_cache.h"
 #include "src/textlayout/style/style_manager.h"
 #include "src/textlayout/utils/log_util.h"
-#ifdef USE_ICU
-#include <textra/icu_wrapper.h>
-#endif
 namespace ttoffice {
 namespace tttext {
 std::unique_ptr<TTShaper> TTShaper::CreateShaper(
@@ -67,16 +64,11 @@ void TTShaper::ProcessBidirection(const char32_t* text, uint32_t length,
                                   WriteDirection write_direction,
                                   uint32_t* visual_map, uint32_t* logical_map,
                                   uint8_t* dir_vec) {
-#ifdef USE_ICU
-  ICUWrapper::BidiInit(text, length, write_direction, dir_vec, visual_map,
-                       logical_map);
-#else
   for (size_t i = 0; i < length; i++) {
     visual_map[i] = static_cast<uint32_t>(i);
     logical_map[i] = static_cast<uint32_t>(i);
     dir_vec[i] = 0;
   }
-#endif
 }
 ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
                                    const ShapeStyle* shape_style,

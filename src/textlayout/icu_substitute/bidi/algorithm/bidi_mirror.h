@@ -11,8 +11,8 @@
 
 #include <unordered_map>
 
-#ifndef BIDI_BIDIMIRROR_H
-#define BIDI_BIDIMIRROR_H
+#ifndef SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_MIRROR_H_
+#define SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_MIRROR_H_
 class BidiMirror {
   typedef std::unordered_map<int, int> DtMap;
 
@@ -24,4 +24,4 @@ class BidiMirror {
   static DtMap mData;
   static DtMap Create_mData();
 };
-#endif  // BIDI_BIDIMIRROR_H
+#endif  // SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_MIRROR_H_

@@ -9,9 +9,11 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#ifndef BIDI_CHARACTER_H
-#define BIDI_CHARACTER_H
+#ifndef SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_CHARACTER_H_
+#define SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_CHARACTER_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 class Character {
@@ -375,7 +377,7 @@ class Character {
     return ch >= MIN_HIGH_SURROGATE && ch < (MAX_HIGH_SURROGATE + 1);
   }
 
-  static short getDirectionality(int codePoint);
+  static short getDirectionality(uint32_t codePoint);
 
   static int getType(char32_t c);
 
@@ -383,8 +385,8 @@ class Character {
     return codePoint >= MIN_SUPPLEMENTARY_CODE_POINT ? 2 : 1;
   }
 
-  static int decode_codepoint(uint32_t num);
+  static uint32_t decode_codepoint(uint32_t num);
   static uint8_t decode_val(uint32_t num);
 };
 
-#endif  // BIDI_CHARACTER_H
+#endif  // SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_CHARACTER_H_

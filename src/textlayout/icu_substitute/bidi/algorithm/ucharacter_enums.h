@@ -9,14 +9,14 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#ifndef BIDI_UCHARACTERENUMS_H
-#define BIDI_UCHARACTERENUMS_H
+#ifndef SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_UCHARACTER_ENUMS_H_
+#define SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_UCHARACTER_ENUMS_H_
 
 class UCharacterEnums {
  public:
-  UCharacterEnums(){};
+  UCharacterEnums() {}
 
-  ~UCharacterEnums(){};
+  ~UCharacterEnums() {}
 
   // ECharacterCategory
 
@@ -134,4 +134,4 @@ class UCharacterEnums {
   static const short DIRECTIONALITY_UNDEFINED = -1;
 };
 
-#endif  // BIDI_UCHARACTERENUMS_H
+#endif  // SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_UCHARACTER_ENUMS_H_

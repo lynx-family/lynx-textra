@@ -9,9 +9,9 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#include "bidi.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi.h"
 
-#include "bidi_line.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi_line.h"
 
 const int Bidi::DirPropFlagMultiRuns = Bidi::DirPropFlag((short)31);
 const std::vector<int> Bidi::DirPropFlagLR = {Bidi::DirPropFlag(Bidi::L),
@@ -311,7 +311,7 @@ void Bidi::setParaRunsOnly(const std::u32string& parmText,
   int saveOptions;
 
   reorderingMode = REORDER_DEFAULT;
-  int parmLength = parmText.length();
+  int parmLength = static_cast<int>(parmText.length());
   if (parmLength == 0) {
     setPara(parmText, parmParaLevel, std::vector<short>());
     reorderingMode = REORDER_RUNS_ONLY;
