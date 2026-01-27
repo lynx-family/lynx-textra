@@ -4,6 +4,12 @@
 
 #include "src/ports/shaper/skshaper/shaper_skshaper.h"
 
+#ifdef USE_ICU
+#include <textra/icu_wrapper.h>
+#else
+#include "icu_substitute/bidi/bidi_wrapper.h"
+#endif
+
 #ifdef TTTEXT_OS_ANDROID
 #include <textra/platform/java/tttext_jni_proxy.h>
 #endif
@@ -126,6 +132,19 @@ void ShaperSkShaper::ProcessShapeStyleTransform(Style& style) {
   TTTextJNIProxy::GetInstance().SystemFontStyleAdjust(&font_size, &font_weight);
   style.text_size_ = font_size;
   style.font_descriptor_.font_style_.SetWeight(font_weight);
+#endif
+}
+void ShaperSkShaper::ProcessBidirection(const char32_t* text, uint32_t length,
+                                        WriteDirection write_direction,
+                                        uint32_t* visual_map,
+                                        uint32_t* logical_map,
+                                        uint8_t* dir_vec) {
+#ifdef USE_ICU
+  ICUWrapper::BidiInit(text, length, write_direction, dir_vec, visual_map,
+                       logical_map);
+#else
+  BidiWrapper::GetInstance().SetPara(text, length, write_direction, dir_vec,
+                                     visual_map, logical_map);
 #endif
 }
 void ShaperSkShaper::OnShapeText(const ShapeKey& key,

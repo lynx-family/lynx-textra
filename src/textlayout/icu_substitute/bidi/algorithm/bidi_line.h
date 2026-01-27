@@ -9,9 +9,10 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#ifndef BIDI_BIDILINE_H
-#define BIDI_BIDILINE_H
+#ifndef SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_LINE_H_
+#define SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_LINE_H_
 
+#include <cstdint>
 #include <vector>
 
 class Bidi;
@@ -30,4 +31,4 @@ class BidiLine {
   static std::vector<uint32_t> getVisualMap(Bidi* bidi);
 };
 
-#endif  // BIDI_BIDILINE_H
+#endif  // SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_LINE_H_

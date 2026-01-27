@@ -9,11 +9,11 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#ifndef BIDI_BIDIWRITER_H
-#define BIDI_BIDIWRITER_H
+#ifndef SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_WRITER_H_
+#define SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_WRITER_H_
 #include <string>
 
-#include "ucharacter_enums.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/ucharacter_enums.h"
 
 class Bidi;
 class BidiWriter {
@@ -40,4 +40,4 @@ class BidiWriter {
 
   static std::u32string writeReordered(Bidi* bidi, int options);
 };
-#endif  // BIDI_BIDIWRITER_H
+#endif  // SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_WRITER_H_

@@ -9,7 +9,7 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#include "bidi_character.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi_character.h"
 
 const uint32_t Character::TypeLst[549] = {
     0x0,       0x30006,   0x37000,   0x48306,   0x48a00,   0x59106,   0x5be00,
@@ -386,7 +386,7 @@ const uint32_t Character::DirectLst[2047] = {
     0x2fa1eff, 0xe000109, 0xe0002ff, 0xe002009, 0xe0080ff, 0xe010008, 0xe01f0ff,
     0xf000000, 0xffffeff, 0x10000000};
 
-short Character::getDirectionality(int codePoint) {
+short Character::getDirectionality(uint32_t codePoint) {
   int head = 0, tail = direct_lst_size_ - 1;
   if (codePoint >= decode_codepoint(DirectLst[tail]) || codePoint < 0) {
     return -1;
@@ -408,7 +408,7 @@ short Character::getDirectionality(int codePoint) {
 
 int Character::getType(char32_t codePoint) {
   size_t head = 0;
-  auto tail = type_lst_size_ - 1;
+  size_t tail = type_lst_size_ - 1;
   if (codePoint < 0 || codePoint >= decode_codepoint(TypeLst[tail])) {
     return 0;
   }
@@ -427,7 +427,7 @@ int Character::getType(char32_t codePoint) {
   return 0;
 }
 
-int Character::decode_codepoint(uint32_t num) {
+uint32_t Character::decode_codepoint(uint32_t num) {
   auto val = num >> 8;
   return val;
 }

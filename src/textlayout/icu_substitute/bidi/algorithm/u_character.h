@@ -9,12 +9,12 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#ifndef SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_U_CHARACTER_H
-#define SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_U_CHARACTER_H
-#include "bidi_brackets.h"
-#include "bidi_character.h"
-#include "bidi_mirror.h"
-#include "ucharacter_enums.h"
+#ifndef SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_U_CHARACTER_H_
+#define SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_U_CHARACTER_H_
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi_brackets.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi_character.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi_mirror.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/ucharacter_enums.h"
 class UCharacter {
  public:
   /* Predefined Directional Formatting Characters */
@@ -174,4 +174,4 @@ class UCharacter {
   }
 };
 
-#endif  // SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_U_CHARACTER_H
+#endif  // SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_U_CHARACTER_H_

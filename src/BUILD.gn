@@ -96,9 +96,29 @@ config("icu") {
     defines += [ "BOUNDARY_ANALYST_ICU" ]
   }
 }
-config("icu_static") {
-  include_dirs = [ "//third_party/icu/source/common" ]
-  defines = [ "USE_ICU" ]
+
+source_set("bidi") {
+  configs += [ ":textlayout_internal" ]
+  sources = [
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi.cc",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi.h",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi_brackets.cc",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi_brackets.h",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi_character.cc",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi_character.h",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi_line.cc",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi_line.h",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi_mirror.cc",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi_mirror.h",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi_run.cpp",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi_run.h",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi_writer.cc",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/bidi_writer.h",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/u_character.h",
+    "$prj_root/src/textlayout/icu_substitute/bidi/algorithm/ucharacter_enums.h",
+    "$prj_root/src/textlayout/icu_substitute/bidi/bidi_wrapper.cc",
+    "$prj_root/src/textlayout/icu_substitute/bidi/bidi_wrapper.h",
+  ]
 }
 
 textlayout_public_headers = [
@@ -154,10 +174,8 @@ source_set("textlayout") {
 
   sources = []
 
-  if (is_mac) {
-    public_configs += [ ":icu_static" ]
-    sources += [ "$prj_root/src/textlayout/utils/icu_wrapper_static.cc" ]
-    deps += [ "//third_party/icu" ]
+  if (is_mac || is_linux) {
+    deps += [ ":bidi" ]
   }
 
   sources += textlayout_public_headers

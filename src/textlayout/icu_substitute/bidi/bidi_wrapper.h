@@ -11,12 +11,9 @@
 #include <string>
 #include <vector>
 
-#if defined(USE_ICU)
-#include <textra/icu_wrapper.h>
-#else
 #include "src/textlayout/icu_substitute/bidi/algorithm/bidi.h"
-#endif
-
+namespace ttoffice {
+namespace tttext {
 class BidiWrapper {
  private:
   BidiWrapper();
@@ -28,18 +25,13 @@ class BidiWrapper {
 
  public:
   static BidiWrapper& GetInstance();
-  void SetPara(const std::string& str,
-               ttoffice::textlayout::WriteDirection write_direction);
-  const std::vector<int16_t>& GetLevels();
-  const std::vector<uint32_t>& GetVisualMap();
-  const std::vector<uint32_t>& GetLogicalMap();
+  void SetPara(const char32_t* u32_content, const uint32_t& length,
+               WriteDirection direction, uint8_t* bidi_levels,
+               uint32_t* visual_map, uint32_t* logical_map);
 
  private:
-  std::vector<int16_t> bidi_levels_;
-  std::vector<uint32_t> visual_map_;
-  std::vector<uint32_t> logical_map_;
-#if !defined(USE_ICU)
   std::unique_ptr<Bidi> bidi_;
-#endif
 };
+}  // namespace tttext
+}  // namespace ttoffice
 #endif  // SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_BIDI_WRAPPER_H_

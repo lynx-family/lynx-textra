@@ -9,11 +9,13 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#include "bidi_writer.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi_writer.h"
 
-#include "bidi.h"
-#include "bidi_run.h"
-#include "u_character.h"
+#include <vector>
+
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi_run.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/u_character.h"
 
 std::u32string BidiWriter::doWriteForward(const std::u32string& src,
                                           int options) {
@@ -31,7 +33,7 @@ std::u32string BidiWriter::doWriteForward(const std::u32string& src,
 
       do {
         dest += UCharacter::getMirror(src[i]);
-      } while (i < src.length());
+      } while (i < static_cast<int>(src.length()));
       return dest;
     }
     case Bidi::REMOVE_BIDI_CONTROLS: {
@@ -45,7 +47,7 @@ std::u32string BidiWriter::doWriteForward(const std::u32string& src,
         if (!Bidi::IsBidiControlChar(c)) {
           dest += c;
         }
-      } while (i < src.length());
+      } while (i < static_cast<int>(src.length()));
       return dest;
     }
     default: {
@@ -58,7 +60,7 @@ std::u32string BidiWriter::doWriteForward(const std::u32string& src,
         if (!Bidi::IsBidiControlChar(c)) {
           dest += UCharacter::getMirror(c);
         }
-      } while (i < src.length());
+      } while (i < static_cast<int>(src.length()));
       return dest;
     }
   } /* end of switch */
@@ -196,7 +198,8 @@ std::u32string BidiWriter::writeReverse(const std::u32string& src,
 
 std::u32string BidiWriter::doWriteReverse(const char32_t* text, int start,
                                           int limit, int options) {
-  std::u32string str = U"";  // TODO: whether to add '\0' at the end of string
+  std::u32string str =
+      U"";  // TODO(hfuttyh): whether to add '\0' at the end of string
   for (int i = start; i < limit; i++) {
     str += text[i];
   }

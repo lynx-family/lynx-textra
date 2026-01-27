@@ -9,18 +9,18 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#ifndef BIDI_BIDI_H
-#define BIDI_BIDI_H
+#ifndef SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_H_
+#define SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_H_
 
 #include <string>
 #include <vector>
 
-#include "bidi_character.h"
-#include "bidi_run.h"
-#include "bidi_writer.h"
-#include "log_util.h"
-#include "u_character.h"
-#include "ucharacter_enums.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi_character.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi_run.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi_writer.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/u_character.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/ucharacter_enums.h"
+#include "src/textlayout/utils/log_util.h"
 
 class Bidi {
  public:
@@ -202,7 +202,7 @@ class Bidi {
   std::vector<short> levels;
 
   /* are we performing an approximation of the "inverse Bidi" algorithm? */
-  bool isInverse = false;  // TODO: if this should be initiate too?
+  bool isInverse = false;  // TODO(hfuttyh): if this should be initiate too?
 
   /* are we using the basic algorithm or its variation? */
   int reorderingMode = REORDER_DEFAULT;
@@ -226,8 +226,8 @@ class Bidi {
   struct ImpTabPair {
     std::vector<std::vector<std::vector<short>>> imptab;
     std::vector<std::vector<short>> impact;
-    ImpTabPair(){};  // TODO: if this initialization function is not added,
-                     // Bidi() will prompt that impTabPair cannot be
+    ImpTabPair() {}  // TODO(hfuttyh): if this initialization function is not
+                     // added, Bidi() will prompt that impTabPair cannot be
                      // initialized
 
     ImpTabPair(std::vector<std::vector<short>> table1,
@@ -440,7 +440,7 @@ class Bidi {
   // isInverse
   bool getIsInverse() { return isInverse; }
 
-  // TODO: prologue may be unused
+  // TODO(hfuttyh): prologue may be unused
   short firstL_R_AL() {
     short result = ON;
     for (size_t i = 0; i < prologue.length();) {
@@ -461,7 +461,7 @@ class Bidi {
     return result;
   }
 
-  // TODO: this operation seems redundant for vector
+  // TODO(hfuttyh): this operation seems redundant for vector
   void checkParaCount() {
     std::vector<int> saveLimits;
     std::vector<short> saveLevels;
@@ -619,8 +619,9 @@ class Bidi {
         if (dirProp == FSI) {
           dirProps[i - 1] = LRI; /* default if no strong char */
           state = SEEKING_STRONG_FOR_FSI;
-        } else
+        } else {
           state = LOOKING_FOR_PDI;
+        }
         continue;
       }
       if (dirProp == PDI) {
@@ -656,8 +657,8 @@ class Bidi {
         }
         if (i < originalLength) { /* B not last char in text */
           paraCount++;
-          checkParaCount(); /* check that there is enough memory for a new para
-                               entry */
+          checkParaCount();  // check that there is enough memory for a new para
+                             // entry
           if (isDefaultLevel) {
             paras_level[paraCount - 1] = defaultParaLevel;
             state = SEEKING_STRONG_FOR_PARA;
@@ -790,16 +791,15 @@ class Bidi {
     if ((uint32_t)pLastIsoRun.limit >=
         bd.openings.size()) { /* no available new entry */
       std::vector<Opening> saveOpenings = bd.openings;
-      int count;
       //            try {
-      count = bd.openings.size();
+      auto count = bd.openings.size();
       bd.openings = std::vector<Opening>(count * 2);
       //            } catch (Exception e) {
       //                throw new OutOfMemoryError("Failed to allocate memory
       //                for openings");
       //            }
       // System.arraycopy(saveOpenings, 0, bd.openings, 0, count);
-      for (int i = 0; i < count; i++) {
+      for (size_t i = 0; i < count; i++) {
         bd.openings[i] = saveOpenings[i];
       }
     }
@@ -924,7 +924,7 @@ class Bidi {
       // c = text_utf32[position];
       c = text_[position];
       for (idx = pLastIsoRun.limit - 1; idx >= pLastIsoRun.start; idx--) {
-        if (bd.openings[idx].match != (int)c) continue;
+        if (bd.openings[idx].match != static_cast<int>(c)) continue;
         /* We have a match */
         newProp = bracketProcessClosing(bd, idx, position);
         if (newProp == ON) { /* N0d */
@@ -1120,17 +1120,18 @@ class Bidi {
 
     /* The following stack remembers the embedding level and the ISOLATE flag of
        level runs. stackLast points to its current entry. */
-    std::vector<short> stack = std::vector<short>(
-        MAX_EXPLICIT_LEVEL + 2); /* we never push anything >= MAX_EXPLICIT_LEVEL
-                but we need one more entry as base */
+    std::vector<short> stack =
+        std::vector<short>(MAX_EXPLICIT_LEVEL +
+                           2);  // we never push anything >= MAX_EXPLICIT_LEVEL
+                                // but we need one more entry as base
     int stackLast = 0;
     int overflowIsolateCount = 0;
     int overflowEmbeddingCount = 0;
     int validIsolateCount = 0;
     BracketData bracketData = BracketData();
     bracketInit(bracketData);
-    stack[0] = level; /* initialize base entry to para level, no override, no
-                         isolate */
+    stack[0] =
+        level;  // initialize base entry to para level, no override, no isolate
 
     /* recalculate the flags */
     flags = 0;
@@ -1241,9 +1242,10 @@ class Bidi {
             stackLast--;   /* pop also the last isolate entry */
             validIsolateCount--;
             bracketProcessPDI(bracketData);
-          } else
+          } else {
             /* make it WS so that it is handled by adjustWSLevels() */
             dirProps[i] = WS;
+          }
           embeddingLevel = (short)(stack[stackLast] & ~ISOLATE);
           flags |= DirPropFlag(ON) | getDirPropFlagLR(embeddingLevel);
           previousLevel = embeddingLevel;
@@ -1264,8 +1266,8 @@ class Bidi {
             validIsolateCount = 0;
             stackLast = 0;
             previousLevel = embeddingLevel = GetParaLevelAt(i + 1);
-            stack[0] = embeddingLevel; /* initialize base entry to para level,
-                                          no override, no isolate */
+            stack[0] = embeddingLevel;  // initialize base entry to para
+                                        // level, no override, no isolate
             bracketProcessB(bracketData, embeddingLevel);
           }
           break;
@@ -1324,10 +1326,11 @@ class Bidi {
         isolateCount++;
         if (isolateCount > this->isolateCount)
           this->isolateCount = isolateCount;
-      } else if (dirProp == PDI)
+      } else if (dirProp == PDI) {
         isolateCount--;
-      else if (dirProp == B)
+      } else if (dirProp == B) {
         isolateCount = 0;
+      }
 
       // optimized version of  byte currentParaLevel = GetParaLevelAt(i);
       if (defaultParaLevel != 0 && i == currentParaLimit &&
@@ -1555,16 +1558,17 @@ class Bidi {
   void addPoint(int pos, int flag) {
     Point point = Point();
 
-    int len = insertPoints.points.size();
+    auto len = insertPoints.points.size();
     if (len == 0) {
       insertPoints.points = std::vector<Point>(FIRSTALLOC);
       len = FIRSTALLOC;
     }
-    if (insertPoints.size >= len) { /* no room for new point */
+    if (insertPoints.size >=
+        static_cast<int>(len)) { /* no room for new point */
       std::vector<Point> savePoints = insertPoints.points;
       insertPoints.points = std::vector<Point>(len * 2);
       // System.arraycopy(savePoints, 0, insertPoints.points, 0, len);
-      for (int i = 0; i < len; i++) {
+      for (int i = 0; i < static_cast<int>(len); i++) {
         insertPoints.points[i] = savePoints[i];
       }
     }
@@ -1804,10 +1808,10 @@ class Bidi {
    * prologue, if any. Requires prologue!=null.
    */
   short lastL_R_AL() {
-    for (int i = prologue.length(); i > 0;) {
+    for (int i = static_cast<int>(prologue.length()); i > 0;) {
       // int uchar = prologue.codePointBefore(i);//TODO
       int uchar =
-          prologue[i];  // TODO: temporarily run, but the interface is
+          prologue[i];  // TODO(hfuttyh): temporarily run, but the interface is
                         // different, but this place actually does not use it
       i -= Character::charCount(uchar);
       short dirProp = (short)getCustomizedClass(uchar);
@@ -1879,7 +1883,7 @@ class Bidi {
     levState.impTab = impTabPair.imptab[levState.runLevel & 1];
     levState.impAct = impTabPair.impact[levState.runLevel & 1];
     if (start == 0 &&
-        prologue.length()) {  // TODO: start == 0 && prologue != null
+        prologue.length()) {  // TODO(hfuttyh): start == 0 && prologue != null
       short lastStrong = lastL_R_AL();
       if (lastStrong != _ON) {
         sor = lastStrong;
@@ -1911,8 +1915,8 @@ class Bidi {
         int k;
         for (k = limit - 1;
              k > start && (DirPropFlag(dirProps[k]) & MASK_BN_EXPLICIT) != 0;
-             k--)
-          ;
+             k--) {
+        }
         dirProp = dirProps[k];
         if (dirProp == LRI || dirProp == RLI)
           break; /* no forced closing for sequence ending with LRI/RLI */
@@ -1985,8 +1989,8 @@ class Bidi {
     }
 
     /* flush possible pending sequence, e.g. ON */
-    if (limit == length &&
-        epilogue.length()) {  // TODO: limit == length && epilogue != null
+    if (limit == length && epilogue.length()) {  // TODO(hfuttyh): limit ==
+                                                 // length && epilogue != null
       short firstStrong = firstL_R_AL_EN_AN();
       if (firstStrong != _ON) {
         eor = firstStrong;
@@ -1995,8 +1999,8 @@ class Bidi {
 
     /* look for the last char not a BN or LRE/RLE/LRO/RLO/PDF */
     for (i = limit - 1;
-         i > start && (DirPropFlag(dirProps[i]) & MASK_BN_EXPLICIT) != 0; i--)
-      ;
+         i > start && (DirPropFlag(dirProps[i]) & MASK_BN_EXPLICIT) != 0; i--) {
+    }
     dirProp = dirProps[i];
     if ((dirProp == LRI || dirProp == RLI) && limit < length) {
       isolateCount++;
@@ -2006,8 +2010,9 @@ class Bidi {
       isolates[isolateCount].state = levState.state;
       isolates[isolateCount].start1 = start1;
       isolates[isolateCount].startON = levState.startON;
-    } else
+    } else {
       processPropertySeq(levState, eor, limit, limit);
+    }
   }
 
   /* perform (L1) and (X9) ----------------------------------------------------
@@ -2056,8 +2061,9 @@ class Bidi {
   }
 
   void setContext(std::string prologue, std::string epilogue) {
-    prologue = prologue.length() > 0 ? prologue
-                                     : nullptr;  // TODO: can string be nullptr?
+    prologue = prologue.length() > 0
+                   ? prologue
+                   : nullptr;  // TODO(hfuttyh): can string be nullptr?
     epilogue = epilogue.length() > 0 ? epilogue : nullptr;
   }
 
@@ -2099,7 +2105,7 @@ class Bidi {
     // this.paraBidi = null;          /* mark unfinished setPara */
     text_ = std::u32string(chars);
     auto len = text_.length();
-    length = originalLength = resultLength = len;
+    length = originalLength = resultLength = static_cast<int>(len);
     this->paraLevel = paraLevel;
     direction = (short)(paraLevel & 1);
     paraCount = 1;
@@ -2107,8 +2113,8 @@ class Bidi {
     /* Allocate zero-length arrays instead of setting to null here; then
      * checks for null in various places can be eliminated.
      */
-    dirProps = std::vector<short>();  // TODO: cannot ensure the length of
-                                      // vector
+    dirProps = std::vector<short>();  // TODO(hfuttyh): cannot ensure the
+                                      // length of vector
     levels = std::vector<short>();
     runs = std::vector<BidiRun>();
     isGoodLogicalToVisualRunsMap = false;
@@ -2166,7 +2172,8 @@ class Bidi {
 
     /* allocate isolate memory */
     if (isolateCount > 0) {
-      if (isolates.size() == 0 || (int)isolates.size() < isolateCount)
+      if (isolates.size() == 0 ||
+          static_cast<int>(isolates.size()) < isolateCount)
         isolates =
             std::vector<Isolate>(isolateCount + 3); /* keep some reserve */
     }
@@ -2597,4 +2604,4 @@ class Bidi {
   }
 };
 
-#endif  // BIDI_BIDI_H
+#endif  // SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_H_
