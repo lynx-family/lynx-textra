@@ -312,34 +312,34 @@ void ParagraphTest::TestSupSub(ICanvasHelper* canvas, float width) const {
   auto paragraph_ptr = Paragraph::Create();
   auto& paragraph = *paragraph_ptr;
   Style run_style;
-  float base_size = 12;
+  float base_size = 24;
   std::string content = "中国中国中国中国";
   run_style.SetTextSize(base_size);
-  paragraph.AddTextRun(
-      &run_style, content.c_str(),
-      static_cast<uint32_t>(static_cast<uint32_t>(content.length())));
-  run_style.SetTextScale(0.58);
-  run_style.SetVerticalAlignment(CharacterVerticalAlignment::kSuperScript);
-  content = "你好";
   paragraph.AddTextRun(&run_style, content.c_str(),
                        static_cast<uint32_t>(content.length()));
+  run_style.SetTextScale(0.58);
+  run_style.SetVerticalAlignment(CharacterVerticalAlignment::kSuperScript);
+  content = "上标";
+  paragraph.AddTextRun(&run_style, content.c_str(),
+                       static_cast<uint32_t>(content.length()));
+  content = "下标";
   run_style.SetVerticalAlignment(CharacterVerticalAlignment::kSubScript);
   paragraph.AddTextRun(&run_style, content.c_str(),
                        static_cast<uint32_t>(content.length()));
   run_style.SetTextScale(1.0f);
   run_style.SetVerticalAlignment(CharacterVerticalAlignment::kBaseLine);
-  content = "正常正常正常正常正常正常正常正常正常";
+  content = "基线";
   paragraph.AddTextRun(&run_style, content.c_str(),
                        static_cast<uint32_t>(content.length()));
-  TextLayout layout(font_collection_, shaper_type_);
-  auto page_ptr = std::make_unique<LayoutRegion>(width, 10000);
-  auto& page = *page_ptr;
-  TTTextContext context;
-  context.SetSkipSpacingBeforeFirstLine(false);
-  context.SetLastLineCanOverflow(false);
-  layout.Layout(&paragraph, &page, context);
-  LayoutDrawer drawer(canvas);
-  drawer.DrawLayoutPage(&page);
+  auto shape = std::make_shared<TestShape>();
+  run_style.SetVerticalAlignment(CharacterVerticalAlignment::kSuperScript);
+  paragraph.AddShapeRun(&run_style, shape, false);
+  run_style.SetVerticalAlignment(CharacterVerticalAlignment::kSubScript);
+  paragraph.AddShapeRun(&run_style, shape, false);
+  run_style.SetVerticalAlignment(CharacterVerticalAlignment::kBaseLine);
+  paragraph.AddShapeRun(&run_style, shape, false);
+
+  DrawParagraph(canvas, paragraph, width);
 }
 void ParagraphTest::TestMultiStyleInWord(ICanvasHelper* canvas,
                                          float width) const {

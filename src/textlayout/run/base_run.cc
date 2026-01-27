@@ -74,96 +74,71 @@ float BaseRun::MeasureRunByWidth(uint32_t& break_pos_in_run,
   }
   return width;
 }
+LayoutMetrics BaseRun::CalculateLayoutMetrics(uint32_t start_char,
+                                              uint32_t char_count,
+                                              float font_size) const {
+  LayoutMetrics layout_metrics;
+  auto align_with_bbox = paragraph_->GetParagraphStyle().EnableTextBounds();
+  auto typeface = shape_result_.FontByCharId(start_char);
+
+  if (align_with_bbox) {
+    auto glyph_start = shape_result_.CharToGlyph(start_char);
+    auto glyph_end = shape_result_.CharToGlyph(start_char + char_count);
+    auto glyph_count = glyph_end - glyph_start;
+    std::vector<GlyphID> glyph_data(glyph_count, 0);
+    for (auto k = glyph_start; k < glyph_count; k++) {
+      glyph_data[k - glyph_start] = shape_result_.Glyphs(k);
+    }
+    float rect_ltrb[4] = {0, 0, 0, 0};
+    typeface->GetWidthBounds(rect_ltrb, glyph_data.data(),
+                             static_cast<uint32_t>(glyph_data.size()),
+                             font_size);
+    layout_metrics.UpdateMaxAscent(rect_ltrb[1]);
+    layout_metrics.UpdateMaxDescent(rect_ltrb[3]);
+  } else {
+    auto font_info = typeface->GetFontInfo(font_size);
+    layout_metrics.UpdateMaxAscent(font_info.GetAscent());
+    layout_metrics.UpdateMaxDescent(font_info.GetDescent());
+
+    if (paragraph_->GetParagraphStyle().LineHeightOverride()) {
+      if (paragraph_->GetParagraphStyle().HalfLeading()) {
+        auto diff = layout_metrics.GetHeight() - font_size;
+        layout_metrics.max_ascent_ += diff;
+      } else {
+        auto ratio = font_size / layout_metrics.GetHeight();
+        layout_metrics.max_ascent_ *= ratio;
+        layout_metrics.max_descent_ *= ratio;
+      }
+    }
+  }
+  return layout_metrics;
+}
 void BaseRun::Layout() {
   if (run_type_ == RunType::kFloatObject ||
       run_type_ == RunType::kInlineObject) {
     metrics_ = LayoutMetrics{delegate_->GetAscent(), delegate_->GetDescent()};
-    return;
-  }
-  if (!IsTextRun() && !IsControlRun() && !IsGhostRun()) return;
-  auto typeface = shape_result_.FontByCharId(0);
-  FontInfo base_font_info = typeface->GetFontInfo(layout_style_.GetTextSize());
-  for (auto k = 1u; k < GetCharCount(); k++) {
-    auto new_typeface = shape_result_.FontByCharId(k);
-    if (new_typeface != typeface) {
-      auto info = new_typeface->GetFontInfo(layout_style_.GetTextSize());
-      if (FloatsLarger(-info.GetAscent(), -base_font_info.GetAscent())) {
-        base_font_info.SetAscent(info.GetAscent());
-      }
-      if (FloatsLarger(info.GetDescent(), base_font_info.GetDescent())) {
-        base_font_info.SetDescent(info.GetDescent());
-      }
-      if (FloatsLarger(-info.GetLeading(), -base_font_info.GetLeading())) {
-        base_font_info.SetLeading(info.GetLeading());
-      }
-      typeface = new_typeface;
-    }
-  }
-  auto v_align = layout_style_.GetVerticalAlignment();
-  auto line_height_override =
-      paragraph_->GetParagraphStyle().LineHeightOverride();
-  auto align_with_bbox = paragraph_->GetParagraphStyle().EnableTextBounds();
-
-  if (v_align == CharacterVerticalAlignment::kSuperScript ||
-      v_align == CharacterVerticalAlignment::kSubScript) {
-    constexpr float offset_percent = 0.33f;
-    auto font_info = typeface->GetFontInfo(layout_style_.GetScaledTextSize());
-    auto mid_line = base_font_info.GetHeight() *
-                    (0.5f + (v_align == CharacterVerticalAlignment::kSuperScript
-                                 ? -offset_percent
-                                 : offset_percent));
-    auto baseline_offset =
-        mid_line + (-font_info.GetAscent() - font_info.GetHeight() / 2) +
-        base_font_info.GetAscent();
-    paragraph_->style_manager_->SetBaselineOffset(
-        baseline_offset, GetStartCharPos(), GetCharCount());
-    metrics_.UpdateMax(font_info);
   } else {
-    metrics_.max_ascent_ = base_font_info.GetAscent();
-    metrics_.max_descent_ = base_font_info.GetDescent();
-    if (line_height_override) {
-      auto half_leading = paragraph_->GetParagraphStyle().HalfLeading();
-      if (half_leading) {
-        auto diff = base_font_info.GetHeight() - layout_style_.GetTextSize();
-        metrics_.max_ascent_ += diff;
-      } else {
-        auto ratio = layout_style_.GetTextSize() / base_font_info.GetHeight();
-        metrics_.max_ascent_ *= ratio;
-        metrics_.max_descent_ *= ratio;
+    uint32_t start_char = 0u;
+    auto current_char = start_char;
+    auto end_char = GetCharCount();
+    while (current_char <= end_char) {
+      if (current_char == end_char ||
+          shape_result_.FontByCharId(current_char) !=
+              shape_result_.FontByCharId(start_char)) {
+        auto metrics = CalculateLayoutMetrics(
+            start_char, current_char - start_char, layout_style_.GetTextSize());
+        metrics_.UpdateMax(metrics);
+        start_char = current_char;
       }
+      current_char++;
     }
   }
 
-  if (align_with_bbox) {
-    TypefaceRef font = nullptr;
-    RectF& bounds = glyph_bounds_;
-    std::vector<GlyphID> glyphs;
-    glyphs.reserve(GetCharCount());
-    for (auto k = 0u; k < GetCharCount(); k++) {
-      auto cur_font = shape_result_.FontByCharId(k);
-      if (cur_font != font) {
-        if (!glyphs.empty()) {
-          float rect_ltrb[4] = {0, 0, 0, 0};
-          cur_font->GetWidthBounds(rect_ltrb, glyphs.data(),
-                                   static_cast<uint32_t>(glyphs.size()),
-                                   layout_style_.GetTextSize());
-          glyphs.clear();
-          if (rect_ltrb[1] < bounds.GetTop()) bounds.SetTop(rect_ltrb[1]);
-          if (rect_ltrb[3] > bounds.GetBottom()) bounds.SetBottom(rect_ltrb[3]);
-        }
-        font = cur_font;
-      }
-      glyphs.push_back(shape_result_.Glyphs(k));
-    }
-    if (!glyphs.empty()) {
-      float rect_ltrb[4] = {0, 0, 0, 0};
-      font->GetWidthBounds(rect_ltrb, glyphs.data(),
-                           static_cast<uint32_t>(glyphs.size()),
-                           layout_style_.GetTextSize());
-      glyphs.clear();
-      if (rect_ltrb[1] < bounds.GetTop()) bounds.SetTop(rect_ltrb[1]);
-      if (rect_ltrb[3] > bounds.GetBottom()) bounds.SetBottom(rect_ltrb[3]);
-    }
+  if (FloatsEqual(layout_style_.GetTextScale(), 1.0f)) {
+    scaled_metrics_ = metrics_;
+  } else {
+    scaled_metrics_ = CalculateLayoutMetrics(GetStartCharPos(), GetCharCount(),
+                                             layout_style_.GetScaledTextSize());
   }
 }
 void BaseRun::UpdateRunContent() {

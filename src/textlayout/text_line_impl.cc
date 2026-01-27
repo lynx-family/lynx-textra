@@ -279,7 +279,6 @@ void TextLineImpl::ApplyAlignment() {
 void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
   const auto align = h_align;
   auto drawer_iter_begin = drawer_list_.begin();
-  auto enable_text_bounds = paragraph_->GetParagraphStyle().EnableTextBounds();
   while (drawer_iter_begin != drawer_list_.end()) {
     const auto* line_range = (*drawer_iter_begin)->GetParent();
     auto drawer_iter_end = drawer_iter_begin;
@@ -315,7 +314,7 @@ void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
       auto& drawer = *drawer_iter_begin;
       drawer->SetXOffset(start_offset);
       auto* run = drawer->GetRun();
-      auto& metrics = run->GetMetrics();
+      auto metrics = run->GetScaledMetrics();
       auto cva = CharacterVerticalAlignment::kBaseLine;
       if (run->GetLayoutStyle().HasStyleAttribute(
               Style::VerticalAlignmentFlag)) {
@@ -327,11 +326,6 @@ void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
       auto y_offset = GetContentBaseline();
       auto element_ascent = metrics.GetMaxAscent();
       auto element_descent = metrics.GetMaxDescent();
-      if (enable_text_bounds) {
-        auto rect = run->GetBounding();
-        element_ascent = rect.GetTop();
-        element_descent = rect.GetBottom();
-      }
       if (cva == CharacterVerticalAlignment::kTextTop ||
           cva == CharacterVerticalAlignment::kTextBottom) {
         container_ascent = GetContentBaseline() - GetContentTop();
@@ -341,6 +335,14 @@ void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
         y_offset += LayoutMeasurer::CalcElementY(
             cva, container_ascent, container_descent, element_ascent,
             element_descent);
+        if (cva == CharacterVerticalAlignment::kSuperScript) {
+          auto base_metrics = run->GetMetrics();
+          y_offset += base_metrics.GetSupOffset();
+        }
+        if (cva == CharacterVerticalAlignment::kSubScript) {
+          auto base_metrics = run->GetMetrics();
+          y_offset += base_metrics.GetSubOffset();
+        }
       }
       if (drawer->GetRun()->GetType() == RunType::kInlineObject ||
           drawer->GetRun()->GetType() == RunType::kFloatObject) {
@@ -502,7 +504,7 @@ void TextLineImpl::GetBoundingRectByCharRange(float bounding_rect[4],
       }
     }
     if (status == kInProgress) {
-      auto& metrics = drawer->GetRun()->GetMetrics();
+      auto metrics = drawer->GetRun()->GetMetrics();
       top = std::min(
           top, drawer->GetYOffsetInLine() + metrics.GetMaxAscent() + line_top_);
       bottom = std::max(bottom, drawer->GetYOffsetInLine() +

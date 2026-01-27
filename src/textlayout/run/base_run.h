@@ -112,7 +112,7 @@ class BaseRun {
     }
     return ret + 1;
   }
-  const LayoutMetrics& GetMetrics() const { return metrics_; }
+  LayoutMetrics GetMetrics() const { return metrics_; }
   BoundaryType GetBoundaryType() const { return boundary_type_; }
   void SetBoundaryType(BoundaryType type) { boundary_type_ = type; }
   TTStringPiece GetGhostContent() const { return ghost_content_.ToPiece(); }
@@ -164,7 +164,12 @@ class BaseRun {
            prev_run.layout_style_.GetShapeStyle() ==
                layout_style_.GetShapeStyle();
   }
-  RectF GetBounding() const { return glyph_bounds_; }
+
+  LayoutMetrics GetScaledMetrics() const { return scaled_metrics_; }
+
+ private:
+  LayoutMetrics CalculateLayoutMetrics(uint32_t start_char, uint32_t char_count,
+                                       float font_size) const;
 
  protected:
   ParagraphImpl* paragraph_{};
@@ -173,11 +178,11 @@ class BaseRun {
   RunType run_type_{};
   ShapeResultPiece shape_result_{};
   LayoutMetrics metrics_{};
+  LayoutMetrics scaled_metrics_{};
   Style layout_style_;
   TTString ghost_content_;
   std::shared_ptr<RunDelegate> delegate_{nullptr};
   BoundaryType boundary_type_ = BoundaryType::kNone;
-  RectF glyph_bounds_ = {};
 #ifdef TTTEXT_DEBUG
 
  public:

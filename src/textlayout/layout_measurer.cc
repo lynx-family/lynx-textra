@@ -141,11 +141,8 @@ float LayoutMeasurer::CalcElementY(CharacterVerticalAlignment v_align,
   auto element_height = element_descent - element_ascent;
   switch (v_align) {
     case CharacterVerticalAlignment::kBaseLine:
-      y = 0;
-      break;
     case CharacterVerticalAlignment::kSuperScript:
     case CharacterVerticalAlignment::kSubScript:
-      // TODO(hfuttyh) need to implement
       y = 0;
       break;
     case CharacterVerticalAlignment::kTextTop:
