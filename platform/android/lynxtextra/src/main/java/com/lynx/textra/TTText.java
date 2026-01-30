@@ -7,16 +7,22 @@ package com.lynx.textra;
 import android.graphics.Paint;
 
 public class TTText {
+  private static boolean sInitialized = false;
+
   public static void Initial() {
     Initial(false);
   }
 
-  public static void Initial(boolean load_library) {
+  public static synchronized void Initial(boolean load_library) {
+    if (sInitialized) {
+      return;
+    }
     if (load_library) {
       System.loadLibrary("lynxtextra");
     }
     nativeInitialCache();
     mFontManager = nativeGetDefaultFontManager();
+    sInitialized = true;
   }
 
   private native static void nativeInitialCache();

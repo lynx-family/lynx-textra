@@ -172,6 +172,15 @@ std::string TTTextJNIProxy::SystemDefaultFamilyName() {
 }  // namespace tttext
 }  // namespace ttoffice
 
+void ScopedGlobalRef::reset() {
+  if (mGlobalRef != NULL) {
+    auto& proxy = ttoffice::tttext::TTTextJNIProxy::GetInstance();
+    auto* env = proxy.GetCurrentJNIEnv();
+    env->DeleteGlobalRef(mGlobalRef);
+    mGlobalRef = NULL;
+  }
+}
+
 void WarmICU() {
   // warm bidi functions
   char32_t character[] = {1, 0};
