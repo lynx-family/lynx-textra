@@ -20,20 +20,14 @@
 // The global reference is deleted when the smart pointer goes out of scope.
 class ScopedGlobalRef {
  public:
-  ScopedGlobalRef(JNIEnv* env, jobject localRef) : mEnv(env), mGlobalRef(NULL) {
+  ScopedGlobalRef(JNIEnv* env, jobject localRef) : mGlobalRef(NULL) {
     mGlobalRef = env->NewGlobalRef(localRef);
   }
   ~ScopedGlobalRef() { reset(); }
-  void reset() {
-    if (mGlobalRef != NULL) {
-      mEnv->DeleteGlobalRef(mGlobalRef);
-      mGlobalRef = NULL;
-    }
-  }
+  void reset();
   jobject get() const { return mGlobalRef; }
 
  private:
-  JNIEnv* mEnv;
   jobject mGlobalRef;
   // Disallow copy and assignment.
   ScopedGlobalRef(const ScopedGlobalRef&);
