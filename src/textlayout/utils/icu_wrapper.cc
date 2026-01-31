@@ -476,12 +476,12 @@ void ICUWrapper::BidiInit(const char32_t* u32_content, const uint32_t& length,
   auto u16_string = base::U32StringToU16(u32_content, length);
   auto u16_length = u16_string.length();
   if (u16_length == 0) return;
-  auto* para = bidi_openSized(u16_length, 0, pErrorCode);
+  auto* para = bidi_openSized(static_cast<int32_t>(u16_length), 0, pErrorCode);
   if (para == nullptr || ErrorCode != U_ZERO_ERROR) {
     return DefaultBidiResult(length, bidi_levels, visual_map, logical_map);
   }
-  bidi_setPara(para, reinterpret_cast<const UChar*>(u16_string.c_str()),
-               u16_length, para_l, NULL, pErrorCode);
+  bidi_setPara(para, u16_string.c_str(), static_cast<int32_t>(u16_length),
+               para_l, NULL, pErrorCode);
   if (ErrorCode != U_ZERO_ERROR) {
     return DefaultBidiResult(length, bidi_levels, visual_map, logical_map);
   }
@@ -558,7 +558,8 @@ void ICUWrapper::icu_boundary_breaker(const char32_t* u32_content,
   }
   // 2. char break
   std::vector<uint8_t> break_result(u16_to_u32_map.size(), 0);
-  auto error = icu_break_char(char_brk_iter_, u16str.data(), u16str.length(),
+  auto error = icu_break_char(char_brk_iter_, u16str.data(),
+                              static_cast<uint32_t>(u16str.length()),
                               break_result.data());
   if (error != U_ZERO_ERROR) {
     return DefaultBreakResult(char_count, boundary);
@@ -570,7 +571,8 @@ void ICUWrapper::icu_boundary_breaker(const char32_t* u32_content,
   }
   // 3. word break
   std::fill(break_result.begin(), break_result.end(), 0);
-  error = icu_break_word(word_brk_iter_, u16str.data(), u16str.length(),
+  error = icu_break_word(word_brk_iter_, u16str.data(),
+                         static_cast<uint32_t>(u16str.length()),
                          break_result.data());
   if (error != U_ZERO_ERROR) {
     return DefaultBreakResult(char_count, boundary);
@@ -582,7 +584,8 @@ void ICUWrapper::icu_boundary_breaker(const char32_t* u32_content,
   }
   // 4. line break
   std::fill(break_result.begin(), break_result.end(), 0);
-  error = icu_break_line(line_brk_iter_, u16str.data(), u16str.length(),
+  error = icu_break_line(line_brk_iter_, u16str.data(),
+                         static_cast<uint32_t>(u16str.length()),
                          break_result.data());
   if (error != U_ZERO_ERROR) {
     return DefaultBreakResult(char_count, boundary);
