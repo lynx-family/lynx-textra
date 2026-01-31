@@ -349,8 +349,13 @@ source_set("skshaper") {
   configs += [ ":textlayout_internal" ]
   defines = []
   deps = []
+  sources = []
+  if (is_android || is_harmony) {
+    configs += [ ":icu" ]
+    sources += [ "$prj_root/src/textlayout/utils/icu_wrapper.cc" ]
+  }
 
-  sources = [
+  sources += [
     "$prj_root/src/ports/shaper/skshaper/font.h",
     "$prj_root/src/ports/shaper/skshaper/one_line_shaper.cc",
     "$prj_root/src/ports/shaper/skshaper/one_line_shaper.h",
