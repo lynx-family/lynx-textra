@@ -76,9 +76,9 @@ float BaseRun::MeasureRunByWidth(uint32_t& break_pos_in_run,
 }
 LayoutMetrics BaseRun::CalculateLayoutMetrics(uint32_t start_char,
                                               uint32_t char_count,
-                                              float font_size) const {
+                                              float font_size,
+                                              bool align_with_bbox) const {
   LayoutMetrics layout_metrics;
-  auto align_with_bbox = paragraph_->GetParagraphStyle().EnableTextBounds();
   auto typeface = shape_result_.FontByCharId(start_char);
 
   if (align_with_bbox) {
@@ -117,7 +117,9 @@ void BaseRun::Layout() {
   if (run_type_ == RunType::kFloatObject ||
       run_type_ == RunType::kInlineObject) {
     metrics_ = LayoutMetrics{delegate_->GetAscent(), delegate_->GetDescent()};
+    scaled_metrics_ = metrics_;
   } else {
+    auto align_with_bbox = paragraph_->GetParagraphStyle().EnableTextBounds();
     uint32_t start_char = 0u;
     auto current_char = start_char;
     auto end_char = GetCharCount();
@@ -125,20 +127,26 @@ void BaseRun::Layout() {
       if (current_char == end_char ||
           shape_result_.FontByCharId(current_char) !=
               shape_result_.FontByCharId(start_char)) {
-        auto metrics = CalculateLayoutMetrics(
-            start_char, current_char - start_char, layout_style_.GetTextSize());
+        auto metrics =
+            CalculateLayoutMetrics(start_char, current_char - start_char,
+                                   layout_style_.GetTextSize(), false);
         metrics_.UpdateMax(metrics);
         start_char = current_char;
       }
       current_char++;
     }
-  }
-
-  if (FloatsEqual(layout_style_.GetTextScale(), 1.0f)) {
-    scaled_metrics_ = metrics_;
-  } else {
-    scaled_metrics_ = CalculateLayoutMetrics(GetStartCharPos(), GetCharCount(),
-                                             layout_style_.GetScaledTextSize());
+    if (FloatsEqual(layout_style_.GetTextScale(), 1.0f)) {
+      if (align_with_bbox) {
+        scaled_metrics_ = CalculateLayoutMetrics(
+            0, GetCharCount(), layout_style_.GetTextSize(), true);
+      } else {
+        scaled_metrics_ = metrics_;
+      }
+    } else {
+      scaled_metrics_ = CalculateLayoutMetrics(
+          GetStartCharPos(), GetCharCount(), layout_style_.GetScaledTextSize(),
+          align_with_bbox);
+    }
   }
 }
 void BaseRun::UpdateRunContent() {
