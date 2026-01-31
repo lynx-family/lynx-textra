@@ -169,7 +169,8 @@ class BaseRun {
 
  private:
   LayoutMetrics CalculateLayoutMetrics(uint32_t start_char, uint32_t char_count,
-                                       float font_size) const;
+                                       float font_size,
+                                       bool align_with_bbox) const;
 
  protected:
   ParagraphImpl* paragraph_{};
