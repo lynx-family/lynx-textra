@@ -137,3 +137,29 @@ jobs:
           python3 build/linux/sysroot_scripts/install-sysroot.py --arch=x64
           buildtools/cmake/bin/cmake -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DTEXTRA_ENABLE_SKIA=ON -G Ninja -S . -B cmake-build-release
           buildtools/cmake/bin/cmake --build cmake-build-release -t ttreaderdemo
+
+  build-harmony:
+    name: Build HarmonyOS
+    runs-on: lynx-custom-container
+    container:
+      image: ghcr.io/lynx-family/ubuntu24.04-harmony@sha256:bf493c3710de3c44bfa84caf402c0727b9310c42497f6e52580ad441ea640ef1
+      credentials:
+        username: lynx-family
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Common Dependencies
+        uses: ./.github/actions/common-deps
+
+      - name: Install dependencies and Build
+        shell: bash
+        run: |
+          source tools/envsetup.sh
+          pushd demos/harmony/lynxtextra_demo
+          ohpm install
+          hvigorw assembleApp --mode project -p product=default -p buildMode=debug --no-daemon
