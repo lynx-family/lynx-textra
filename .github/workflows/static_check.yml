@@ -27,8 +27,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Install Common Dependencies
         uses: ./.github/actions/common-deps
-        with:
-          target: ci
       - name: Run file type check
         run: |
           source tools/envsetup.sh

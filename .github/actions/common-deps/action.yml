@@ -19,14 +19,58 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: setup cache action
+    - name: Get habitat cache key
+      id: hab
+      shell: bash
+      run: |
+        if [[ "${{ inputs.target }}" == "" ]]; then
+          python3 tools/ci/habitat_cache_helper.py
+        else
+          python3 tools/ci/habitat_cache_helper.py --target ${{ inputs.target }}
+        fi
+
+    - name: Setup cache action
+      if: ${{ inputs.cache-backend == 'lynx-infra' }}
+      uses: lynx-infra/cache@5c6160a6a4c7fca80a2f3057bb9dfc9513fcb732
+      with:
+        path: ~/.habitat_cache
+        key: hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ steps.hab.outputs.HABITAT_TARGETS }}${{ steps.hab.outputs.HABITAT_DEPS_FILE_DIGEST }}
+        restore-keys: |
+          hab${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ steps.hab.outputs.HABITAT_TARGETS }}
+
+    - name: Setup cache action
       if: ${{ inputs.cache-backend == 'github' }}
       uses: actions/cache@v4
       with:
         path: ~/.habitat_cache
-        key: hab-${{ runner.os }}-${{ hashFiles('.habitat', 'DEPS') }}
+        key: hab-${{ runner.os }}-${{ steps.hab.outputs.HABITAT_TARGETS }}${{ steps.hab.outputs.HABITAT_DEPS_FILE_DIGEST }}
         restore-keys: |
-          hab-${{ runner.os }}-
+          hab-${{ runner.os }}-${{ steps.hab.outputs.HABITAT_TARGETS }}
+
+    - name: Get Python Cache Directory
+      id: pip
+      shell: bash
+      if: ${{ inputs.cache-backend == 'lynx-infra' }}
+      run: echo "PIP_CACHE_DIR=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
+
+    - name: Python Requirements Cache
+      if: ${{ inputs.cache-backend == 'lynx-infra' }}
+      uses: lynx-infra/cache@5c6160a6a4c7fca80a2f3057bb9dfc9513fcb732
+      with:
+        path: ${{ steps.pip.outputs.PIP_CACHE_DIR }}
+        key: pip${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ hashFiles('lynx/tools/vpython_tools/requirements.txt', 'lynx/testing/integration_test/test_script/requirements.txt') }}
+        restore-keys: |
+          pip${{ inputs.cache-key-prefix }}-${{ runner.os }}-
+
+    - name: Cache pnpm Dependencies
+      if: ${{ inputs.cache-backend == 'lynx-infra' && inputs.cache-key-prefix == '' }}
+      uses: lynx-infra/cache@5c6160a6a4c7fca80a2f3057bb9dfc9513fcb732
+      with:
+        # set pnpm store path to a specific value since we can't get it via `pnpm store path` before pnpm is setup.
+        path: ~/.local/share/pnpm/store
+        key: pnpm-${{ runner.os }}-${{ hashFiles('lynx/pnpm-lock.yaml') }}
+        restore-keys: |
+          pnpm-${{ runner.os }}-
 
     - name: install Python dependencies
       shell: bash
