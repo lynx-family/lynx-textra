@@ -151,6 +151,12 @@ class ParagraphImageTest : public ::testing::Test {
     TestHelper(&ParagraphTest::TestApplyStyleInRange,
                "apply_style_in_range.png");
   }
+  void TestTextShadow() {
+    TestHelper(&ParagraphTest::TestTextShadow, "text_shadow.png");
+  }
+  void TestHalfLeading() {
+    TestHelper(&ParagraphTest::TestHalfLeading, "half_leading.png");
+  }
 };
 
 TEST_F(ParagraphImageTest, TestSupSub) { TestSupSub(); }
@@ -198,3 +204,5 @@ TEST_F(ParagraphImageTest, TestModifyHAlignAfterLayout) {
   TestModifyHAlignAfterLayout();
 }
 TEST_F(ParagraphImageTest, TestApplyStyleRange) { TestApplyStyleRange(); }
+TEST_F(ParagraphImageTest, TestTextShadow) { TestTextShadow(); }
+TEST_F(ParagraphImageTest, TestHalfLeading) { TestHalfLeading(); }

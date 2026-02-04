@@ -154,6 +154,7 @@ class ParagraphTest {
   void TestModifyHAlignAfterLayout(ICanvasHelper* canvas, float width) const;
   void TestApplyStyleInRange(ICanvasHelper* canvas, float width) const;
   void TestTextShadow(ICanvasHelper* canvas, float width) const;
+  void TestHalfLeading(ICanvasHelper* canvas, float width) const;
 
  private:
   uint32_t test_width = 490;
