@@ -114,6 +114,7 @@ ParagraphTest::GetTestCases() {
            &ParagraphTest::TestModifyHAlignAfterLayout},
           {"TestApplyStyleInRange", &ParagraphTest::TestApplyStyleInRange},
           {"TestTextShadow", &ParagraphTest::TestTextShadow},
+          {"TestHalfLeading", &ParagraphTest::TestHalfLeading},
       };
   return kTestCases;
 }
@@ -1616,5 +1617,95 @@ void ParagraphTest::TestTextShadow(ICanvasHelper* canvas, float width) const {
   para->ApplyStyleInRange(style1, 10, 20);
   DrawParagraph(canvas, *para, width, LayoutMode::kDefinite,
                 LayoutMode::kIndefinite);
+}
+void ParagraphTest::TestHalfLeading(ICanvasHelper* canvas, float width) const {
+  draw_page_bound_ = false;
+  {
+    canvas->Save();
+    canvas->Translate(0, 10);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.SetLineHeightOverride(true);
+    para_style.SetHalfLeading(false);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_style_ = FontStyle::Normal();
+    fd.font_family_list_.emplace_back("NotoSansCJK");
+    style.SetFontDescriptor(fd);
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kBottom);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "No HalfLeading");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+    canvas->Restore();
+  }
+
+  {
+    canvas->Save();
+    canvas->Translate(200, 10);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.SetLineHeightOverride(true);
+    para_style.SetHalfLeading(true);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_style_ = FontStyle::Normal();
+    fd.font_family_list_.emplace_back("NotoSansCJK");
+    style.SetFontDescriptor(fd);
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kBottom);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "Enable HalfLeading");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+    canvas->Restore();
+  }
+
+  {
+    canvas->Save();
+    canvas->Translate(0, 100);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.SetLineHeightOverride(true);
+    para_style.SetHalfLeading(false);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_style_ = FontStyle::Normal();
+    fd.font_family_list_.emplace_back("NotoSansCJK");
+    style.SetFontDescriptor(fd);
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kBottom);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "中文效果");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+    canvas->Restore();
+  }
+
+  {
+    canvas->Save();
+    canvas->Translate(200, 100);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.SetLineHeightOverride(true);
+    para_style.SetHalfLeading(true);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_style_ = FontStyle::Normal();
+    fd.font_family_list_.emplace_back("NotoSansCJK");
+    style.SetFontDescriptor(fd);
+    style.SetVerticalAlignment(CharacterVerticalAlignment::kBottom);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "中文效果");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+    canvas->Restore();
+  }
 }
 #pragma clang diagnostic pop

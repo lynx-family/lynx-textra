@@ -102,8 +102,9 @@ LayoutMetrics BaseRun::CalculateLayoutMetrics(uint32_t start_char,
 
     if (paragraph_->GetParagraphStyle().LineHeightOverride()) {
       if (paragraph_->GetParagraphStyle().HalfLeading()) {
-        auto diff = layout_metrics.GetHeight() - font_size;
+        auto diff = (layout_metrics.GetHeight() - font_size) / 2;
         layout_metrics.max_ascent_ += diff;
+        layout_metrics.max_descent_ -= diff;
       } else {
         auto ratio = font_size / layout_metrics.GetHeight();
         layout_metrics.max_ascent_ *= ratio;
