@@ -185,6 +185,13 @@ enum LineBreakStrategy : uint8_t {
   kAvoidBreakAroundPunctuation = 1,
   kLineBreakStrategyDefault = 0xff,
 };
+enum FeatureOption : uint8_t {
+  kLastLineCanOverflow,
+  kSkipSpaceBeforeFirstLine,
+  kTrimLineTailSpace,
+  kHarmonyShaperForceUseLowAPI,
+  kSystemFontAdjust,
+};
 }  // namespace tttext
 }  // namespace ttoffice
 #endif  // PUBLIC_TEXTRA_LAYOUT_DEFINITION_H_

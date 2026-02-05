@@ -14,6 +14,7 @@
 #include "src/textlayout/style/style_manager.h"
 #include "src/textlayout/text_line_impl.h"
 #include "src/textlayout/tt_shaper.h"
+#include "src/textlayout/tttext_context_impl.h"
 
 namespace ttoffice {
 namespace tttext {
@@ -81,6 +82,9 @@ void TextLayoutImpl::FinishLineLayout(LayoutRegion* page,
   line->SetLayouted();
   auto& pos = context.GetPositionRef();
   line->CreateDrawerPiece();
+  if (context.GetImpl().IsTrimLineTailSpace()) {
+    line->TrimTailSpace();
+  }
   line->ApplyAlignment();
   /*
    * Extra inserted single-line images with no spacing (stick to top/bottom)
