@@ -21,7 +21,6 @@
 #include "src/textlayout/utils/tt_rectf.h"
 
 #if defined(TTTEXT_DEBUG)
-// #define DRAW_LINE_BOX
 // #define DRAW_AUXILIARY_LINE
 #endif
 namespace {
@@ -40,6 +39,14 @@ void LayoutDrawer::DrawLayoutPage(LayoutRegion* layout_page) {
   for (auto& line : layout_page->line_lst_) {
     DrawTextLine(line.get(), 0, line->GetCharCount());
   }
+#if defined(DRAW_AUXILIARY_LINE)
+  auto width = layout_page->GetLayoutedWidth();
+  auto height = layout_page->GetLayoutedHeight();
+  auto painter = canvas_->CreatePainter();
+  painter->SetStrokeColor(TTColor::BLACK);
+  painter->SetStrokeWidth(3);
+  canvas_->DrawRect(0, 0, width, height, painter.get());
+#endif
 }
 void LayoutDrawer::SetListener(LayoutDrawerListener* listener) {
   listener_ = listener;
@@ -78,15 +85,13 @@ void LayoutDrawer::DrawTextLine(TextLine* i_line, uint32_t char_start_in_line,
   DrawLineDecoration(line, char_start_in_para, char_end_in_para);
 #ifdef DRAW_AUXILIARY_LINE
   auto painter = canvas_->CreatePainter();
-  painter->SetStrokeWidth(1);
-  painter->SetColor(0xFFFF0000);
-  canvas_->DrawLine(0, line->GetContentTop(), 100, line->GetContentTop(),
-                    painter.get());
-  canvas_->DrawLine(0, line->GetContentBottom(), 100, line->GetContentBottom(),
-                    painter.get());
-  painter->SetColor(0xFF00FF00);
-  canvas_->DrawLine(0, line->GetLineBaseLine(), 100, line->GetLineBaseLine(),
-                    painter.get());
+  painter->SetStrokeWidth(2);
+  painter->SetStrokeColor(TTColor::BLUE);
+  auto oy = line->GetLineTop();
+  canvas_->DrawLine(0, oy + line->GetContentTop(), 100,
+                    oy + line->GetContentTop(), painter.get());
+  canvas_->DrawLine(0, oy + line->GetContentBottom(), 100,
+                    oy + line->GetContentBottom(), painter.get());
 #endif
 }
 /**
@@ -404,13 +409,12 @@ void LayoutDrawer::DrawGlyphsOrText(const BaseRun* run, uint16_t* glyphs,
                       ox, oy, pos_x, pos_y, p);
   p->SetBold(orig_bold);
   p->SetItalic(orig_italic);
-#if defined(DRAW_LINE_BOX)
+#if defined(DRAW_AUXILIARY_LINE)
   auto painter = canvas_->CreatePainter();
-  painter->SetFillStyle(FillStyle::kStroke);
-  painter->SetColor(0xffff0000);
+  painter->SetStrokeColor(TTColor::RED);
   painter->SetStrokeWidth(1);
   canvas_->DrawLine(ox, oy, ox + pos_x[glyph_count - 1], oy, painter.get());
-  painter->SetColor(0xFF00FF00);
+  painter->SetStrokeColor(TTColor::BLUE);
   auto metrics = run->GetMetrics();
   canvas_->DrawRect(ox, oy + metrics.GetMaxAscent(),
                     ox + pos_x[glyph_count - 1], oy + metrics.GetMaxDescent(),
