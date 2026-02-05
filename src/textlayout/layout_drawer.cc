@@ -253,13 +253,15 @@ void LayoutDrawer::DrawDrawerPiece(const TextLine* line,
       auto invert_glyph_id =
           glyph_start + (run->IsRtl() ? glyph_count - k - 1 : k);
       auto adv = result.Advances(invert_glyph_id)[0];
-      pos_y[k] = result.Positions(invert_glyph_id)[1];
+      auto pos = result.Positions(invert_glyph_id);
+      pos_y[k] = pos[1];
       if (adv < 0) {
         pos_x[k] = char_x_pos - adv;
       } else {
         pos_x[k] = char_x_pos;
         char_x_pos += adv;
       }
+      pos_x[k] += pos[0];
       if (FloatsLarger(adv, 0)) {
         char_x_pos += run->GetLayoutStyle().GetLetterSpacing();
       }

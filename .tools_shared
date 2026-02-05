@@ -15,6 +15,7 @@ checker-config:
       - ".github/*"
       - "src/ports/shaper/minikin/*"
       - "src/textlayout/icu_substitute/linebreak/*"
+      - "demos/lvgl"
 
   cpplint-checker:
     ignore-suffixes:
@@ -37,3 +38,4 @@ checker-config:
       - "demos/darwin/ios"
       - "demos/android"
       - "demos/harmony"
+      - "demos/lvgl"

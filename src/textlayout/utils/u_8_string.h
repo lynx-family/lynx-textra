@@ -108,6 +108,60 @@ inline int CalcCharCount(const char* s, int len) {
   return char_pos;
 }
 uint32_t U8CharToU32(const char* u8_char, uint32_t* char_len);
+
+/**
+ * Converts a single UTF-16 character (including surrogate pairs) to a UTF-32
+ * code point.
+ * @param u16_char     Pointer to the input UTF-16 buffer.
+ * @param u16_char_len Pointer to the maximum number of char16_t units available
+ * in the buffer.
+ * @param char_code    Pointer to store the resulting UTF-32 Unicode code point.
+ * @return             The number of char16_t units consumed (1 or 2). Returns 0
+ * on error.
+ */
+inline uint32_t U16CharToU32(const char16_t* u16_char, uint32_t u16_char_len,
+                             char32_t* char_code) {
+  // 1. Basic validation: Ensure pointers are valid and buffer is not empty
+  if (!u16_char || !u16_char_len || u16_char_len == 0 || !char_code) {
+    return 0;
+  }
+
+  uint16_t w1 = u16_char[0];
+  uint32_t max_buffer = u16_char_len;
+
+  // 2. Check if the code unit is a High Surrogate (0xD800 - 0xDBFF)
+  if (w1 >= 0xD800 && w1 <= 0xDBFF) {
+    // Surrogate pairs require at least 2 units in the buffer
+    if (max_buffer >= 2) {
+      uint16_t w2 = u16_char[1];
+
+      // 3. Verify that the second unit is a Low Surrogate (0xDC00 - 0xDFFF)
+      if (w2 >= 0xDC00 && w2 <= 0xDFFF) {
+        // Calculate the supplementary plane code point
+        // Formula: ((High - 0xD800) << 10) + (Low - 0xDC00) + 0x10000
+        *char_code =
+            (char32_t)(((w1 - 0xD800) << 10) | (w2 - 0xDC00)) + 0x10000;
+        return 2;  // Consumed 2 units
+      } else {
+        // Error: High surrogate not followed by a low surrogate
+        *char_code = 0xFFFD;  // Unicode replacement character
+        return 1;
+      }
+    } else {
+      // Error: Buffer too small for the required surrogate pair
+      *char_code = 0xFFFD;
+      return 1;
+    }
+  } else if (w1 >= 0xDC00 && w1 <= 0xDFFF) {
+    // 4. Check for an isolated Low Surrogate (Invalid as a starting unit)
+    *char_code = 0xFFFD;
+    return 1;
+  } else {
+    // 5. Normal character in the Basic Multilingual Plane (BMP)
+    *char_code = static_cast<char32_t>(w1);
+    return 1;  // Consumed 1 unit
+  }
+}
 inline uint32_t U32Strlen(const char32_t* str) {
   const auto* s = str;
   while (*s) ++s;

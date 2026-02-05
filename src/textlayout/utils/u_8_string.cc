@@ -103,31 +103,13 @@ std::u32string U8StringToU32(const char* u8str, uint32_t length) {
 std::u32string U16StringToU32(const char16_t* u16str, uint32_t length) {
   std::u32string u32str;
   u32str.reserve((uint32_t)(length * 0.75f));
+  char32_t char32 = 0;
 
-  for (uint32_t i = 0; i < length;) {
-    uint32_t utf32 = u16str[i];
-
-    if (utf32 >= 0xD800 && utf32 <= 0xDBFF) {
-      if (i + 1 < length) {
-        uint32_t lowSurrogate = u16str[i + 1];
-        if (lowSurrogate >= 0xDC00 && lowSurrogate <= 0xDFFF) {
-          utf32 = ((utf32 - 0xD800) << 10) + (lowSurrogate - 0xDC00) + 0x10000;
-          i += 2;
-        } else {
-          LogUtil::E("Invalid UTF-16 encoding");
-        }
-      } else {
-        LogUtil::E("Invalid UTF-16 encoding");
-      }
-    } else if (utf32 >= 0xDC00 && utf32 <= 0xDFFF) {
-      LogUtil::E("Invalid UTF-16 encoding");
-    } else {
-      i++;
-    }
-
-    u32str.push_back(utf32);
+  uint32_t i = 0;
+  while (i < length) {
+    i += U16CharToU32(u16str + i, length - i, &char32);
+    u32str.push_back(char32);
   }
-
   return u32str;
 }
 std::u16string U32StringToU16(const char32_t* u32str, uint32_t length) {

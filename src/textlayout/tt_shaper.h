@@ -39,7 +39,7 @@ class TTShaper {
 
   const FontmgrCollection& GetFontCollection() const noexcept {
     return font_collection_;
-  };
+  }
   virtual void SetContext(TTTextContext& context) { context_ = &context; }
   virtual void ProcessShapeStyleTransform(Style& style) {}
   virtual void ProcessBidirection(const char32_t* text, uint32_t length,

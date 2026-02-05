@@ -163,3 +163,24 @@ jobs:
           pushd demos/harmony/lynxtextra_demo
           ohpm install
           hvigorw assembleApp --mode project -p product=default -p buildMode=debug --no-daemon
+
+  lvgl-demo-build-check:
+    runs-on: lynx-ubuntu-22.04-large
+    timeout-minutes: 60
+    steps:
+      - name: Python Setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+      - name: Install Common Dependencies
+        uses: ./.github/actions/common-deps
+      - name: Run LVGL demo build check
+        run: |
+          source tools/envsetup.sh
+          ./tools/hab sync . --target=lvgl
+          python3 build/linux/sysroot_scripts/install-sysroot.py --arch=x64
+          sudo apt-get update && sudo apt-get install -y libsdl2-dev
+          buildtools/cmake/bin/cmake -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DIS_LVGL=ON -G Ninja -S . -B cmake-build-release
+          buildtools/cmake/bin/cmake --build cmake-build-release -t lvgl_demo
