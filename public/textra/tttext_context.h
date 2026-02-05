@@ -16,6 +16,7 @@ namespace tttext {
 class LayoutRegion;
 class LayoutPosition;
 class TextLayoutImpl;
+class TTTextContextImpl;
 /**
  * @brief A class manages the text layout configurations and intermediate layout
  * states.
@@ -41,64 +42,48 @@ class L_EXPORT TTTextContext {
    * the last line is always constrained to fit within the page height.
    * Default is true.
    */
-  bool IsLastLineCanOverflow() const { return last_line_can_overflow_; }
-  void SetLastLineCanOverflow(bool lastLineCanOverflow) {
-    last_line_can_overflow_ = lastLineCanOverflow;
-  }
+  bool IsLastLineCanOverflow() const;
+  void SetLastLineCanOverflow(bool lastLineCanOverflow);
   /**
    * @brief Controls whether paragraph spacing is applied before the first line.
    *
    * Value: Boolean. When enabled, the first line starts at the top of the
    * layout area without leading space. Default is false.
    */
-  bool IsSkipSpacingBeforeFirstLine() const {
-    return skip_spacing_before_first_line_;
-  }
-  void SetSkipSpacingBeforeFirstLine(bool skipSpacingBeforeFirstLine) {
-    skip_spacing_before_first_line_ = skipSpacingBeforeFirstLine;
-  }
+  bool IsSkipSpacingBeforeFirstLine() const;
+  void SetSkipSpacingBeforeFirstLine(bool skipSpacingBeforeFirstLine);
 
   /**
    * @brief Force harmony system shaper only use low Level API from Harmony OS
    */
-  bool IsHarmonyShaperForceLowAPI() const {
-    return harmony_shaper_force_low_api_;
-  }
-  void SetHarmonyShaperForceLowAPI(bool harmonyShaperForceLowAPI) {
-    harmony_shaper_force_low_api_ = harmonyShaperForceLowAPI;
-  }
+  bool IsHarmonyShaperForceLowAPI() const;
+  void SetHarmonyShaperForceLowAPI(bool harmonyShaperForceLowAPI);
 
   /**
    *@brief Enable font style adjustments based on different systems.
    */
-  bool IsEnableSystemFontAdjust() const { return enable_system_font_adjust_; }
-  void SetEnableSystemFontAdjust(bool enable_system_font_adjust) {
-    enable_system_font_adjust_ = enable_system_font_adjust;
-  }
+  bool IsEnableSystemFontAdjust() const;
+  void SetEnableSystemFontAdjust(bool enable_system_font_adjust);
+
+  void EnableFeature(FeatureOption feature_option, bool value);
 
   // Layout state getters/setters
  public:
   void Reset();
   void SetLayoutPosition(uint32_t run_idx, uint32_t char_idx_in_run) const;
   std::pair<uint32_t, uint32_t> GetLayoutPosition() const;
-  float GetLayoutBottom() const { return layout_bottom_; }
-  void SetLayoutBottom(float layout_bottom) { layout_bottom_ = layout_bottom; }
+  float GetLayoutBottom() const;
+  void SetLayoutBottom(float layout_bottom);
+  const TTTextContextImpl& GetImpl();
 
  private:
   friend class TextLayoutImpl;
   friend class TextLayoutTest;
   friend class TTTextContextTest;
-  L_HIDDEN LayoutPosition& GetPositionRef() { return *position_; }
+  L_HIDDEN LayoutPosition& GetPositionRef();
 
  private:
-  // Layout Configurations
-  bool last_line_can_overflow_{true};
-  bool skip_spacing_before_first_line_{false};
-  bool harmony_shaper_force_low_api_{false};
-  bool enable_system_font_adjust_{false};
-  // Layout States
-  std::unique_ptr<LayoutPosition> position_;
-  float layout_bottom_{0};
+  std::unique_ptr<TTTextContextImpl> impl_;
 };
 }  // namespace tttext
 }  // namespace ttoffice

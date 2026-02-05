@@ -152,6 +152,9 @@ void TextLineImpl::CreateDrawerPiece() {
       }
     }
   }
+}
+
+void TextLineImpl::TrimTailSpace() {
   auto last = drawer_list_.rbegin();
   while (last != drawer_list_.rend()) {
     auto& drawer = *last;
@@ -180,6 +183,7 @@ void TextLineImpl::CreateDrawerPiece() {
     drawer_list_.erase(last.base(), drawer_list_.end());
   }
 }
+
 void TextLineImpl::InsertDrawerPiece(
     std::unique_ptr<DrawerPiece> drawer_piece) {
   auto iter = std::lower_bound(
