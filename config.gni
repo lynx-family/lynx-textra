@@ -21,4 +21,5 @@ declare_args() {
   
   # Whether to dynamically load (dlopen) Harfbuzz .so
   dynamic_load_harfbuzz = false
+  is_lvgl = false
 }

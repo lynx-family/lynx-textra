@@ -12,15 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import("//config.gni")
+import("../config.gni")
 
 declare_args() {
   prj_root = rebase_path("..")
-  enable_javashaper = is_android
+  enable_javashaper = is_android && !is_lvgl
   enable_skshaper = is_android || is_mac || is_harmony || is_win || is_linux
-  enable_ctshaper = is_ios || is_mac
+  enable_ctshaper = (is_ios || is_mac) && is_lvgl
   enable_harmony = is_harmony
   enable_minikin = false
+  enable_lvglshaper = is_lvgl
+  if (is_lvgl) {
+    enable_javashaper = false
+    enable_ctshaper = false
+    enable_harmony = false
+  }
 }
 
 # print("=========== tttext build config ===========")
@@ -29,11 +35,13 @@ declare_args() {
 # print("tttext_enable_skshaper:", enable_skshaper)
 # print("tttext_enable_ctshaper:", enable_ctshaper)
 # print("tttext_enable_harmony:", enable_harmony)
+# print("tttext_enable_lvgl:", enable_lvglshaper)
 # print("is_android:", is_android)
 # print("is_mac:", is_mac)
 # print("is_ios:", is_ios)
 # print("is_linux:", is_linux)
 # print("is_harmony:", is_harmony)
+# print("is_lvgl:", is_lvgl)
 # print("target_cpu:", target_cpu)
 # print("root_out_dir:", root_out_dir)
 # print("===========================================")
@@ -80,6 +88,9 @@ config("textlayout_internal") {
   }
   if (is_linux) {
     defines += [ "TTTEXT_OS_LINUX" ]
+  }
+  if (is_lvgl) {
+    defines += [ "TTTEXT_OS_LVGL" ]
   }
 }
 
@@ -272,6 +283,17 @@ source_set("textlayout") {
     ]
   }
 
+  if (enable_lvglshaper) {
+    configs += [ ":lvgl_public" ]
+    sources += [
+      "$prj_root/src/ports/shaper/lvgl/lvgl_canvas_helper.cc",
+      "$prj_root/src/ports/shaper/lvgl/lvgl_font_manager.cc",
+      "$prj_root/src/ports/shaper/lvgl/lvgl_shaper.cc",
+      "$prj_root/src/ports/shaper/lvgl/lvgl_shaper.h",
+      "$prj_root/src/ports/shaper/lvgl/lvgl_typeface.cc",
+    ]
+  }
+
   if (enable_minikin) {
     include_dirs += [ "$prj_root/src/ports/shaper/minikin" ]
     sources += [
@@ -401,4 +423,9 @@ config("ctshaper_public") {
 config("harmony_public") {
   include_dirs = [ "$prj_root/src/ports/shaper/harmony" ]
   defines = [ "ENABLE_OHOS" ]
+}
+
+config("lvgl_public") {
+  include_dirs = [ "$prj_root/third_party" ]
+  defines = [ "ENABLE_LVGL" ]
 }

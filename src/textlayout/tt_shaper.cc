@@ -16,6 +16,9 @@
 #if defined(ENABLE_OHOS)
 #include "src/ports/shaper/ark_graphics/shaper_ark_graphics.h"
 #endif
+#ifdef ENABLE_LVGL
+#include "src/ports/shaper/lvgl/lvgl_shaper.h"
+#endif
 #include <textra/macro.h>
 
 #include "src/textlayout/paragraph_impl.h"
@@ -37,6 +40,9 @@ std::unique_ptr<TTShaper> TTShaper::CreateShaper(
 #endif
 #ifdef ENABLE_OHOS
       return std::make_unique<ShaperArkGraphics>(*font_collection);
+#endif
+#ifdef ENABLE_LVGL
+      return std::make_unique<LVGLShaper>(*font_collection);
 #endif
       break;
     }

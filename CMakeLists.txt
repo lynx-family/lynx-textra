@@ -6,11 +6,21 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(TEXTRA_ENABLE_SKIA "option for enable skia backend" OFF)
 
-if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
-    set(BUILD_TYPE "is_debug=false")
+set(GN_ARG_LIST "")
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    list(APPEND GN_ARG_LIST "is_debug=false")
 else ()
-    set(BUILD_TYPE "is_debug=true")
+    list(APPEND GN_ARG_LIST "is_debug=true")
 endif ()
+
+list(APPEND GN_ARG_LIST "use_flutter_cxx=false" "use_xcode=true")
+
+if (IS_LVGL)
+    list(APPEND GN_ARG_LIST "is_lvgl=true")
+endif ()
+
+list(JOIN GN_ARG_LIST " " GN_ARGS)
 
 execute_process(
         COMMAND source ${PROJECT_SOURCE_DIR}/tools/envsetup.sh
@@ -21,7 +31,7 @@ execute_process(
 message(STATUS "Result: ${result}")
 
 set(CMD python3 ${PROJECT_SOURCE_DIR}/tools/build_cmake_environment.py
-        --gn-args "${BUILD_TYPE} use_flutter_cxx=false use_xcode=true")
+        --gn-args ${GN_ARGS})
 message(STATUS "executing: ${CMD}")
 execute_process(
         COMMAND ${CMD}
@@ -63,6 +73,10 @@ endif ()
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     GEN_CMAKE("//platform/linux:lynxtextra")
     add_subdirectory("platform/linux")
+endif ()
+
+if (${IS_LVGL})
+    add_subdirectory(demos/lvgl)
 endif ()
 
 if (${TEXTRA_ENABLE_SKIA})

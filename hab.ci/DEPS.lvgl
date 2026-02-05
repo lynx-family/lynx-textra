@@ -1,0 +1,17 @@
+import os
+import platform
+
+system = platform.system().lower()
+machine = platform.machine().lower()
+machine = "x86_64" if machine == "amd64" else machine
+
+root_dir = os.getcwd()
+
+deps = {
+    'third_party/lvgl': {
+        'type': 'git',
+        'url': 'https://github.com/lvgl/lvgl',
+        'commit': 'c016f72d4c125098287be5e83c0f1abed4706ee5',
+        "ignore_in_git": True,
+    }
+}

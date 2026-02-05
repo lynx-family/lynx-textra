@@ -1,1 +1,10 @@
-solutions = [{'name': '.', 'deps_file': 'DEPS', 'url': 'git@github.com:lynx-family/lynx-textra.git', 'target_deps_files': {}}]
+solutions = [
+    {
+        'name': '.',
+        'deps_file': 'DEPS',
+        'url': '',
+        'target_deps_files': {
+            'lvgl': 'hab.ci/DEPS.lvgl',
+        },
+    }
+]

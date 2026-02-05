@@ -4,6 +4,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=shorten-64-to-32 -Wshorten-64-to
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=sign-compare -Wsign-compare")
 
 target_link_libraries(lynxtextra PUBLIC
-    "-framework AppKit"
-    "-framework CoreText"
+        "-framework AppKit"
+        "-framework CoreText"
 )
+if (${IS_LVGL})
+    target_link_libraries(lynxtextra PUBLIC lvgl)
+endif ()
