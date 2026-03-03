@@ -59,6 +59,22 @@ void ParagraphTest::DrawParagraph(ICanvasHelper* canvas, Paragraph& paragraph,
     paint->SetStrokeColor(TTColor::GREEN);
     canvas->DrawRect(0, 0, layout_width, layout_height, paint.get());
   }
+  if (draw_tight_bound_) {
+    paint->SetStrokeWidth(1);
+    int line_count = page.GetLineCount();
+    for (int i = 0; i < line_count; i++) {
+      auto line = page.GetLine(0);
+      auto baseline = line->GetLineBaseLine();
+      paint->SetStrokeColor(TTColor::BLUE);
+      canvas->DrawLine(0, baseline, layout_width, baseline, paint.get());
+      float bound[4];
+      line->GetTightBoundingRectByCharRange(bound, line->GetStartCharPos(),
+                                            line->GetEndCharPos());
+      paint->SetStrokeColor(TTColor::RED);
+      canvas->DrawRect(bound[0], bound[1] + baseline, bound[2],
+                       bound[3] + baseline, paint.get());
+    }
+  }
 }
 
 std::vector<std::pair<std::string, ParagraphTest::TestCaseFunction>>
@@ -115,6 +131,7 @@ ParagraphTest::GetTestCases() {
           {"TestApplyStyleInRange", &ParagraphTest::TestApplyStyleInRange},
           {"TestTextShadow", &ParagraphTest::TestTextShadow},
           {"TestHalfLeading", &ParagraphTest::TestHalfLeading},
+          {"TestDominateBaseline", &ParagraphTest::TestDominateBaseline},
       };
   return kTestCases;
 }
@@ -1708,4 +1725,131 @@ void ParagraphTest::TestHalfLeading(ICanvasHelper* canvas, float width) const {
     canvas->Restore();
   }
 }
+void ParagraphTest::TestDominateBaseline(ICanvasHelper* canvas,
+                                         float width) const {
+  draw_page_bound_ = false;
+  draw_tight_bound_ = true;
+  {
+    canvas->Save();
+    canvas->Translate(10, 10);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.SetDominantBaseline(DominantBaseline::kTop);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_style_ = FontStyle::Normal();
+    fd.font_family_list_.emplace_back("NotoSansCJK");
+    style.SetFontDescriptor(fd);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "Top");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+
+    canvas->Restore();
+  }
+  {
+    canvas->Save();
+    canvas->Translate(100, 10);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.SetDominantBaseline(DominantBaseline::kMiddle);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_style_ = FontStyle::Normal();
+    fd.font_family_list_.emplace_back("NotoSansCJK");
+    style.SetFontDescriptor(fd);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "Middle");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+
+    canvas->Restore();
+  }
+  {
+    canvas->Save();
+    canvas->Translate(200, 10);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.SetDominantBaseline(DominantBaseline::kBottom);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_style_ = FontStyle::Normal();
+    fd.font_family_list_.emplace_back("NotoSansCJK");
+    style.SetFontDescriptor(fd);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "Bottom");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+
+    canvas->Restore();
+  }
+  {
+    canvas->Save();
+    canvas->Translate(300, 10);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.SetDominantBaseline(DominantBaseline::kAlphabetic);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_style_ = FontStyle::Normal();
+    fd.font_family_list_.emplace_back("NotoSansCJK");
+    style.SetFontDescriptor(fd);
+    style.SetTextSize(50);
+    para->AddTextRun(&style, "test");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+
+    canvas->Restore();
+  }
+  {
+    canvas->Save();
+    canvas->Translate(450, 10);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.SetDominantBaseline(DominantBaseline::kHanging);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_style_ = FontStyle::Normal();
+    fd.font_family_list_.emplace_back("NotoSansCJK");
+    style.SetFontDescriptor(fd);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "Hanging");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+
+    canvas->Restore();
+  }
+  {
+    canvas->Save();
+    canvas->Translate(550, 10);
+    Style style;
+    style.SetBackgroundColor(TTColor(0x0F0000FF));
+    auto para = Paragraph::Create();
+    ParagraphStyle para_style;
+    para_style.SetDominantBaseline(DominantBaseline::kIdeographic);
+    para->SetParagraphStyle(&para_style);
+    FontDescriptor fd;
+    fd.font_style_ = FontStyle::Normal();
+    fd.font_family_list_.emplace_back("NotoSansCJK");
+    style.SetFontDescriptor(fd);
+    style.SetTextSize(24);
+    para->AddTextRun(&style, "Ideographic");
+    DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+
+    canvas->Restore();
+  }
+  draw_tight_bound_ = false;
+}
+
 #pragma clang diagnostic pop

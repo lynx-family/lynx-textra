@@ -86,6 +86,7 @@ void TextLayoutImpl::FinishLineLayout(LayoutRegion* page,
     line->TrimTailSpace();
   }
   line->ApplyAlignment();
+  line->ApplyDominateBaseline();
   /*
    * Extra inserted single-line images with no spacing (stick to top/bottom)
    * */

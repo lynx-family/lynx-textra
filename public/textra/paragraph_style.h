@@ -100,6 +100,27 @@ class L_EXPORT ParagraphStyle {
   }
 
   /**
+   * @brief Dominant baseline used to align runs within each line.
+   *
+   * Controls where the line's baseline is placed relative to the line box
+   * (e.g. top/middle/bottom), and shifts all runs in the line accordingly so
+   * they share the same dominant baseline.
+   *
+   * Default is DominantBaseline::kAlphabetic (traditional text baseline).
+   *
+   * @note This affects line baseline related APIs such as
+   * TextLine::GetLineBaseLine() and tight bounding box APIs such as
+   * TextLine::GetTightBoundingRectByCharRange() (which reports ascent/descent
+   * relative to the line baseline).
+   *
+   * @see DominantBaseline enum for available values.
+   */
+  DominantBaseline GetDominantBaseline() const { return dominant_baseline_; }
+  void SetDominantBaseline(DominantBaseline dominant_baseline) {
+    dominant_baseline_ = dominant_baseline;
+  }
+
+  /**
    * @brief Start indentation in pixels.
    *
    * Sets or gets the indentation from the start edge of the paragraph
@@ -558,6 +579,7 @@ class L_EXPORT ParagraphStyle {
  protected:
   ParagraphHorizontalAlignment horizontal_alignment_;
   ParagraphVerticalAlignment vertical_alignment_;
+  DominantBaseline dominant_baseline_;
   Style default_style_;
   std::unique_ptr<Indent> indent_;
   std::unique_ptr<Spacing> spacing_;

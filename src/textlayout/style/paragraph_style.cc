@@ -16,6 +16,7 @@ namespace tttext {
 ParagraphStyle::ParagraphStyle()
     : horizontal_alignment_(ParagraphHorizontalAlignment::kLeft),
       vertical_alignment_(ParagraphVerticalAlignment::kCenter),
+      dominant_baseline_(DominantBaseline::kAlphabetic),
       default_style_(Style::DefaultStyle()),
       indent_(std::make_unique<Indent>()),
       spacing_(std::make_unique<Spacing>()),
@@ -38,6 +39,7 @@ ParagraphStyle& ParagraphStyle::operator=(
   if (this == &paragraph_style) return *this;
   horizontal_alignment_ = paragraph_style.horizontal_alignment_;
   vertical_alignment_ = paragraph_style.vertical_alignment_;
+  dominant_baseline_ = paragraph_style.dominant_baseline_;
   default_style_ = paragraph_style.default_style_;
   *indent_ = *paragraph_style.indent_;
   *spacing_ = *paragraph_style.spacing_;
