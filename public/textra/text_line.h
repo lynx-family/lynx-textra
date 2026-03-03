@@ -90,6 +90,16 @@ class L_EXPORT TextLine {
                                           CharPos start_char_pos,
                                           CharPos end_char_pos) const = 0;
   /**
+   *
+   * @param start_char_pos paragraph text offset index
+   * @param end_char_pos paragraph text offset index
+   * @param bounding_rect return value, [left, ascent, right, descent]
+   *        ascent = top - baseline, descent = bottom - baseline
+   */
+  virtual void GetTightBoundingRectByCharRange(float bounding_rect[4],
+                                               CharPos start_char_pos,
+                                               CharPos end_char_pos) const = 0;
+  /**
    * Get CharPos based on x coordinate, character offset relative to
    * LineStartPos, first character ID at line start is 0
    * @param x x coordinate

@@ -155,12 +155,14 @@ class ParagraphTest {
   void TestApplyStyleInRange(ICanvasHelper* canvas, float width) const;
   void TestTextShadow(ICanvasHelper* canvas, float width) const;
   void TestHalfLeading(ICanvasHelper* canvas, float width) const;
+  void TestDominateBaseline(ICanvasHelper* canvas, float width) const;
 
  private:
   uint32_t test_width = 490;
   uint32_t test_height = 1000;
   mutable bool draw_page_bound_ = true;
   mutable bool draw_layouted_bound_ = true;
+  mutable bool draw_tight_bound_ = false;
 
  private:
   ShaperType shaper_type_;

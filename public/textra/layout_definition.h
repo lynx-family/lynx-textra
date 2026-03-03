@@ -192,6 +192,14 @@ enum FeatureOption : uint8_t {
   kHarmonyShaperForceUseLowAPI,
   kSystemFontAdjust,
 };
+enum class DominantBaseline : uint8_t {
+  kAlphabetic,
+  kTop,
+  kMiddle,
+  kBottom,
+  kIdeographic,
+  kHanging,
+};
 }  // namespace tttext
 }  // namespace ttoffice
 #endif  // PUBLIC_TEXTRA_LAYOUT_DEFINITION_H_

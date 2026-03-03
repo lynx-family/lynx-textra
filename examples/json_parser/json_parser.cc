@@ -443,6 +443,26 @@ ParagraphStyle ParseParagraphStyle(const Value& style_data) {
     }
   }
 
+  if (HasOptionalField(style_data, "dominant_baseline")) {
+    auto baseline =
+        GetRequiredField<std::string>(style_data, "dominant_baseline");
+    if (baseline == "kAlphabetic") {
+      para_style.SetDominantBaseline(DominantBaseline::kAlphabetic);
+    } else if (baseline == "kTop") {
+      para_style.SetDominantBaseline(DominantBaseline::kTop);
+    } else if (baseline == "kMiddle") {
+      para_style.SetDominantBaseline(DominantBaseline::kMiddle);
+    } else if (baseline == "kBottom") {
+      para_style.SetDominantBaseline(DominantBaseline::kBottom);
+    } else if (baseline == "kHanging") {
+      para_style.SetDominantBaseline(DominantBaseline::kHanging);
+    } else if (baseline == "kIdeographic") {
+      para_style.SetDominantBaseline(DominantBaseline::kIdeographic);
+    } else {
+      throw std::runtime_error("Invalid dominant_baseline value: " + baseline);
+    }
+  }
+
   // Parse default_style
   if (HasOptionalField(style_data, "default_style")) {
     Style default_style = ParseStyle(style_data["default_style"]);

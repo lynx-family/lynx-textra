@@ -368,6 +368,53 @@ void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
   }
 }
 
+void TextLineImpl::ApplyDominateBaseline() {
+  auto dominate_baseline =
+      paragraph_->GetParagraphStyle().GetDominantBaseline();
+  if (dominate_baseline == DominantBaseline::kAlphabetic) {
+    return;
+  }
+  auto calc_baseline = [](DominantBaseline baseline, float ascent,
+                          float descent) {
+    switch (baseline) {
+      case DominantBaseline::kTop:
+        return 0.f;
+      case DominantBaseline::kMiddle:
+        return 0.5f * (descent - ascent);
+      case DominantBaseline::kHanging:
+        return 0.2f * -ascent;
+      case DominantBaseline::kBottom:
+      case DominantBaseline::kIdeographic:
+        return descent - ascent;
+      default:
+        return -ascent;
+    }
+  };
+  float line_baseline =
+      calc_baseline(dominate_baseline, -max_ascent_, max_descent_);
+  float line_top = GetLineTop() + top_extra_;
+  for (auto& piece : drawer_list_) {
+    auto metrics = piece->GetRun()->GetMetrics();
+    float piece_baseline = calc_baseline(
+        dominate_baseline, metrics.GetMaxAscent(), metrics.GetMaxDescent());
+    float old_piece_baseline = -metrics.GetMaxAscent();
+    float piece_offset_in_line =
+        line_baseline + old_piece_baseline - piece_baseline;
+    piece->SetYOffsetInLine(piece_offset_in_line);
+    if (auto type = piece->GetRun()->GetType();
+        type == RunType::kInlineObject &&
+        piece->GetRun()->GetRunDelegate() != nullptr) {
+      auto delegate = piece->GetRun()->GetRunDelegate();
+      delegate->SetOffset(
+          delegate->GetXOffset(),
+          line_top + piece_offset_in_line + metrics.GetMaxAscent());
+    }
+  }
+  float line_height = GetLineHeight();
+  max_ascent_ = line_baseline;
+  max_descent_ = line_height - line_baseline;
+}
+
 void TextLineImpl::ClearForRelayout() {
   range_lst_.clear();
   empty_ = true;
@@ -485,11 +532,31 @@ void TextLineImpl::GetBoundingRectByCharRange(float bounding_rect[4],
   start_char_pos = std::max(start_char_pos, GetStartCharPos());
   end_char_pos = std::min(end_char_pos, GetEndCharPos());
   TTASSERT(start_char_pos <= end_char_pos);
-  float left = drawer_list_[0]->GetXOffset(), top = GetLineBottom(),
-        right = left, bottom = line_top_;
+  float left = 0;
+  float top = 0;
+  float right = 0;
+  float bottom = 0;
+  GetCharRangeBounds(start_char_pos, end_char_pos, false, &left, &top, &right,
+                     &bottom);
+  *left_p = left;
+  *top_p = top;
+  *width_p = std::max(0.f, right - left);
+  *height_p = std::max(0.f, bottom - top);
+}
+
+void TextLineImpl::GetCharRangeBounds(CharPos start_char_pos,
+                                      CharPos end_char_pos, bool tight,
+                                      float* left, float* top, float* right,
+                                      float* bottom) const {
+  float y_base = tight ? 0.f : line_top_;
+  float local_left = drawer_list_[0]->GetXOffset();
+  float local_top = y_base + GetLineHeight();
+  float local_right = local_left;
+  float local_bottom = y_base;
   enum SearchStatus : uint8_t { kNotStart, kInProgress, kEnd };
   SearchStatus status = kNotStart;
   auto iter = drawer_list_.begin();
+  float tight_bound[4];
   while (iter != drawer_list_.end()) {
     auto& drawer = *iter++;
     if (drawer->GetRun()->IsGhostRun()) {
@@ -499,27 +566,55 @@ void TextLineImpl::GetBoundingRectByCharRange(float bounding_rect[4],
       if (drawer->GetStartCharPosInParagraph() <= start_char_pos &&
           start_char_pos < drawer->GetEndCharPosInParagraph()) {
         status = kInProgress;
-        left = drawer->GetXOffset();
-        left +=
+        local_left = drawer->GetXOffset();
+        local_left +=
             start_char_pos == drawer->GetStartCharPosInParagraph()
                 ? 0
                 : drawer->GetWidthInRange(
                       0, start_char_pos - drawer->GetStartCharPosInParagraph());
+        if (tight) {
+          GetDrawerPieceCharTightBoundRect(drawer.get(), start_char_pos,
+                                           start_char_pos + 1, tight_bound);
+          local_left += tight_bound[0];
+        }
       }
     }
     if (status == kInProgress) {
-      auto metrics = drawer->GetRun()->GetMetrics();
-      top = std::min(
-          top, drawer->GetYOffsetInLine() + metrics.GetMaxAscent() + line_top_);
-      bottom = std::max(bottom, drawer->GetYOffsetInLine() +
-                                    metrics.GetMaxDescent() + line_top_);
+      if (tight) {
+        GetDrawerPieceCharTightBoundRect(drawer.get(), start_char_pos,
+                                         end_char_pos, tight_bound);
+        local_top = std::min(
+            local_top, y_base + drawer->GetYOffsetInLine() + tight_bound[1]);
+        local_bottom = std::max(
+            local_bottom, y_base + drawer->GetYOffsetInLine() + tight_bound[3]);
+      } else {
+        auto metrics = drawer->GetRun()->GetMetrics();
+        local_top = std::min(local_top, y_base + drawer->GetYOffsetInLine() +
+                                            metrics.GetMaxAscent());
+        local_bottom =
+            std::max(local_bottom, y_base + drawer->GetYOffsetInLine() +
+                                       metrics.GetMaxDescent());
+      }
       if (drawer->GetStartCharPosInParagraph() < end_char_pos &&
           end_char_pos <= drawer->GetEndCharPosInParagraph()) {
-        right = drawer->GetXOffset() +
-                drawer->GetWidthInRange(
-                    0, std::min(drawer->GetCharCount(),
-                                end_char_pos -
-                                    drawer->GetStartCharPosInParagraph()));
+        if (tight) {
+          local_right =
+              drawer->GetXOffset() +
+              drawer->GetWidthInRange(
+                  0, std::min(drawer->GetCharCount(),
+                              end_char_pos -
+                                  drawer->GetStartCharPosInParagraph() - 1));
+          GetDrawerPieceCharTightBoundRect(drawer.get(), end_char_pos - 1,
+                                           end_char_pos, tight_bound);
+          local_right += tight_bound[2];
+        } else {
+          local_right =
+              drawer->GetXOffset() +
+              drawer->GetWidthInRange(
+                  0, std::min(
+                         drawer->GetCharCount(),
+                         end_char_pos - drawer->GetStartCharPosInParagraph()));
+        }
         status = kEnd;
       }
     }
@@ -528,18 +623,128 @@ void TextLineImpl::GetBoundingRectByCharRange(float bounding_rect[4],
     }
   }
   if (status != kEnd && !drawer_list_.empty()) {
-    const auto* drawer = drawer_list_.back().get();
-    right =
-        drawer->GetXOffset() +
-        drawer->GetWidthInRange(
-            0, std::min(drawer->GetCharCount(),
-                        end_char_pos - drawer->GetStartCharPosInParagraph()));
+    auto* drawer = drawer_list_.back().get();
+    if (tight) {
+      local_right =
+          drawer->GetXOffset() +
+          drawer->GetWidthInRange(
+              0, std::min(
+                     drawer->GetCharCount(),
+                     end_char_pos - drawer->GetStartCharPosInParagraph() - 1));
+      GetDrawerPieceCharTightBoundRect(drawer, end_char_pos - 1, end_char_pos,
+                                       tight_bound);
+      local_right += tight_bound[2];
+    } else {
+      local_right =
+          drawer->GetXOffset() +
+          drawer->GetWidthInRange(
+              0, std::min(drawer->GetCharCount(),
+                          end_char_pos - drawer->GetStartCharPosInParagraph()));
+    }
   }
-  *left_p = left;
-  *top_p = top;
-  *width_p = std::max(0.f, right - left);
-  *height_p = std::max(0.f, bottom - top);
+  *left = local_left;
+  *top = local_top;
+  *right = local_right;
+  *bottom = local_bottom;
 }
+
+void TextLineImpl::GetTightBoundingRectByCharRange(float bounding_rect[4],
+                                                   CharPos start_char_pos,
+                                                   CharPos end_char_pos) const {
+  if (drawer_list_.empty() || start_char_pos >= end_char_pos ||
+      start_char_pos >= GetEndCharPos() || end_char_pos <= GetStartCharPos()) {
+    bounding_rect[0] = 0;
+    bounding_rect[1] = 0;
+    bounding_rect[2] = 0;
+    bounding_rect[3] = 0;
+    return;
+  }
+  start_char_pos = std::max(start_char_pos, GetStartCharPos());
+  end_char_pos = std::min(end_char_pos, GetEndCharPos());
+  TTASSERT(start_char_pos <= end_char_pos);
+  float left = 0;
+  float top = 0;
+  float right = 0;
+  float bottom = 0;
+  GetCharRangeBounds(start_char_pos, end_char_pos, true, &left, &top, &right,
+                     &bottom);
+  bounding_rect[0] = left;
+  bounding_rect[1] = top - max_ascent_ - top_extra_;
+  bounding_rect[2] = right;
+  bounding_rect[3] = bottom - max_ascent_ - top_extra_;
+}
+
+void TextLineImpl::GetDrawerPieceCharTightBoundRect(DrawerPiece* piece,
+                                                    CharPos start, CharPos end,
+                                                    float bounds[4]) {
+  auto* piece_run = piece->GetRun();
+  auto piece_char_start = std::max(piece->GetStartCharPosInParagraph(), start) -
+                          piece_run->GetStartCharPos();
+  auto piece_char_end = std::min(piece->GetEndCharPosInParagraph(), end) -
+                        piece_run->GetStartCharPos();
+  auto& shape_result = piece_run->shape_result_;
+  auto char_count = shape_result.CharCount();
+  auto glyph_count = shape_result.GlyphCount();
+  piece_char_start = std::min(piece_char_start, char_count);
+  piece_char_end = std::min(piece_char_end, char_count);
+  if (piece_char_start >= piece_char_end || glyph_count == 0) {
+    bounds[0] = 0;
+    bounds[1] = 0;
+    bounds[2] = 0;
+    bounds[3] = 0;
+    return;
+  }
+
+  auto glyph_start = shape_result.CharToGlyph(piece_char_start);
+  auto glyph_end = shape_result.CharToGlyph(piece_char_end - 1) + 1;
+  glyph_start = std::min(glyph_start, glyph_count);
+  glyph_end = std::min(glyph_end, glyph_count);
+  if (glyph_start >= glyph_end) {
+    bounds[0] = 0;
+    bounds[1] = 0;
+    bounds[2] = 0;
+    bounds[3] = 0;
+    return;
+  }
+  float font_size = piece_run->GetLayoutStyle().GetScaledTextSize();
+  bool started = false;
+  TypefaceRef last_font = shape_result.Font(glyph_start);
+  std::vector<GlyphID> glyphs;
+  glyphs.emplace_back(shape_result.Glyphs(glyph_start));
+  auto MergeBounds = [](bool started, float result_bound[4],
+                        float content_bound[4]) {
+    if (!started) {
+      result_bound[0] = content_bound[0];
+      result_bound[1] = content_bound[1];
+      result_bound[2] = content_bound[2];
+      result_bound[3] = content_bound[3];
+    } else {
+      result_bound[1] = std::min(result_bound[1], content_bound[1]);
+      result_bound[2] = content_bound[2];
+      result_bound[3] = std::max(result_bound[3], content_bound[3]);
+    }
+  };
+  float content_bound[4];
+  for (auto index = glyph_start + 1; index < glyph_end; index++) {
+    auto& current_font = shape_result.Font(index);
+    if (current_font != last_font) {
+      last_font->GetWidthBounds(content_bound, glyphs.data(),
+                                static_cast<uint32_t>(glyphs.size()),
+                                font_size);
+      MergeBounds(started, bounds, content_bound);
+      started = true;
+      last_font = current_font;
+      glyphs.clear();
+    }
+    glyphs.emplace_back(shape_result.Glyphs(index));
+  }
+  if (!glyphs.empty()) {
+    last_font->GetWidthBounds(content_bound, glyphs.data(),
+                              static_cast<uint32_t>(glyphs.size()), font_size);
+    MergeBounds(started, bounds, content_bound);
+  }
+}
+
 uint32_t TextLineImpl::GetCharPosByCoordinateX(float x) const {
   RunRange* prev_drawer = nullptr;
   float prev_right = 0;

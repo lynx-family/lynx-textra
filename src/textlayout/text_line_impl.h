@@ -36,6 +36,20 @@ class TextLineImpl : public TextLine {
   void CreateDrawerPiece();
   void TrimTailSpace();
   void InsertDrawerPiece(std::unique_ptr<DrawerPiece> drawer_piece);
+  void GetCharRangeBounds(CharPos start_char_pos, CharPos end_char_pos,
+                          bool tight, float* left, float* top, float* right,
+                          float* bottom) const;
+  /**
+   *
+   * @param piece drawer piece
+   * @param start char start in para
+   * @param end char end in para
+   * @param bounds [first glyph bounding left, max ascent, last glyph bounding
+   * right, max descent]
+   */
+  static void GetDrawerPieceCharTightBoundRect(DrawerPiece* piece,
+                                               CharPos start, CharPos end,
+                                               float bounds[4]);
 
  public:
   LayoutPosition UpdateLine(LayoutPosition pos, float max_ascent,
@@ -66,6 +80,7 @@ class TextLineImpl : public TextLine {
   void UpdateXMax(float width) override;
   void ApplyAlignment() override;
   void ApplyAlignment(ParagraphHorizontalAlignment h_align);
+  void ApplyDominateBaseline();
   void ModifyHorizontalAlignment(ParagraphHorizontalAlignment h_align) override;
   bool StripContentByWidth(float space);
   void AppendGhostRun(std::unique_ptr<BaseRun> ghost_run);
@@ -75,6 +90,9 @@ class TextLineImpl : public TextLine {
   void GetBoundingRectByCharRange(float bounding_rect[4],
                                   CharPos start_char_pos,
                                   CharPos end_char_pos) const override;
+  void GetTightBoundingRectByCharRange(float bounding_rect[4],
+                                       CharPos start_char_pos,
+                                       CharPos end_char_pos) const override;
   CharPos GetCharPosByCoordinateX(float x) const override;
 
  private:

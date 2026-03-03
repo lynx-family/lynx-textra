@@ -8,7 +8,9 @@
 #include <textra/tttext_context.h>
 
 #include <cstdint>
+#include <limits>
 #include <memory>
+#include <tuple>
 #include <utility>
 
 #include "mocks.h"
@@ -37,24 +39,47 @@ class MockInlineObject : public RunDelegate {
 
 class TextLayoutTest : public ::testing::Test {
  public:
-  std::unique_ptr<MockTTShaper> GetFixedSizeMockShaper() {
-    // FontInfo always returns -0.75 ascent and 0.25 descent, multiplied by
-    // font_size
+  ::TypefaceRef CreateFixedSizeMockTypeface() {
     auto mock_typeface = std::make_shared<NiceMock<MockTypefaceHelper>>();
     testing::Mock::AllowLeak(mock_typeface.get());
     ON_CALL(*mock_typeface, OnCreateFontInfo(_, _))
         .WillByDefault(Invoke([](FontInfo* info, float font_size) {
           *info = FontInfo(-0.75 * font_size, 0.25 * font_size, font_size);
         }));
+    ON_CALL(*mock_typeface, GetWidthBounds(_, _, _, _))
+        .WillByDefault(Invoke([](float* rect_ltrb, GlyphID[],
+                                 uint32_t glyph_count, float font_size) {
+          if (glyph_count == 0) {
+            rect_ltrb[0] = 0.f;
+            rect_ltrb[1] = 0.f;
+            rect_ltrb[2] = 0.f;
+            rect_ltrb[3] = 0.f;
+            return;
+          }
+          rect_ltrb[0] = 0.f;
+          rect_ltrb[1] = -0.75f * font_size;
+          rect_ltrb[2] = font_size * static_cast<float>(glyph_count);
+          rect_ltrb[3] = 0.25f * font_size;
+        }));
+    ON_CALL(*mock_typeface, GetWidthBound(_, _, _))
+        .WillByDefault(Invoke([](float* rect_ltwh, GlyphID, float font_size) {
+          rect_ltwh[0] = 0.f;
+          rect_ltwh[1] = -0.75f * font_size;
+          rect_ltwh[2] = font_size;
+          rect_ltwh[3] = font_size;
+        }));
+    return mock_typeface;
+  }
 
+  std::unique_ptr<MockTTShaper> CreateFixedSizeMockShaper(
+      const ::TypefaceRef& typeface) {
     auto test_fontmgr = std::make_shared<TestFontMgr>(
-        std::vector<std::shared_ptr<ITypefaceHelper>>{mock_typeface});
+        std::vector<std::shared_ptr<ITypefaceHelper>>{typeface});
     auto mock_shaper = std::make_unique<NiceMock<MockTTShaper>>(
         FontmgrCollection{test_fontmgr});
     ON_CALL(*mock_shaper, OnShapeText(_, _))
         .WillByDefault(
-            Invoke([mock_typeface](const ShapeKey& key, ShapeResult* result) {
-              // Each character takes a fixed space (font_size x font_size)
+            Invoke([typeface](const ShapeKey& key, ShapeResult* result) {
               const size_t char_count = key.text_.size();
               TestShapingResultReader reader(char_count);
               for (size_t i = 0; i < char_count; ++i) {
@@ -62,17 +87,21 @@ class TextLayoutTest : public ::testing::Test {
                 const float font_size = key.style_.GetFontSize();
                 reader.advances_[i] = {font_size, font_size};
               }
-              reader.font_ = mock_typeface;
+              reader.font_ = typeface;
               result->AppendPlatformShapingResult(reader);
             }));
     return mock_shaper;
   }
 
+  std::unique_ptr<MockTTShaper> GetFixedSizeMockShaper() {
+    return CreateFixedSizeMockShaper(CreateFixedSizeMockTypeface());
+  }
+
   // A helper method to set up a Paragraph with the specified content and lay it
   // out in LayoutRegions (with the specified with/height and modes), and
   // returns the layout results.
-  std::pair<std::vector<LayoutResult>,
-            std::vector<std::unique_ptr<LayoutRegion>>>
+  std::tuple<std::unique_ptr<ParagraphImpl>, std::vector<LayoutResult>,
+             std::vector<std::unique_ptr<LayoutRegion>>>
   LayoutContentWithRegionParams(float width, float height,
                                 LayoutMode width_mode, LayoutMode height_mode,
                                 const std::string& content) {
@@ -95,7 +124,8 @@ class TextLayoutTest : public ::testing::Test {
       regions.push_back(std::move(new_region));
       context.SetLayoutBottom(0);
     }
-    return std::make_pair(std::move(results), std::move(regions));
+    return std::make_tuple(std::move(para), std::move(results),
+                           std::move(regions));
   };
 };
 
@@ -106,7 +136,7 @@ TEST_F(TextLayoutTest, DifferentLayoutModes) {
     // AtMost mode
     {
       // 2 chars -> dimension 2 x 1
-      auto [results, regions] = LayoutContentWithRegionParams(
+      auto [para, results, regions] = LayoutContentWithRegionParams(
           page_width, page_height, LayoutMode::kAtMost, LayoutMode::kAtMost,
           "01");
       EXPECT_EQ(results.size(), 1u);
@@ -118,7 +148,7 @@ TEST_F(TextLayoutTest, DifferentLayoutModes) {
     }
     {
       // 5 chars -> dimension 3 x 2
-      auto [results, regions] = LayoutContentWithRegionParams(
+      auto [para, results, regions] = LayoutContentWithRegionParams(
           page_width, page_height, LayoutMode::kAtMost, LayoutMode::kAtMost,
           "01234");
       EXPECT_EQ(results.size(), 1u);
@@ -133,7 +163,7 @@ TEST_F(TextLayoutTest, DifferentLayoutModes) {
     // Definite mode
     {
       // 2 chars -> 1 page, 1 lines
-      auto [results, regions] = LayoutContentWithRegionParams(
+      auto [para, results, regions] = LayoutContentWithRegionParams(
           page_width, page_height, LayoutMode::kDefinite, LayoutMode::kDefinite,
           "01");
       EXPECT_EQ(results.size(), 1u);
@@ -143,7 +173,7 @@ TEST_F(TextLayoutTest, DifferentLayoutModes) {
     }
     {
       // 5 chars -> 1 page, 2 lines
-      auto [results, regions] = LayoutContentWithRegionParams(
+      auto [para, results, regions] = LayoutContentWithRegionParams(
           page_width, page_height, LayoutMode::kDefinite, LayoutMode::kDefinite,
           "01234");
       EXPECT_EQ(results.size(), 1u);
@@ -153,7 +183,7 @@ TEST_F(TextLayoutTest, DifferentLayoutModes) {
     }
     {
       // 10 chars -> 2 regions, 6 chars on first page and 4 chars on second page
-      auto [results, regions] = LayoutContentWithRegionParams(
+      auto [para, results, regions] = LayoutContentWithRegionParams(
           page_width, page_height, LayoutMode::kDefinite, LayoutMode::kDefinite,
           "0123456789");
       EXPECT_EQ(results.size(), 2u);
@@ -177,6 +207,43 @@ TEST_F(TextLayoutTest, ParagraphStyle_DefaultStyle) {
   para_style.SetDefaultStyle(style);
   EXPECT_EQ(para_style.GetDefaultStyle().GetTextSize(), text_size);
   EXPECT_EQ(para_style.GetDefaultStyle().GetForegroundColor(), text_color);
+}
+
+TEST_F(TextLayoutTest, DominantBaselineTopAlignsSmallerRun) {
+  const auto layout_helper = [this](DominantBaseline baseline) {
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    auto para = std::make_unique<ParagraphImpl>();
+    ParagraphStyle para_style;
+    Style default_style;
+    default_style.SetTextSize(10.f);
+    para_style.SetDefaultStyle(default_style);
+    para_style.SetDominantBaseline(baseline);
+    para->SetParagraphStyle(&para_style);
+    Style large;
+    large.SetTextSize(10.f);
+    Style small;
+    small.SetTextSize(5.f);
+    para->AddTextRun(&large, "A");
+    para->AddTextRun(&small, "B");
+    auto region = std::make_unique<LayoutRegion>(100.f, 50.f);
+    layout.Layout(para.get(), region.get(), context);
+    return std::make_pair(std::move(para), std::move(region));
+  };
+
+  auto [para_default, region_default] =
+      layout_helper(DominantBaseline::kAlphabetic);
+  auto* line_default = region_default->GetLine(0);
+  float rect_default[4]{};
+  line_default->GetBoundingRectByCharRange(rect_default, 1, 2);
+
+  auto [para_top, region_top] = layout_helper(DominantBaseline::kTop);
+  auto* line_top = region_top->GetLine(0);
+  float rect_top[4]{};
+  line_top->GetBoundingRectByCharRange(rect_top, 1, 2);
+
+  EXPECT_GT(rect_default[1], line_default->GetLineTop());
+  EXPECT_FLOAT_EQ(rect_top[1], line_top->GetLineTop());
 }
 
 TEST_F(TextLayoutTest, ParagraphStyle_HorizontalAlignment) {
@@ -663,6 +730,255 @@ TEST_F(TextLayoutTest, ParagraphStyle_OverflowWrap) {
     }
   }
 }
+
+TEST_F(TextLayoutTest, TextLine_GetTightBoundingRectByCharRange_GlyphBounds) {
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  auto para = std::make_unique<ParagraphImpl>();
+  Style style;
+  style.SetTextSize(2.f);
+  para->AddTextRun(&style, "ab");
+  auto region = std::make_unique<LayoutRegion>(100.f, 50.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  ASSERT_NE(line, nullptr);
+
+  float rect[4]{};
+  line->GetTightBoundingRectByCharRange(rect, 0, 2);
+  EXPECT_FLOAT_EQ(rect[0], 0.f);
+  EXPECT_FLOAT_EQ(rect[1], -1.5f);
+  EXPECT_FLOAT_EQ(rect[2], 4.f);
+  EXPECT_FLOAT_EQ(rect[3], 0.5f);
+
+  line->GetTightBoundingRectByCharRange(rect, 1, 1);
+  EXPECT_FLOAT_EQ(rect[0], 0.f);
+  EXPECT_FLOAT_EQ(rect[1], 0.f);
+  EXPECT_FLOAT_EQ(rect[2], 0.f);
+  EXPECT_FLOAT_EQ(rect[3], 0.f);
+}
+
+TEST_F(TextLayoutTest,
+       TextLine_GetTightBoundingRectByCharRange_LineHeightModes_Consistent) {
+  enum class Mode {
+    kDefault,
+    kExactLarge,
+    kExactSmall,
+    kAtLeastLarge,
+    kAtLeastSmall,
+    kPercentLarge,
+    kPercentSmall,
+  };
+
+  auto layout_helper = [this](Mode mode) {
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    auto para = std::make_unique<ParagraphImpl>();
+    ParagraphStyle para_style;
+    Style style;
+    style.SetTextSize(2.f);
+    para_style.SetDefaultStyle(style);
+    switch (mode) {
+      case Mode::kDefault:
+        break;
+      case Mode::kExactLarge:
+        para_style.SetLineHeightInPxExact(20.f);
+        break;
+      case Mode::kExactSmall:
+        para_style.SetLineHeightInPxExact(1.f);
+        break;
+      case Mode::kAtLeastLarge:
+        para_style.SetLineHeightInPxAtLeast(20.f);
+        break;
+      case Mode::kAtLeastSmall:
+        para_style.SetLineHeightInPxAtLeast(1.f);
+        break;
+      case Mode::kPercentLarge:
+        para_style.SetLineHeightInPercent(1.5f);
+        break;
+      case Mode::kPercentSmall:
+        para_style.SetLineHeightInPercent(0.5f);
+        break;
+    }
+    para->SetParagraphStyle(&para_style);
+    para->AddTextRun(&style, "ab");
+    auto region = std::make_unique<LayoutRegion>(100.f, 50.f);
+    layout.Layout(para.get(), region.get(), context);
+    return std::make_pair(std::move(para), std::move(region));
+  };
+
+  auto [para_default, region_default] = layout_helper(Mode::kDefault);
+  ASSERT_EQ(region_default->GetLineCount(), 1u);
+  auto* line_default = region_default->GetLine(0);
+  ASSERT_NE(line_default, nullptr);
+
+  float rect_default_02[4]{};
+  float rect_default_11[4]{};
+  line_default->GetTightBoundingRectByCharRange(rect_default_02, 0, 2);
+  line_default->GetTightBoundingRectByCharRange(rect_default_11, 1, 1);
+
+  const Mode modes[] = {
+      Mode::kExactLarge,   Mode::kExactSmall,   Mode::kAtLeastLarge,
+      Mode::kAtLeastSmall, Mode::kPercentLarge, Mode::kPercentSmall,
+  };
+  for (auto mode : modes) {
+    auto [para, region] = layout_helper(mode);
+    ASSERT_EQ(region->GetLineCount(), 1u);
+    auto* line = region->GetLine(0);
+    ASSERT_NE(line, nullptr);
+
+    float rect_02[4]{};
+    float rect_11[4]{};
+    line->GetTightBoundingRectByCharRange(rect_02, 0, 2);
+    line->GetTightBoundingRectByCharRange(rect_11, 1, 1);
+    for (int i = 0; i < 4; ++i) {
+      EXPECT_FLOAT_EQ(rect_default_02[i], rect_02[i]);
+      EXPECT_FLOAT_EQ(rect_default_11[i], rect_11[i]);
+    }
+  }
+}
+
+TEST_F(TextLayoutTest,
+       TextLine_GetTightBoundingRectByCharRange_DominantBaselineTop) {
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  auto para = std::make_unique<ParagraphImpl>();
+  ParagraphStyle para_style;
+  Style style;
+  style.SetTextSize(2.f);
+  para_style.SetDefaultStyle(style);
+  para_style.SetDominantBaseline(DominantBaseline::kTop);
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&style, "ab");
+  auto region = std::make_unique<LayoutRegion>(100.f, 50.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  ASSERT_NE(line, nullptr);
+  EXPECT_FLOAT_EQ(line->GetLineBaseLine(), line->GetLineTop());
+
+  float rect[4]{};
+  line->GetTightBoundingRectByCharRange(rect, 0, 2);
+  EXPECT_FLOAT_EQ(rect[0], 0.f);
+  EXPECT_FLOAT_EQ(rect[1], 0.f);
+  EXPECT_FLOAT_EQ(rect[2], 4.f);
+  EXPECT_FLOAT_EQ(rect[3], 2.f);
+}
+
+TEST_F(TextLayoutTest,
+       TextLine_GetTightBoundingRectByCharRange_MixedFontSizes_MiddleBaseline) {
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  auto para = std::make_unique<ParagraphImpl>();
+  ParagraphStyle para_style;
+  Style large;
+  large.SetTextSize(10.f);
+  Style small;
+  small.SetTextSize(5.f);
+  para_style.SetDefaultStyle(large);
+  para_style.SetDominantBaseline(DominantBaseline::kMiddle);
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&large, "A");
+  para->AddTextRun(&small, "B");
+  auto region = std::make_unique<LayoutRegion>(100.f, 50.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  ASSERT_NE(line, nullptr);
+
+  float rect_large[4]{};
+  line->GetTightBoundingRectByCharRange(rect_large, 0, 1);
+  EXPECT_FLOAT_EQ(rect_large[0], 0.f);
+  EXPECT_FLOAT_EQ(rect_large[1], -5.f);
+  EXPECT_FLOAT_EQ(rect_large[2], 10.f);
+  EXPECT_FLOAT_EQ(rect_large[3], 5.f);
+
+  float rect_small[4]{};
+  line->GetTightBoundingRectByCharRange(rect_small, 1, 2);
+  EXPECT_FLOAT_EQ(rect_small[0], 10.f);
+  EXPECT_FLOAT_EQ(rect_small[1], -2.5f);
+  EXPECT_FLOAT_EQ(rect_small[2], 15.f);
+  EXPECT_FLOAT_EQ(rect_small[3], 2.5f);
+}
+
+TEST_F(TextLayoutTest,
+       TextLine_GetTightBoundingRectByCharRange_MixedFontSizes_TopBaseline) {
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  auto para = std::make_unique<ParagraphImpl>();
+  ParagraphStyle para_style;
+  Style large;
+  large.SetTextSize(10.f);
+  Style small;
+  small.SetTextSize(5.f);
+  para_style.SetDefaultStyle(large);
+  para_style.SetDominantBaseline(DominantBaseline::kTop);
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&large, "A");
+  para->AddTextRun(&small, "B");
+  auto region = std::make_unique<LayoutRegion>(100.f, 50.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  ASSERT_NE(line, nullptr);
+
+  float rect_large[4]{};
+  line->GetTightBoundingRectByCharRange(rect_large, 0, 1);
+  EXPECT_FLOAT_EQ(rect_large[0], 0.f);
+  EXPECT_FLOAT_EQ(rect_large[1], 0.f);
+  EXPECT_FLOAT_EQ(rect_large[2], 10.f);
+  EXPECT_FLOAT_EQ(rect_large[3], 10.f);
+
+  float rect_small[4]{};
+  line->GetTightBoundingRectByCharRange(rect_small, 1, 2);
+  EXPECT_FLOAT_EQ(rect_small[0], 10.f);
+  EXPECT_FLOAT_EQ(rect_small[1], 0.f);
+  EXPECT_FLOAT_EQ(rect_small[2], 15.f);
+  EXPECT_FLOAT_EQ(rect_small[3], 5.f);
+}
+
+TEST_F(
+    TextLayoutTest,
+    TextLine_GetTightBoundingRectByCharRange_MixedFontSizes_AlphabeticBaseline) {
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  auto para = std::make_unique<ParagraphImpl>();
+  ParagraphStyle para_style;
+  Style large;
+  large.SetTextSize(10.f);
+  Style small;
+  small.SetTextSize(5.f);
+  para_style.SetDefaultStyle(large);
+  para_style.SetDominantBaseline(DominantBaseline::kAlphabetic);
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&large, "A");
+  para->AddTextRun(&small, "B");
+  auto region = std::make_unique<LayoutRegion>(100.f, 50.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  ASSERT_NE(line, nullptr);
+
+  float rect_large[4]{};
+  line->GetTightBoundingRectByCharRange(rect_large, 0, 1);
+  EXPECT_FLOAT_EQ(rect_large[0], 0.f);
+  EXPECT_FLOAT_EQ(rect_large[1], -7.5f);
+  EXPECT_FLOAT_EQ(rect_large[2], 10.f);
+  EXPECT_FLOAT_EQ(rect_large[3], 2.5f);
+
+  float rect_small[4]{};
+  line->GetTightBoundingRectByCharRange(rect_small, 1, 2);
+  EXPECT_FLOAT_EQ(rect_small[0], 10.f);
+  EXPECT_FLOAT_EQ(rect_small[1], -3.75f);
+  EXPECT_FLOAT_EQ(rect_small[2], 15.f);
+  EXPECT_FLOAT_EQ(rect_small[3], 1.25f);
+}
+
 TEST_F(TextLayoutTest, InlineObjectWithBaselineOffset) {
   const float page_width = 100.0f;
   const float page_height = 100.0f;
