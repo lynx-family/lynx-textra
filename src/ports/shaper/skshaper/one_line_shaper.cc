@@ -476,8 +476,11 @@ void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
   if (fd.platform_font_ != 0) {
     auto font_mgr = fFontCollection_.GetDefaultFontManager();
     if (font_mgr != nullptr) {
-      font_mgr->createTypefaceFromPlatformFont(
+      auto typeface = font_mgr->createTypefaceFromPlatformFont(
           reinterpret_cast<const void*>(fd.platform_font_));
+      if (typeface != nullptr) {
+        typefaces.emplace_back(typeface);
+      }
     } else {
       typefaces.emplace_back(
           reinterpret_cast<ITypefaceHelper*>(fd.platform_font_)
