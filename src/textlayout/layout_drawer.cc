@@ -261,7 +261,6 @@ void LayoutDrawer::DrawDrawerPiece(const TextLine* line,
         pos_x[k] = char_x_pos;
         char_x_pos += adv;
       }
-      pos_x[k] += pos[0];
       if (FloatsLarger(adv, 0)) {
         char_x_pos += run->GetLayoutStyle().GetLetterSpacing();
       }
