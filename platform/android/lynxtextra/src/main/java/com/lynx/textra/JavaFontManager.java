@@ -47,7 +47,7 @@ public class JavaFontManager {
   public long onMatchTypefaceIndex(long index) {
     return GetTypefaceByIndex((int) index).mNativeHandler;
   }
-  public long onMatchFamilyStyle(
+  public synchronized long onMatchFamilyStyle(
       String families, int font_weight, boolean is_italic, long typeface_handler) {
     JavaTypeface.FontKey key = new JavaTypeface.FontKey();
     if (families != null && !families.isEmpty()) {
@@ -116,7 +116,7 @@ public class JavaFontManager {
     return java_typeface;
   }
 
-  public JavaTypeface GetTypefaceByIndex(int index) {
+  public synchronized JavaTypeface GetTypefaceByIndex(int index) {
     for (JavaTypeface java_typeface : mFontMap.values()) {
       if (java_typeface.mIndex == index) {
         return java_typeface;
