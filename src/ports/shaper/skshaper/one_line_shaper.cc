@@ -470,6 +470,7 @@ void OneLineShaper::sortOutGlyphs(
 void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
                                        const TypefaceVisitor& visitor) {
   std::vector<std::shared_ptr<ITypefaceHelper>> typefaces;
+  auto& fallback_fonts = GetFallbackFontCache();
   auto fd = textStyle.GetFontDescriptor();
   auto font_style = fd.font_style_;
 
@@ -516,14 +517,14 @@ void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
 
         // First try to find in in a cache
         FontKey fontKey(unicode, font_style, "");
-        auto found = fFallbackFonts.find(fontKey);
-        if (found != fFallbackFonts.end()) {
+        auto found = fallback_fonts.find(fontKey);
+        if (found != fallback_fonts.end()) {
           typeface = found->second;
         } else {
           typeface = fFontCollection_.defaultFallback(unicode, font_style, "");
 
           if (typeface != nullptr) {
-            fFallbackFonts[fontKey] = typeface;
+            fallback_fonts[fontKey] = typeface;
           }
         }
 
@@ -664,6 +665,11 @@ size_t OneLineShaper::FontKey::operator()(
       .update(static_cast<uint32_t>(key.fFontStyle.Value()))
       .updateString(key.fLocale)
       .hash();
+}
+
+OneLineShaper::FallbackFontCache& OneLineShaper::GetFallbackFontCache() {
+  thread_local FallbackFontCache cache;
+  return cache;
 }
 
 OneLineShaper::RunBlock::RunBlock(std::shared_ptr<Run> run)
