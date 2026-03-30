@@ -29,6 +29,7 @@ class SkityTypefaceHelper : public tttext::ITypefaceHelper {
  public:
   float GetHorizontalAdvance(GlyphID glyph_id, float font_size) const override {
     skity::Font font(typeface_, font_size);
+    font.SetHinting(Font::FontHinting::kSlight);
     float sk_scalar;
     skity::GlyphID sk_glyph_id = glyph_id;
     font.GetWidths(&sk_glyph_id, 1, &sk_scalar, nullptr);
@@ -37,11 +38,13 @@ class SkityTypefaceHelper : public tttext::ITypefaceHelper {
   void GetHorizontalAdvances(GlyphID* glyph_ids, uint32_t count, float* widths,
                              float font_size) const override {
     skity::Font font(typeface_, font_size);
+    font.SetHinting(Font::FontHinting::kSlight);
     font.GetWidths(glyph_ids, count, widths);
   }
   void GetWidthBound(float* rect_ltwh, GlyphID glyph_id,
                      float font_size) const override {
     skity::Font font(typeface_, font_size);
+    font.SetHinting(Font::FontHinting::kSlight);
     skity::Rect rect;
     font.GetWidths(&glyph_id, 1, nullptr, &rect);
     rect_ltwh[0] = rect.Left();
@@ -52,6 +55,7 @@ class SkityTypefaceHelper : public tttext::ITypefaceHelper {
   void GetWidthBounds(float* rect_ltrb, tttext::GlyphID glyphs[],
                       uint32_t glyph_count, float font_size) override {
     skity::Font font(typeface_, font_size);
+    font.SetHinting(Font::FontHinting::kSlight);
     skity::Rect* rect = new skity::Rect[glyph_count];
     font.GetWidths(glyphs, glyph_count, nullptr, rect);
     auto r = 0.f;
@@ -88,6 +92,7 @@ class SkityTypefaceHelper : public tttext::ITypefaceHelper {
                         float font_size) const override {
     FontMetrics metrics;
     Font font(typeface_, font_size);
+    font.SetHinting(Font::FontHinting::kSlight);
     font.GetMetrics(&metrics);
     info->SetAscent(metrics.ascent_);
     info->SetDescent(metrics.descent_);

@@ -95,6 +95,7 @@ class SkityCanvasHelper : public ICanvasHelper {
     }
     std::vector<skity::TextRun> runs;
     skity::Font skity_font(typeface->GetTypeface(), paint->GetTextSize());
+    skity_font.SetHinting(skity::Font::FontHinting::kSlight);
     skity_font.SetEmbolden(painter->IsBold());
     skity_font.SetSkewX(painter->IsItalic() ? -0.25f : 0);
     runs.emplace_back(skity_font, glyph_vector, p_x, p_y);
