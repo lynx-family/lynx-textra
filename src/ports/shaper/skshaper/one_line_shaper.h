@@ -145,8 +145,9 @@ class OneLineShaper : public SkShaper::RunHandler {
 
     size_t operator()(const FontKey& key) const;
   };
-  std::unordered_map<FontKey, std::shared_ptr<ITypefaceHelper>, FontKey>
-      fFallbackFonts;
+  using FallbackFontCache =
+      std::unordered_map<FontKey, std::shared_ptr<ITypefaceHelper>, FontKey>;
+  static FallbackFontCache& GetFallbackFontCache();
 };
 }  // namespace tttext
 }  // namespace ttoffice
