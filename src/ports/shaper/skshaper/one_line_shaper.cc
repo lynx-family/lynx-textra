@@ -588,8 +588,8 @@ bool OneLineShaper::shape(const char32_t* content, uint32_t len,
   matchResolvedFonts(style, [&](std::shared_ptr<ITypefaceHelper> typeface) {
     // Create one more font to try
     Font font(typeface, style.GetFontSize());
-    //    font.setEdging(SkFont::Edging::kAntiAlias);
-    //    font.setHinting(SkFontHinting::kSlight);
+    // font.setEdging(SkFont::Edging::kAntiAlias);
+    font.SetHinting(FontHinting::kSlight);
     font.SetSubpixel(true);
 
     // Apply fake bold and/or italic settings to the font if the
