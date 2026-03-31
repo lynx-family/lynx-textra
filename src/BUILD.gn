@@ -192,6 +192,8 @@ source_set("textlayout") {
   sources += textlayout_public_headers
   sources += [
     "$prj_root/src/ports/platform_helper.cc",
+    "$prj_root/src/textlayout/dominate_baseline.cc",
+    "$prj_root/src/textlayout/dominate_baseline.h",
     "$prj_root/src/textlayout/font_info.cc",
     "$prj_root/src/textlayout/fontmgr_collection.cc",
     "$prj_root/src/textlayout/internal/boundary_analyst.cc",

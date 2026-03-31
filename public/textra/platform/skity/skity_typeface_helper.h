@@ -6,6 +6,7 @@
 #define PUBLIC_TEXTRA_PLATFORM_SKITY_SKITY_TYPEFACE_HELPER_H_
 
 #include <textra/i_typeface_helper.h>
+#include <textra/platform/skity/skity_font_data.h>
 
 #include <memory>
 #include <skity/text/font.hpp>
@@ -17,7 +18,8 @@ class SkityTypefaceHelper : public tttext::ITypefaceHelper {
  public:
   explicit SkityTypefaceHelper(std::shared_ptr<Typeface> typeface)
       : tttext::ITypefaceHelper(typeface->TypefaceId()),
-        typeface_(std::move(typeface)) {
+        typeface_(std::move(typeface)),
+        font_data_(typeface_) {
     skity::FontStyle skity_font_style = typeface_->GetFontStyle();
     font_style_ = tttext::FontStyle(
         static_cast<tttext::Weight>(skity_font_style.weight()),
@@ -99,8 +101,16 @@ class SkityTypefaceHelper : public tttext::ITypefaceHelper {
     info->SetFontSize(font_size);
   }
 
+  void OnCreateFontEmHeight(tttext::FontEmHeight* em_height,
+                            float font_size) const override {
+    auto ascent_descent = font_data_.GetAscentAndDescent(font_size);
+    em_height->SetAscent(ascent_descent.first);
+    em_height->SetDescent(ascent_descent.second);
+  }
+
  private:
   std::shared_ptr<Typeface> typeface_;
+  SkityFontData font_data_;
   // int font_index_; not used for now.
 };
 }  // namespace textlayout

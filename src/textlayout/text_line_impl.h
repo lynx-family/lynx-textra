@@ -16,6 +16,7 @@
 namespace ttoffice {
 namespace tttext {
 enum class LineType : uint8_t;
+class DominateBaselineHelper;
 using DrawerPiece = RunRange;
 class TextLineImpl : public TextLine {
   friend LayoutRegion;
@@ -23,6 +24,7 @@ class TextLineImpl : public TextLine {
   friend TextLayoutImpl;
   friend LayoutDrawer;
   friend class CompressRowLine;
+  friend class DominateBaselineHelper;
 
  public:
   TextLineImpl() = delete;
