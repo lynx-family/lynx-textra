@@ -10,6 +10,7 @@
 #include <cassert>
 #include <utility>
 
+#include "src/textlayout/dominate_baseline.h"
 #include "src/textlayout/internal/boundary_analyst.h"
 #include "src/textlayout/internal/line_range.h"
 #include "src/textlayout/internal/run_range.h"
@@ -369,50 +370,7 @@ void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
 }
 
 void TextLineImpl::ApplyDominateBaseline() {
-  auto dominate_baseline =
-      paragraph_->GetParagraphStyle().GetDominantBaseline();
-  if (dominate_baseline == DominantBaseline::kAlphabetic) {
-    return;
-  }
-  auto calc_baseline = [](DominantBaseline baseline, float ascent,
-                          float descent) {
-    switch (baseline) {
-      case DominantBaseline::kTop:
-        return 0.f;
-      case DominantBaseline::kMiddle:
-        return 0.5f * (descent - ascent);
-      case DominantBaseline::kHanging:
-        return 0.2f * -ascent;
-      case DominantBaseline::kBottom:
-      case DominantBaseline::kIdeographic:
-        return descent - ascent;
-      default:
-        return -ascent;
-    }
-  };
-  float line_baseline =
-      calc_baseline(dominate_baseline, -max_ascent_, max_descent_);
-  float line_top = GetLineTop() + top_extra_;
-  for (auto& piece : drawer_list_) {
-    auto metrics = piece->GetRun()->GetMetrics();
-    float piece_baseline = calc_baseline(
-        dominate_baseline, metrics.GetMaxAscent(), metrics.GetMaxDescent());
-    float old_piece_baseline = -metrics.GetMaxAscent();
-    float piece_offset_in_line =
-        line_baseline + old_piece_baseline - piece_baseline;
-    piece->SetYOffsetInLine(piece_offset_in_line);
-    if (auto type = piece->GetRun()->GetType();
-        type == RunType::kInlineObject &&
-        piece->GetRun()->GetRunDelegate() != nullptr) {
-      auto delegate = piece->GetRun()->GetRunDelegate();
-      delegate->SetOffset(
-          delegate->GetXOffset(),
-          line_top + piece_offset_in_line + metrics.GetMaxAscent());
-    }
-  }
-  float line_height = GetLineHeight();
-  max_ascent_ = line_baseline;
-  max_descent_ = line_height - line_baseline;
+  DominateBaselineHelper::ApplyDominateBaseline(this);
 }
 
 void TextLineImpl::ClearForRelayout() {

@@ -9,6 +9,7 @@
 
 namespace ttoffice {
 namespace tttext {
+class DominateBaselineHelper;
 class TextLineImpl;
 class ICanvasHelper;
 /**
@@ -71,6 +72,7 @@ class RunDelegate {
   float x_offset_{std::numeric_limits<float>::lowest()};
   float y_offset_{std::numeric_limits<float>::lowest()};
   friend class TextLineImpl;
+  friend class DominateBaselineHelper;
 };
 }  // namespace tttext
 }  // namespace ttoffice

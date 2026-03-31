@@ -179,6 +179,26 @@ class L_EXPORT FontInfo {
 
   float font_size_ = 0;
 };
+
+/**
+ * @brief Holds em-height ascent/descent values for a given font size.
+ */
+class L_EXPORT FontEmHeight {
+ public:
+  FontEmHeight() : FontEmHeight(0, 0) {}
+  FontEmHeight(float ascent, float descent)
+      : ascent_(ascent), descent_(descent) {}
+  ~FontEmHeight() = default;
+
+  float GetAscent() const { return ascent_; }
+  void SetAscent(float ascent) { ascent_ = ascent; }
+  float GetDescent() const { return descent_; }
+  void SetDescent(float descent) { descent_ = descent; }
+
+ private:
+  float ascent_ = 0;
+  float descent_ = 0;
+};
 }  // namespace tttext
 }  // namespace ttoffice
 #endif  // PUBLIC_TEXTRA_FONT_INFO_H_

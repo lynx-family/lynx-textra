@@ -109,6 +109,8 @@ Pod::Spec.new do |s|
                                 "src/ports/shaper/coretext/shaper_core_text.mm",
                                 "src/textlayout/font_info.cc",
                                 "src/textlayout/fontmgr_collection.cc",
+                                "src/textlayout/dominate_baseline.cc",
+                                "src/textlayout/dominate_baseline.h",
                                 "src/textlayout/internal/boundary_analyst.cc",
                                 "src/textlayout/internal/boundary_analyst.h",
                                 "src/textlayout/internal/line_range.h",
@@ -172,4 +174,3 @@ Pod::Spec.new do |s|
 
   end
 end
-

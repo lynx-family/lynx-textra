@@ -35,6 +35,7 @@ class TextAttachment;
 class TTStringPiece;
 class ShapeResult;
 class LayoutMeasurer;
+class DominateBaselineHelper;
 enum class RunType : uint8_t;
 enum class LineBreakType : uint8_t;
 enum class CharacterVerticalAlignment : uint8_t;
@@ -43,6 +44,7 @@ class BaseRun {
   friend ParagraphImpl;
   friend TextLineImpl;
   friend class LayoutDrawer;
+  friend class DominateBaselineHelper;
 
  public:
   static constexpr const char* ObjectReplacementCharacter() {

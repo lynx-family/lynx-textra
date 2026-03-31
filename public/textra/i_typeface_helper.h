@@ -60,6 +60,17 @@ class ITypefaceHelper : public std::enable_shared_from_this<ITypefaceHelper> {
     return info;
   }
 
+  const FontEmHeight& GetFontEmHeight(float font_size) {
+    std::lock_guard<std::mutex> guard(font_em_height_cache_lock_);
+    auto iter = font_em_height_cache_.find(font_size);
+    if (iter != font_em_height_cache_.end()) {
+      return iter->second;
+    }
+    auto& em_height = font_em_height_cache_[font_size];
+    OnCreateFontEmHeight(&em_height, font_size);
+    return em_height;
+  }
+
   virtual uint32_t GetUnitsPerEm() const = 0;
 
   const ttoffice::tttext::FontStyle& FontStyle() const { return font_style_; }
@@ -68,12 +79,21 @@ class ITypefaceHelper : public std::enable_shared_from_this<ITypefaceHelper> {
 
  protected:
   virtual void OnCreateFontInfo(FontInfo* info, float font_size) const = 0;
+  virtual void OnCreateFontEmHeight(FontEmHeight* em_height,
+                                    float font_size) const {
+    FontInfo info;
+    OnCreateFontInfo(&info, font_size);
+    em_height->SetAscent(-info.GetAscent());
+    em_height->SetDescent(info.GetDescent());
+  }
 
   uint32_t unique_id_;
   class FontStyle font_style_;
   std::unordered_map<float, FontInfo> font_info_cache_;
+  std::unordered_map<float, FontEmHeight> font_em_height_cache_;
   std::string font_name_;
   std::mutex font_info_cache_lock_;
+  std::mutex font_em_height_cache_lock_;
 };
 }  // namespace tttext
 }  // namespace ttoffice
