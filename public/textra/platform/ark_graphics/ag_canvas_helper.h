@@ -80,45 +80,19 @@ class AGCanvasHelper : public ICanvasHelper {
   }
   void DrawRect(float left, float top, float right, float bottom,
                 tttext::Painter* painter) override {
-    auto* brush = OH_Drawing_BrushCreate();
-    auto* pen = OH_Drawing_PenCreate();
-    if (painter->GetFillColor() != TTColor::UNDEFINED) {
-      OH_Drawing_BrushSetColor(brush, painter->GetFillColor());
-      OH_Drawing_CanvasAttachBrush(canvas_, brush);
-    }
-    if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
-      OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
-      OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
-      OH_Drawing_CanvasAttachPen(canvas_, pen);
-    }
+    auto paint = AttachShapePainter(painter);
     auto* rect = OH_Drawing_RectCreate(left, top, right, bottom);
     OH_Drawing_CanvasDrawRect(canvas_, rect);
-    OH_Drawing_CanvasDetachBrush(canvas_);
-    OH_Drawing_CanvasDetachPen(canvas_);
-    OH_Drawing_BrushDestroy(brush);
-    OH_Drawing_PenDestroy(pen);
+    DetachShapePainter(paint);
     OH_Drawing_RectDestroy(rect);
   }
   void DrawRoundRect(float left, float top, float right, float bottom,
                      float radius, tttext::Painter* painter) override {
-    auto* brush = OH_Drawing_BrushCreate();
-    auto* pen = OH_Drawing_PenCreate();
-    if (painter->GetFillColor() != TTColor::UNDEFINED) {
-      OH_Drawing_BrushSetColor(brush, painter->GetFillColor());
-      OH_Drawing_CanvasAttachBrush(canvas_, brush);
-    }
-    if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
-      OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
-      OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
-      OH_Drawing_CanvasAttachPen(canvas_, pen);
-    }
+    auto paint = AttachShapePainter(painter);
     auto* rect = OH_Drawing_RectCreate(left, top, right, bottom);
     auto* round_rect = OH_Drawing_RoundRectCreate(rect, radius, radius);
     OH_Drawing_CanvasDrawRoundRect(canvas_, round_rect);
-    OH_Drawing_CanvasDetachBrush(canvas_);
-    OH_Drawing_CanvasDetachPen(canvas_);
-    OH_Drawing_BrushDestroy(brush);
-    OH_Drawing_PenDestroy(pen);
+    DetachShapePainter(paint);
     OH_Drawing_RectDestroy(rect);
     OH_Drawing_RoundRectDestroy(round_rect);
   }
@@ -128,23 +102,10 @@ class AGCanvasHelper : public ICanvasHelper {
   }
   void DrawCircle(float x, float y, float radius,
                   tttext::Painter* painter) override {
-    auto* brush = OH_Drawing_BrushCreate();
-    auto* pen = OH_Drawing_PenCreate();
-    if (painter->GetFillColor() != TTColor::UNDEFINED) {
-      OH_Drawing_BrushSetColor(brush, painter->GetFillColor());
-      OH_Drawing_CanvasAttachBrush(canvas_, brush);
-    }
-    if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
-      OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
-      OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
-      OH_Drawing_CanvasAttachPen(canvas_, pen);
-    }
+    auto paint = AttachShapePainter(painter);
     auto* point = OH_Drawing_PointCreate(x, y);
     OH_Drawing_CanvasDrawCircle(canvas_, point, radius);
-    OH_Drawing_CanvasDetachBrush(canvas_);
-    OH_Drawing_CanvasDetachPen(canvas_);
-    OH_Drawing_BrushDestroy(brush);
-    OH_Drawing_PenDestroy(pen);
+    DetachShapePainter(paint);
     OH_Drawing_PointDestroy(point);
   }
   void DrawArc(float left, float top, float right, float bottom,
@@ -208,23 +169,12 @@ class AGCanvasHelper : public ICanvasHelper {
    * */
   void DrawPath(Path* path, tttext::Painter* painter) override {
     auto* ag_path = OH_Drawing_PathCreate();
-    auto* brush = OH_Drawing_BrushCreate();
-    auto* pen = OH_Drawing_PenCreate();
-    if (painter->GetFillColor() != TTColor::UNDEFINED) {
-      OH_Drawing_BrushSetColor(brush, painter->GetFillColor());
-      OH_Drawing_CanvasAttachBrush(canvas_, brush);
-    }
-    if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
-      OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
-      OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
-      OH_Drawing_CanvasAttachPen(canvas_, pen);
-    }
+    auto paint = AttachShapePainter(painter);
 
     BuildPath(ag_path, path);
     OH_Drawing_CanvasDrawPath(canvas_, ag_path);
+    DetachShapePainter(paint);
     OH_Drawing_PathDestroy(ag_path);
-    OH_Drawing_PenDestroy(pen);
-    OH_Drawing_BrushDestroy(brush);
   }
   void DrawArcTo(float start_x, float start_y, float mid_x, float mid_y,
                  float end_x, float end_y, float radius,
@@ -327,6 +277,29 @@ class AGCanvasHelper : public ICanvasHelper {
   }
 
  private:
+  struct ShapePainter {
+    OH_Drawing_Brush* brush;
+    OH_Drawing_Pen* pen;
+  };
+
+  ShapePainter AttachShapePainter(tttext::Painter* painter) {
+    auto* brush = OH_Drawing_BrushCreate();
+    auto* pen = OH_Drawing_PenCreate();
+    OH_Drawing_BrushSetColor(brush, painter->GetFillColor());
+    OH_Drawing_CanvasAttachBrush(canvas_, brush);
+    OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
+    OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
+    OH_Drawing_CanvasAttachPen(canvas_, pen);
+    return {brush, pen};
+  }
+
+  void DetachShapePainter(const ShapePainter& painter) {
+    OH_Drawing_CanvasDetachBrush(canvas_);
+    OH_Drawing_CanvasDetachPen(canvas_);
+    OH_Drawing_BrushDestroy(painter.brush);
+    OH_Drawing_PenDestroy(painter.pen);
+  }
+
   OH_Drawing_Canvas* canvas_;
 };
 };  // namespace tttext
