@@ -18,7 +18,7 @@ declare_args() {
   prj_root = rebase_path("..")
   enable_javashaper = is_android && !is_lvgl
   enable_skshaper = is_android || is_mac || is_harmony || is_win || is_linux
-  enable_ctshaper = (is_ios || is_mac) && is_lvgl
+  enable_ctshaper = (is_ios || is_mac) && !is_lvgl
   enable_harmony = is_harmony
   enable_minikin = false
   enable_lvglshaper = is_lvgl
