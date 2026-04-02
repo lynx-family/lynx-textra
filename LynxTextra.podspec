@@ -13,7 +13,7 @@ Pod::Spec.new do |s|
   s.license                  = { :type => "Apache-2.0", :file => "LICENSE" }
   s.author                   = "Lynx"
   s.source                   = { :git => "https://github.com/lynx-family/lynx-textra.git", :tag => s.version.to_s }
-  s.ios.deployment_target    = "12.0"
+  s.ios.deployment_target    = "10.0"
   s.requires_arc             = true
   s.static_framework         = true
 
