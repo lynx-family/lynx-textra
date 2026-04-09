@@ -161,6 +161,7 @@ textlayout_public_headers = [
   "$prj_root/public/textra/platform/mac/mac_font_manager.h",
   "$prj_root/public/textra/platform/mac/typeface_coretext.h",
   "$prj_root/public/textra/platform/skity/skity_canvas_helper.h",
+  "$prj_root/public/textra/platform/skity/skity_font_data.h",
   "$prj_root/public/textra/platform/skity/skity_font_manager_coretext.h",
   "$prj_root/public/textra/platform/skity/skity_font_manager.h",
   "$prj_root/public/textra/platform/skity/skity_typeface_helper.h",
