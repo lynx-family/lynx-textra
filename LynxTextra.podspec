@@ -94,6 +94,7 @@ Pod::Spec.new do |s|
                                 "public/textra/platform/mac/mac_font_manager.h",
                                 "public/textra/platform/mac/typeface_coretext.h",
                                 "public/textra/platform/skity/skity_canvas_helper.h",
+                                "public/textra/platform/skity/skity_font_data.h",
                                 "public/textra/platform/skity/skity_font_manager.h",
                                 "public/textra/platform/skity/skity_font_manager_coretext.h",
                                 "public/textra/platform/skity/skity_typeface_helper.h",

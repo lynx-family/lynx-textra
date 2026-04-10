@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <queue>
 #include <string>
 #include <unordered_map>
@@ -145,9 +146,9 @@ class OneLineShaper : public SkShaper::RunHandler {
 
     size_t operator()(const FontKey& key) const;
   };
-  using FallbackFontCache =
-      std::unordered_map<FontKey, std::shared_ptr<ITypefaceHelper>, FontKey>;
-  static FallbackFontCache& GetFallbackFontCache();
+  std::unordered_map<FontKey, std::shared_ptr<ITypefaceHelper>, FontKey>
+      fFallbackFonts;
+  std::mutex fFallbackFontsMutex;
 };
 }  // namespace tttext
 }  // namespace ttoffice
