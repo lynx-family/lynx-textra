@@ -75,10 +75,12 @@ std::shared_ptr<JavaTypeface> JavaFontManager::CreateNativeTypeface() {
 }
 std::shared_ptr<JavaTypeface> JavaFontManager::matchTypeface(
     const FontDescriptor& fd) {
-  auto& typeface_map = GetFontCache();
-  auto iter = typeface_map.find(fd);
-  if (iter != typeface_map.end()) {
-    return iter->second;
+  {
+    std::lock_guard<std::mutex> lock(typeface_map_mutex_);
+    auto iter = typeface_map_.find(fd);
+    if (iter != typeface_map_.end()) {
+      return iter->second;
+    }
   }
   auto& proxy = TTTextJNIProxy::GetInstance();
   auto env = proxy.GetCurrentJNIEnv();
@@ -109,14 +111,14 @@ std::shared_ptr<JavaTypeface> JavaFontManager::matchTypeface(
         reinterpret_cast<JavaTypeface*>(raw_pointer)->shared_from_this();
     obj = std::static_pointer_cast<JavaTypeface>(typeface);
   }
-  typeface_map[fd] = obj;
+  {
+    std::lock_guard<std::mutex> lock(typeface_map_mutex_);
+    auto [iter, inserted] = typeface_map_.emplace(fd, obj);
+    if (!inserted) {
+      return iter->second;
+    }
+  }
   return obj;
 }
-
-JavaFontManager::FontCache& JavaFontManager::GetFontCache() {
-  thread_local FontCache cache;
-  return cache;
-}
-
 }  // namespace tttext
 }  // namespace ttoffice
