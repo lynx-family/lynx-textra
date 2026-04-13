@@ -33,14 +33,264 @@
 
 namespace ttoffice {
 namespace tttext {
-ShaperCoreText::ShaperCoreText(FontmgrCollection& font_collection) noexcept
-    : TTShaper(font_collection), default_font_desc_(nullptr){};
+std::unordered_map<ShaperCoreText::CachedSafeFontKey,
+                   ShaperCoreText::CachedSafeFontEntry,
+                   ShaperCoreText::CachedSafeFontKey::Hasher>
+    ShaperCoreText::safe_font_cache_;
+std::list<ShaperCoreText::CachedSafeFontKey>
+    ShaperCoreText::safe_font_cache_lru_;
+std::mutex ShaperCoreText::safe_font_cache_mutex_;
+size_t ShaperCoreText::safe_font_cache_max_entries_ = 256;
 
-ShaperCoreText::~ShaperCoreText() {
-  if (default_font_desc_ != nullptr) {
-    CFRelease(default_font_desc_);
+namespace {
+
+CFDictionaryRef GetSafeFontCascadeAttributes() {
+  static CFDictionaryRef attributes = []() -> CFDictionaryRef {
+    const CFStringRef fallback_names[] = {
+        CFSTR("PingFang SC"),        // Simplified Chinese
+        CFSTR("Apple Color Emoji"),  // Emoji & Symbols
+        CFSTR("Thonburi"),           // Thai
+        CFSTR("Geeza Pro")           // Arabic
+    };
+    const CFIndex count = sizeof(fallback_names) / sizeof(fallback_names[0]);
+
+    CFMutableArrayRef fallback_descriptors = CFArrayCreateMutable(
+        kCFAllocatorDefault, count, &kCFTypeArrayCallBacks);
+    for (CFIndex i = 0; i < count; ++i) {
+      CTFontDescriptorRef desc =
+          CTFontDescriptorCreateWithNameAndSize(fallback_names[i], 0.0);
+      if (desc != nullptr) {
+        CFArrayAppendValue(fallback_descriptors, desc);
+        CFRelease(desc);
+      }
+    }
+
+    CFStringRef keys[] = {kCTFontCascadeListAttribute};
+    CFTypeRef values[] = {fallback_descriptors};
+    CFDictionaryRef cached_attributes = CFDictionaryCreate(
+        kCFAllocatorDefault, (const void**)keys, (const void**)values, 1,
+        &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+    CFRelease(fallback_descriptors);
+    return cached_attributes;
+  }();
+
+  return attributes;
+}
+
+static float ConvertFontWeight(tttext::Weight weight) {
+#ifdef USE_APPKIT
+  switch (weight) {
+    case FontStyle::kThin_Weight:
+      return NSFontWeightUltraLight;
+    case FontStyle::kExtraLight_Weight:
+      return NSFontWeightThin;
+    case FontStyle::kLight_Weight:
+      return NSFontWeightLight;
+    case FontStyle::kNormal_Weight:
+      return NSFontWeightRegular;
+    case FontStyle::kMedium_Weight:
+      return NSFontWeightMedium;
+    case FontStyle::kSemiBold_Weight:
+      return NSFontWeightSemibold;
+    case FontStyle::kBold_Weight:
+      return NSFontWeightBold;
+    case FontStyle::kExtraBold_Weight:
+      return NSFontWeightHeavy;
+    case FontStyle::kBlack_Weight:
+      return NSFontWeightBlack;
+    default:
+      return NSFontWeightRegular;
+  }
+#endif
+#ifdef USE_UIKIT
+  switch (weight) {
+    case FontStyle::kThin_Weight:
+      return UIFontWeightUltraLight;
+    case FontStyle::kExtraLight_Weight:
+      return UIFontWeightThin;
+    case FontStyle::kLight_Weight:
+      return UIFontWeightLight;
+    case FontStyle::kNormal_Weight:
+      return UIFontWeightRegular;
+    case FontStyle::kMedium_Weight:
+      return UIFontWeightMedium;
+    case FontStyle::kSemiBold_Weight:
+      return UIFontWeightSemibold;
+    case FontStyle::kBold_Weight:
+      return UIFontWeightBold;
+    case FontStyle::kExtraBold_Weight:
+      return UIFontWeightHeavy;
+    case FontStyle::kBlack_Weight:
+      return UIFontWeightBlack;
+    default:
+      return UIFontWeightRegular;
+  }
+#endif
+}
+
+}  // namespace
+
+ShaperCoreText::ShaperCoreText(FontmgrCollection& font_collection) noexcept
+    : TTShaper(font_collection){};
+
+ShaperCoreText::~ShaperCoreText() = default;
+
+void ShaperCoreText::SetSafeFontCacheMaxEntries(size_t max_entries) {
+  std::lock_guard<std::mutex> lock(safe_font_cache_mutex_);
+  safe_font_cache_max_entries_ = max_entries;
+  TrimSafeFontCacheLocked();
+}
+
+size_t ShaperCoreText::GetSafeFontCacheMaxEntries() {
+  std::lock_guard<std::mutex> lock(safe_font_cache_mutex_);
+  return safe_font_cache_max_entries_;
+}
+
+void ShaperCoreText::TrimSafeFontCacheLocked() {
+  while (safe_font_cache_.size() > safe_font_cache_max_entries_) {
+    const auto& oldest_key = safe_font_cache_lru_.back();
+    auto iter = safe_font_cache_.find(oldest_key);
+    if (iter != safe_font_cache_.end()) {
+      if (iter->second.safe_font_ != nullptr) {
+        CFRelease(iter->second.safe_font_);
+      }
+      safe_font_cache_.erase(iter);
+    }
+    safe_font_cache_lru_.pop_back();
   }
 }
+
+/**
+ * Creates a "Safe Font" by injecting a mandatory Font Cascade List.
+ * This bypasses the global (and thread-unsafe) _CTFontFallbacksArray in
+ * CoreText.
+ */
+CTFontRef ShaperCoreText::CreateSafeFontUnified(CTFontRef existing_font) const {
+  if (!existing_font) return nullptr;
+
+  CGFloat font_size = CTFontGetSize(existing_font);
+  CTFontDescriptorRef current_desc = CTFontCopyFontDescriptor(existing_font);
+  CTFontDescriptorRef safe_desc = CTFontDescriptorCreateCopyWithAttributes(
+      current_desc, GetSafeFontCascadeAttributes());
+  CTFontRef safe_font =
+      CTFontCreateWithFontDescriptor(safe_desc, font_size, nullptr);
+
+  CFRelease(current_desc);
+  CFRelease(safe_desc);
+  return safe_font;
+}
+
+CTFontRef ShaperCoreText::GetOrCreateSafeFont(const FontDescriptor& fd,
+                                              float text_size, bool fake_bold,
+                                              bool fake_italic) const {
+  CachedSafeFontKey cache_key{fd, text_size, fake_bold, fake_italic};
+  {
+    std::lock_guard<std::mutex> lock(safe_font_cache_mutex_);
+    auto iter = safe_font_cache_.find(cache_key);
+    if (iter != safe_font_cache_.end()) {
+      safe_font_cache_lru_.splice(safe_font_cache_lru_.begin(),
+                                  safe_font_cache_lru_, iter->second.lru_it_);
+      iter->second.lru_it_ = safe_font_cache_lru_.begin();
+      return static_cast<CTFontRef>(CFRetain(iter->second.safe_font_));
+    }
+  }
+
+  CTFontRef base_font = nullptr;
+  if (fd.platform_font_ != 0) {
+#ifdef USE_APPKIT
+    CTFontRef platform_font =
+        reinterpret_cast<CTFontRef>(static_cast<uintptr_t>(fd.platform_font_));
+    if (platform_font != nullptr) {
+      base_font = CTFontCreateCopyWithAttributes(platform_font, text_size,
+                                                 nullptr, nullptr);
+    }
+#endif
+#ifdef USE_UIKIT
+    UIFont* ui_font = (__bridge UIFont*)((void*)fd.platform_font_);
+    if (ui_font != nullptr) {
+      base_font = (__bridge_retained CTFontRef)
+          [UIFont fontWithDescriptor:ui_font.fontDescriptor size:text_size];
+    }
+#endif
+  } else if (!fd.font_family_list_.empty()) {
+    bool has_valid_font_family = false;
+    for (const auto& font_family : fd.font_family_list_) {
+      if (!font_family.empty()) {
+        has_valid_font_family = true;
+        break;
+      }
+    }
+    if (has_valid_font_family) {
+      auto typefaces = font_collection_.findTypefaces(fd);
+      if (!typefaces.empty()) {
+        auto ct_typeface = static_cast<CTFontRef>(
+            font_collection_.GetDefaultFontManager()
+                ->getPlatformFontFromTypeface(typefaces[0]));
+        base_font = CTFontCreateCopyWithAttributes(ct_typeface, text_size,
+                                                   nullptr, nullptr);
+      }
+    }
+  }
+
+  if (base_font == nullptr) {
+#ifdef USE_APPKIT
+    if (fake_bold) {
+      base_font =
+          CTFontCreateWithName(CFSTR("Helvetica-Bold"), text_size, NULL);
+    } else if (fake_italic) {
+      base_font =
+          CTFontCreateWithName(CFSTR("Helvetica-Oblique"), text_size, NULL);
+    } else {
+      base_font = CTFontCreateWithName(CFSTR("Helvetica"), text_size, NULL);
+    }
+#endif
+#ifdef USE_UIKIT
+    CGFloat font_weight = ConvertFontWeight(fd.font_style_.GetWeight());
+    if (fake_bold) {
+      base_font =
+          (__bridge_retained CTFontRef)[UIFont boldSystemFontOfSize:text_size];
+    } else if (fake_italic) {
+      base_font = (__bridge_retained CTFontRef)
+          [UIFont italicSystemFontOfSize:text_size];
+    } else {
+      base_font =
+          (__bridge_retained CTFontRef)[UIFont systemFontOfSize:text_size
+                                                         weight:font_weight];
+    }
+#endif
+  }
+
+  if (base_font == nullptr) {
+    return nullptr;
+  }
+
+  CTFontRef safe_font = CreateSafeFontUnified(base_font);
+  CFRelease(base_font);
+  if (safe_font == nullptr) {
+    return nullptr;
+  }
+
+  std::lock_guard<std::mutex> lock(safe_font_cache_mutex_);
+  auto iter = safe_font_cache_.find(cache_key);
+  if (iter != safe_font_cache_.end()) {
+    CFRelease(safe_font);
+    safe_font_cache_lru_.splice(safe_font_cache_lru_.begin(),
+                                safe_font_cache_lru_, iter->second.lru_it_);
+    iter->second.lru_it_ = safe_font_cache_lru_.begin();
+    return static_cast<CTFontRef>(CFRetain(iter->second.safe_font_));
+  }
+
+  if (safe_font_cache_max_entries_ == 0) {
+    return safe_font;
+  }
+
+  safe_font_cache_lru_.push_front(cache_key);
+  safe_font_cache_.emplace(
+      cache_key, CachedSafeFontEntry{safe_font, safe_font_cache_lru_.begin()});
+  TrimSafeFontCacheLocked();
+  return static_cast<CTFontRef>(CFRetain(safe_font));
+}
+
 void ShaperCoreText::ProcessBidirection(const char32_t* text, uint32_t length,
                                         WriteDirection write_direction,
                                         uint32_t* visual_map,
@@ -62,6 +312,17 @@ void ShaperCoreText::ProcessBidirection(const char32_t* text, uint32_t length,
   CFMutableDictionaryRef dict =
       CFDictionaryCreateMutable(NULL, 0, &kCFTypeDictionaryKeyCallBacks,
                                 &kCFTypeDictionaryValueCallBacks);
+  // --- FIX START ---
+  // Force inject a safe font into the dictionary.
+  // This ensures CTLineCreate has a localized fallback path.
+  FontDescriptor default_fd;
+  CTFontRef safe_font = GetOrCreateSafeFont(default_fd, 12.0, false, false);
+  if (safe_font != nullptr) {
+    CFDictionaryAddValue(dict, kCTFontAttributeName, safe_font);
+    CFRelease(safe_font);
+  }
+  // --- FIX END ---
+
   CTParagraphStyleRef para_style = NULL;
   if (direction != kCTWritingDirectionNatural) {
     CTParagraphStyleSetting setting;
@@ -281,136 +542,19 @@ CFAttributedStringRef ShaperCoreText::GenerateAttributeString(
   CFRelease(cf_string);
   return attr_text;
 }
-static float ConvertFontWeight(tttext::Weight weight) {
-#ifdef USE_APPKIT
-  switch (weight) {
-    case FontStyle::kThin_Weight:
-      return NSFontWeightUltraLight;
-    case FontStyle::kExtraLight_Weight:
-      return NSFontWeightThin;
-    case FontStyle::kLight_Weight:
-      return NSFontWeightLight;
-    case FontStyle::kNormal_Weight:
-      return NSFontWeightRegular;
-    case FontStyle::kMedium_Weight:
-      return NSFontWeightMedium;
-    case FontStyle::kSemiBold_Weight:
-      return NSFontWeightSemibold;
-    case FontStyle::kBold_Weight:
-      return NSFontWeightBold;
-    case FontStyle::kExtraBold_Weight:
-      return NSFontWeightHeavy;
-    case FontStyle::kBlack_Weight:
-      return NSFontWeightBlack;
-    default:
-      return NSFontWeightRegular;
-  }
-#endif
-#ifdef USE_UIKIT
-  switch (weight) {
-    case FontStyle::kThin_Weight:
-      return UIFontWeightUltraLight;
-    case FontStyle::kExtraLight_Weight:
-      return UIFontWeightThin;
-    case FontStyle::kLight_Weight:
-      return UIFontWeightLight;
-    case FontStyle::kNormal_Weight:
-      return UIFontWeightRegular;
-    case FontStyle::kMedium_Weight:
-      return UIFontWeightMedium;
-    case FontStyle::kSemiBold_Weight:
-      return UIFontWeightSemibold;
-    case FontStyle::kBold_Weight:
-      return UIFontWeightBold;
-    case FontStyle::kExtraBold_Weight:
-      return UIFontWeightHeavy;
-    case FontStyle::kBlack_Weight:
-      return UIFontWeightBlack;
-    default:
-      return UIFontWeightRegular;
-  }
-#endif
-}
-
 CFDictionaryRef ShaperCoreText::GenerateAttributes(const ShapeKey& key) const {
   CFMutableDictionaryRef attributes = CFDictionaryCreateMutable(
       kCFAllocatorDefault, 5, &kCFTypeDictionaryKeyCallBacks,
       &kCFTypeDictionaryValueCallBacks);
   auto style = key.style_;
   auto text_size = style.GetFontSize();
-  CTFontRef ct_font = nullptr;
   auto& fd = style.GetFontDescriptor();
-  auto platform_font = fd.platform_font_;
-  if (platform_font != 0) {
-#ifdef USE_APPKIT
-    ct_font = CTFontCreateWithFontDescriptor(CTFontCopyFontDescriptor(ct_font),
-                                             text_size, nullptr);
-#endif
-#ifdef USE_UIKIT
-    UIFont* ui_font = (__bridge UIFont*)((void*)platform_font);
-    if (ui_font != nullptr) {
-      ct_font = (__bridge_retained CTFontRef)
-          [UIFont fontWithDescriptor:ui_font.fontDescriptor size:text_size];
-    }
-#endif
-  } else if (!fd.font_family_list_.empty()) {
-    bool has_valid_font_family = false;
-    for (auto& font_family : fd.font_family_list_) {
-      if (!font_family.empty()) {
-        has_valid_font_family = true;
-        break;
-      }
-    }
-    if (has_valid_font_family) {
-      auto typefaces = font_collection_.findTypefaces(fd);
-      if (typefaces.size() > 0) {
-        // We take the first typeface to shape text, but the first one is not
-        // always the most suitable. Therefore, we finally iterate all typefaces
-        // to find the most suitable one as skia does. If so, we should let
-        // ctshaper be a sub class of skshaper so that we could share lots of
-        // codes in onelineshaper.
-        auto ct_typeface = static_cast<CTFontRef>(
-            font_collection_.GetDefaultFontManager()
-                ->getPlatformFontFromTypeface(typefaces[0]));
-        ct_font = CTFontCreateCopyWithAttributes(ct_typeface, text_size,
-                                                 nullptr, nullptr);
-      }
-    }
+  CTFontRef safe_font =
+      GetOrCreateSafeFont(fd, text_size, style.FakeBold(), style.FakeItalic());
+  if (safe_font != nullptr) {
+    CFDictionaryAddValue(attributes, kCTFontAttributeName, safe_font);
+    CFRelease(safe_font);
   }
-  if (ct_font == nullptr) {
-    if (default_font_desc_ == nullptr) {
-#ifdef USE_APPKIT
-      //    ct_font =
-      //    CTFontCreateWithFontDescriptor(CTFontCopyFontDescriptor(ct_font),
-      //                                             text_size, nullptr);
-      if (style.FakeBold()) {
-        ct_font =
-            CTFontCreateWithName(CFSTR("Helvetica-Bold"), text_size, NULL);
-      } else if (style.FakeItalic()) {
-        ct_font =
-            CTFontCreateWithName(CFSTR("Helvetica-Oblique"), text_size, NULL);
-      } else {
-        ct_font = CTFontCreateWithName(CFSTR("Helvetica"), text_size, NULL);
-      }
-#endif
-#ifdef USE_UIKIT
-      CGFloat fontWeight = ConvertFontWeight(fd.font_style_.GetWeight());
-      if (style.FakeBold()) {
-        ct_font = (__bridge CTFontRef)[UIFont boldSystemFontOfSize:text_size];
-      } else if (style.FakeItalic()) {
-        ct_font = (__bridge CTFontRef)[UIFont italicSystemFontOfSize:text_size];
-      } else {
-        ct_font = (__bridge CTFontRef)[UIFont systemFontOfSize:text_size
-                                                        weight:fontWeight];
-      }
-#endif
-      default_font_desc_ = CTFontCopyFontDescriptor(ct_font);
-    }
-    ct_font =
-        CTFontCreateWithFontDescriptor(default_font_desc_, text_size, NULL);
-  }
-  CFDictionaryAddValue(attributes, kCTFontAttributeName, ct_font);
-  CFRelease(ct_font);
   return attributes;
 }
 }  // namespace tttext

@@ -102,7 +102,7 @@
   if ([self.enable_english_test isOn]) {
     file = [[NSBundle mainBundle] pathForResource:@"english.txt" ofType:nil];
   } else {
-    file = [[NSBundle mainBundle] pathForResource:@"红楼梦.txt" ofType:nil];
+    file = [[NSBundle mainBundle] pathForResource:@"hlm.txt" ofType:nil];
   }
 
   self.substrings = [NSMutableArray array];
