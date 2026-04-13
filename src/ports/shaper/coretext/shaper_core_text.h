@@ -9,6 +9,10 @@
 #import <CoreText/CoreText.h>
 #include <textra/text_layout.h>
 
+#include <cstddef>
+#include <list>
+#include <mutex>
+#include <unordered_map>
 #include <vector>
 
 #include "src/textlayout/tt_shaper.h"
@@ -28,18 +32,60 @@ class ShaperCoreText : public TTShaper {
                           WriteDirection write_direction, uint32_t* visual_map,
                           uint32_t* logical_map, uint8_t* dir_vec) override;
   void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
+  static void SetSafeFontCacheMaxEntries(size_t max_entries);
+  static size_t GetSafeFontCacheMaxEntries();
 
  private:
+  struct CachedSafeFontKey {
+    FontDescriptor font_descriptor_;
+    float text_size_ = 0.0f;
+    bool fake_bold_ = false;
+    bool fake_italic_ = false;
+
+    struct Hasher {
+      size_t operator()(const CachedSafeFontKey& key) const {
+        size_t seed = FontDescriptor::Hasher()(key.font_descriptor_);
+        seed ^= std::hash<float>()(key.text_size_) + 0x9e3779b9 + (seed << 6) +
+                (seed >> 2);
+        seed ^= std::hash<bool>()(key.fake_bold_) + 0x9e3779b9 + (seed << 6) +
+                (seed >> 2);
+        seed ^= std::hash<bool>()(key.fake_italic_) + 0x9e3779b9 + (seed << 6) +
+                (seed >> 2);
+        return seed;
+      }
+    };
+
+    bool operator==(const CachedSafeFontKey& rhs) const {
+      return font_descriptor_ == rhs.font_descriptor_ &&
+             text_size_ == rhs.text_size_ && fake_bold_ == rhs.fake_bold_ &&
+             fake_italic_ == rhs.fake_italic_;
+    }
+  };
+
+  struct CachedSafeFontEntry {
+    CTFontRef safe_font_ = nullptr;
+    std::list<CachedSafeFontKey>::iterator lru_it_;
+  };
+
   CFAttributedStringRef GenerateAttributeString(const char16_t* content,
                                                 uint32_t length,
                                                 uint32_t* u16char_map,
                                                 CFDictionaryRef key) const;
   CFDictionaryRef GenerateAttributes(const ShapeKey& key) const;
+  CTFontRef CreateSafeFontUnified(CTFontRef existing_font) const;
+  CTFontRef GetOrCreateSafeFont(const FontDescriptor& fd, float text_size,
+                                bool fake_bold, bool fake_italic) const;
+  static void TrimSafeFontCacheLocked();
 
  private:
   mutable std::vector<TypefaceRef> ct_font_lst_;
-  mutable CTFontDescriptorRef default_font_desc_ = nullptr;
   mutable uint32_t tmp_buf_[SHAPER_BUFF_SIZE];
+  static std::unordered_map<CachedSafeFontKey, CachedSafeFontEntry,
+                            CachedSafeFontKey::Hasher>
+      safe_font_cache_;
+  static std::list<CachedSafeFontKey> safe_font_cache_lru_;
+  static std::mutex safe_font_cache_mutex_;
+  static size_t safe_font_cache_max_entries_;
 };
 }  // namespace tttext
 }  // namespace ttoffice
