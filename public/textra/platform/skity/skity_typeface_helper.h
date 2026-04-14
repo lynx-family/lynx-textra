@@ -67,7 +67,7 @@ class SkityTypefaceHelper : public tttext::ITypefaceHelper {
       r += rect[k].Width();
     }
     rect_ltrb[0] = rect[0].Left();
-    rect_ltrb[2] = r;
+    rect_ltrb[2] = rect[0].Left() + r;
     delete[] rect;
   }
   uint16_t UnicharToGlyph(Unichar codepoint,
