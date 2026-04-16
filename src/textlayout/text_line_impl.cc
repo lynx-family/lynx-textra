@@ -464,7 +464,7 @@ void TextLineImpl::GetBoundingRectByCharRange(float bounding_rect[4],
   auto* top_p = bounding_rect + 1;
   auto* width_p = bounding_rect + 2;
   auto* height_p = bounding_rect + 3;
-  if (drawer_list_.empty()) {
+  if (drawer_list_.empty() || start_char_pos >= end_char_pos) {
     *left_p = 0;
     *top_p = 0;
     *width_p = 0;

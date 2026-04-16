@@ -109,7 +109,7 @@ void LayoutDrawer::DrawLineBackground(TextLine* i_line,
   auto start_char = char_start_in_para;
   StyleRange range;
   std::array<float, 4> rect{};
-  while (range.GetRange().GetEnd() <= char_end_in_para) {
+  while (start_char < char_end_in_para) {
     style_manager->GetStyleRange(
         &range, start_char,
         Style::BackgroundColorFlag | Style::BackgroundPainterFlag);
@@ -140,7 +140,7 @@ void LayoutDrawer::DrawLineDecoration(TextLine* i_line,
   StyleRange range;
   std::array<float, 4> rect{};
   float line_y = 0;
-  while (range.GetRange().GetEnd() <= char_end_in_para) {
+  while (start_char < char_end_in_para) {
     style_manager->GetStyleRange(&range, start_char, Style::DecorationFlag);
     auto end_char = std::min(range.GetRange().GetEnd(), char_end_in_para);
     auto& decorate_style = range.GetStyle();

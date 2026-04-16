@@ -107,6 +107,48 @@ TEST(LayoutDrawer, DrawLayoutPage_TextWithUnderline) {
   drawer.DrawLayoutPage(page.get());
 }
 
+TEST(LayoutDrawer, DrawTextLine_ExclusiveEndDoesNotDrawNextDecoration) {
+  // Arrange
+  ParagraphImpl para;
+  Style style;
+  style.SetTextSize(1.f);
+  para.AddTextRun(&style, "AB");
+
+  Style underline_style;
+  underline_style.SetDecorationType(DecorationType::kUnderLine);
+  underline_style.SetDecorationStyle(LineType::kSolid);
+  underline_style.SetDecorationColor(TTColor::BLACK);
+  para.ApplyStyleInRange(underline_style, 1, 1);
+
+  TTTextContext context;
+  auto page = std::make_unique<LayoutRegion>(100.f, 100.f);
+  TextLayout layout(TestUtils::getTestShaper());
+  layout.Layout(&para, page.get(), context);
+
+  ASSERT_EQ(page->GetLineCount(), 1u);
+  TextLine* text_line = page->GetLine(0);
+  ASSERT_NE(text_line, nullptr);
+
+  NiceMock<MockCanvasHelper> canvas_helper;
+  LayoutDrawer drawer(&canvas_helper);
+  ON_CALL(canvas_helper, CreatePainter()).WillByDefault(Invoke([]() {
+    return std::make_unique<Painter>();
+  }));
+
+  // The end position is exclusive, so drawing [0, 1) must not draw the
+  // decoration starting at character 1.
+  EXPECT_CALL(canvas_helper, DrawGlyphs(_, 1, _, nullptr, 0, _, _, _, _, _))
+      .Times(1);
+  EXPECT_CALL(canvas_helper, DrawLine(_, _, _, _, _)).Times(0);
+  drawer.DrawTextLine(text_line, 0, 1);
+  Mock::VerifyAndClearExpectations(&canvas_helper);
+
+  EXPECT_CALL(canvas_helper, DrawGlyphs(_, 2, _, nullptr, 0, _, _, _, _, _))
+      .Times(1);
+  EXPECT_CALL(canvas_helper, DrawLine(_, _, _, _, _)).Times(1);
+  drawer.DrawTextLine(text_line, 0, 2);
+}
+
 TEST(LayoutDrawer, DrawLayoutPage_RunDelegate) {
   // Arrange
   const float width = 100.f;
