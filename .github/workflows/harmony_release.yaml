@@ -96,7 +96,7 @@ jobs:
         working-directory: .
         run: |
           source tools/envsetup.sh
-          pushd demos/example/lynxtextra_demo && ohpm install
+          pushd demos/harmony/lynxtextra_demo && ohpm install
           chmod +x ./publish.py
           ./publish.py --modules lynxtextra --publish_har --version ${{ needs.get-version.outputs.version }}
           popd
@@ -113,7 +113,9 @@ jobs:
           PROJECT_ROOT=$(pwd)
           ohpm config set publish_registry https://ohpm.openharmony.cn/ohpm
           pushd platform/harmony/lynxtextra/build/default/outputs/default/
-          ohpm publish lynxtextra.har --publish_id ${{ secrets.HARMONY_PUBLISH_ID }} --key_path $PROJECT_ROOT/publish_key
+          # ohpm uses an interactive confirmation here, so publish via a pseudo-terminal.
+          PUBLISH_CMD="ohpm publish lynxtextra.har --publish_id ${{ secrets.HARMONY_PUBLISH_ID }} --key_path $PROJECT_ROOT/publish_key"
+          script -q -e -c "$PUBLISH_CMD" /dev/null <<< $'y\n'
           popd
 
       - name: Prepare Harmony Artifact For GitHub Release

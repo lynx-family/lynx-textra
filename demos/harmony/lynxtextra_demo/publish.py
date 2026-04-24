@@ -10,7 +10,7 @@ from subprocess import check_call
 
 
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
-HARMONY_DIR = os.path.normpath(os.path.join(CUR_DIR, '..'))
+HARMONY_DIR = CUR_DIR
 
 def patch_oh_package(module_path, version):
     cmd = 'ohpm version {}'.format(version)
