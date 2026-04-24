@@ -26,14 +26,16 @@ class SkityFontData {
 
   std::pair<float, float> GetAscentAndDescent(float text_size) const {
     EnsureEmHeightCached();
-    uint32_t units_per_em = typeface_ ? typeface_->GetUnitsPerEm() : 0u;
-    if (!has_em_height_ || units_per_em == 0) {
-      return GetFallbackAscentAndDescent(text_size);
+    if (has_em_height_) {
+      auto normalized = NormalizeAscentAndDescent(
+          static_cast<float>(em_height_ascender_),
+          static_cast<float>(em_height_descender_), text_size);
+      if (normalized.first >= 0.f) {
+        return normalized;
+      }
     }
 
-    float scale = text_size / static_cast<float>(units_per_em);
-    return std::make_pair(static_cast<float>(em_height_ascender_) * scale,
-                          static_cast<float>(em_height_descender_) * scale);
+    return GetFallbackAscentAndDescent(text_size);
   }
 
   float GetAscent(float text_size) const {
@@ -64,6 +66,19 @@ class SkityFontData {
     return static_cast<int16_t>(u);
   }
 
+  static std::pair<float, float> NormalizeAscentAndDescent(float ascent,
+                                                           float descent,
+                                                           float text_size) {
+    const float height = ascent + descent;
+    if (height <= 0.f || ascent < 0.f || descent < 0.f || text_size < 0.f) {
+      return std::make_pair(-1.f, -1.f);
+    }
+
+    // Preserve the typo metric ratio, but make the em box sum to text_size.
+    const float normalized_ascent = ascent * text_size / height;
+    return std::make_pair(normalized_ascent, text_size - normalized_ascent);
+  }
+
   void EnsureEmHeightCached() const {
     std::call_once(em_height_once_, [this]() {
       if (!typeface_) {
@@ -91,6 +106,11 @@ class SkityFontData {
     FontMetrics metrics{};
     Font font(typeface_, text_size);
     font.GetMetrics(&metrics);
+    auto normalized = NormalizeAscentAndDescent(-metrics.ascent_,
+                                                metrics.descent_, text_size);
+    if (normalized.first >= 0.f) {
+      return normalized;
+    }
     return std::make_pair(-metrics.ascent_, metrics.descent_);
   }
 
