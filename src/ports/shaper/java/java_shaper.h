@@ -45,6 +45,10 @@ class JavaShaper final : public TTShaper {
   ~JavaShaper() override = default;
 
   void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
+  void ProcessBidirection(const char32_t* text, uint32_t length,
+                          ttoffice::tttext::WriteDirection write_direction,
+                          uint32_t* visual_map, uint32_t* logical_map,
+                          uint8_t* dir_vec) override;
 
  private:
   static std::map<FontKey, std::shared_ptr<JavaTypeface>> font_lst_;

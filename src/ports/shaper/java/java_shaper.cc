@@ -7,6 +7,9 @@
 #include <textra/painter.h>
 #include <textra/platform/java/java_font_manager.h>
 #include <textra/platform/java/tttext_jni_proxy.h>
+#ifdef USE_ICU
+#include <textra/icu_wrapper.h>
+#endif
 
 #include <memory>
 
@@ -92,5 +95,19 @@ void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
   env->DeleteLocalRef(info_list);
   env->DeleteLocalRef(j_content);
 }
+
+void JavaShaper::ProcessBidirection(
+    const char32_t* text, uint32_t length,
+    ttoffice::tttext::WriteDirection write_direction, uint32_t* visual_map,
+    uint32_t* logical_map, uint8_t* dir_vec) {
+#ifdef USE_ICU
+  ICUWrapper::BidiInit(text, length, write_direction, dir_vec, visual_map,
+                       logical_map);
+#else
+  TTShaper::ProcessBidirection(text, length, write_direction, visual_map,
+                               logical_map, dir_vec);
+#endif
+}
+
 }  // namespace tttext
 }  // namespace ttoffice
