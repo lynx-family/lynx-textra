@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "Please describe the basic information.",
   "main": "Index.ets",
-  "author": "",
+  "author": "Lynx",
+  "tags": [
+    "textlayout",
+  ],
   "license": "Apache-2.0",
   "dependencies": {
     "liblynxtextra.so": "file:./src/main/cpp/types/liblynxtextra"
