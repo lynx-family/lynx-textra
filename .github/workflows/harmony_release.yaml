@@ -1,0 +1,149 @@
+name: harmony release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "release tag"
+        required: false
+        type: string
+
+jobs:
+  get-version:
+    runs-on: lynx-ubuntu-22.04-medium
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+    steps:
+      - name: Get Version
+        id: get_version
+        shell: bash
+        run: |-
+          if [ ${{ github.event_name }} == 'workflow_dispatch' ]; then
+            version=${{ github.event.inputs.tag }}
+          else
+            version=$(echo ${{ github.ref }} | awk -F "/" '{print $3}')
+          fi
+          if [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ || \
+                $version =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ || \
+                $version =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]]; then
+            echo "Version is valid"
+            echo "VERSION=$version" >> $GITHUB_OUTPUT;
+          else
+            echo "Version is invalid"
+            exit 1
+          fi
+
+  release-harmony:
+    name: Release Harmony
+    needs: get-version
+    runs-on: lynx-custom-container
+    permissions:
+      contents: write
+    container:
+      image: ghcr.io/lynx-family/ubuntu24.04-harmony@sha256:bf493c3710de3c44bfa84caf402c0727b9310c42497f6e52580ad441ea640ef1
+      credentials:
+        username: lynx-family
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Install git-cliff
+        run: |
+          cargo install git-cliff --locked
+          git-cliff --version
+
+      - name: Download Source
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Sync Common Dependencies
+        uses: ./.github/actions/common-deps
+
+      - name: Generate Change Log
+        shell: bash
+        working-directory: .
+        run: |
+          source tools/envsetup.sh
+          CURRENT_TAG="${{ needs.get-version.outputs.version }}"
+          LATEST_TAG=$(git describe --tags --exclude="$CURRENT_TAG" --abbrev=0 2>/dev/null || true)
+          COMMIT_RANGE=""
+          if [ -n "$LATEST_TAG" ]; then
+            COMMIT_ID=$(git rev-list -n 1 "$LATEST_TAG")
+            COMMIT_RANGE="$COMMIT_ID..HEAD"
+          else
+            FIRST_COMMIT=$(git rev-list --max-parents=0 HEAD)
+            COMMIT_RANGE="$FIRST_COMMIT..HEAD"
+          fi
+          git-cliff --config platform/harmony/lynxtextra/cliff.toml \
+          $COMMIT_RANGE | sed 's/<!-- version -->/${{ needs.get-version.outputs.version }}/g' > platform/harmony/lynxtextra/CHANGELOG.md
+          echo "CHANGELOG.md generated successfully"
+          cat platform/harmony/lynxtextra/CHANGELOG.md
+          cp ./LICENSE platform/harmony/lynxtextra/LICENSE
+          cp ./README.md platform/harmony/lynxtextra/README.md
+
+      - name: Install dependencies and Build
+        shell: bash
+        working-directory: .
+        run: |
+          source tools/envsetup.sh
+          pushd demos/example/lynxtextra_demo && ohpm install
+          chmod +x ./publish.py
+          ./publish.py --modules lynxtextra --publish_har --version ${{ needs.get-version.outputs.version }}
+          popd
+
+      - name: Publish Harmony SDK
+        shell: bash
+        working-directory: .
+        run: |
+          source tools/envsetup.sh
+          export PUBLISH_KEY_PASSPHRASE=${{ secrets.HARMONY_PUBLISH_KEY_PASSPHRASE }}
+          cat << EOF > publish_key
+          ${{ secrets.HARMONY_PUBLISH_KEY }}
+          EOF
+          PROJECT_ROOT=$(pwd)
+          ohpm config set publish_registry https://ohpm.openharmony.cn/ohpm
+          pushd platform/harmony/lynxtextra/build/default/outputs/default/
+          ohpm publish lynxtextra.har --publish_id ${{ secrets.HARMONY_PUBLISH_ID }} --key_path $PROJECT_ROOT/publish_key
+          popd
+
+      - name: Prepare Harmony Artifact For GitHub Release
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        shell: bash
+        working-directory: .
+        run: |
+          VERSION="${{ needs.get-version.outputs.version }}"
+          ASSET_DIR="github-release-assets/harmony"
+          HAR_PATH="platform/harmony/lynxtextra/build/default/outputs/default/lynxtextra.har"
+          CHANGELOG_PATH="platform/harmony/lynxtextra/CHANGELOG.md"
+          mkdir -p "$ASSET_DIR"
+          if [ ! -f "$HAR_PATH" ]; then
+            echo "Harmony release artifact not found: $HAR_PATH"
+            exit 1
+          fi
+          cp "$HAR_PATH" "$ASSET_DIR/lynxtextra-harmony-${VERSION}.har"
+          if [ -f "$CHANGELOG_PATH" ]; then
+            cp "$CHANGELOG_PATH" "$ASSET_DIR/lynxtextra-harmony-changelog-${VERSION}.md"
+          fi
+
+      - name: Upload Harmony Artifact to GitHub Release
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.get-version.outputs.version }}
+          files: |
+            github-release-assets/harmony/lynxtextra-harmony-${{ needs.get-version.outputs.version }}.har
+            github-release-assets/harmony/lynxtextra-harmony-changelog-${{ needs.get-version.outputs.version }}.md
+          fail_on_unmatched_files: false
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
