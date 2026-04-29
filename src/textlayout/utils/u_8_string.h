@@ -236,7 +236,10 @@ uint32_t U32IndexToU16(const char32_t* content, uint32_t length,
  * 544 code points, actually 542 characters CJK Radical Extension [2E80-2EFF]
  * 128 code points, actually 115 characters CJK Kangxi Radicals [2F00-2FDF] 224
  * code points, actually 214 characters CJK Strokes                  [31C0-31EF]
- * 48 code points, actually 36 characters CJK Compatibility [F900-FAFF]   512
+ * 48 code points, actually 36 characters Hangul Jamo              [1100-11FF]
+ * Hangul Compatibility Jamo [3130-318F] Hangul Syllables          [AC00-D7AF]
+ * Hangul Jamo Extended       [A960-A97F, D7B0-D7FF]
+ * CJK Compatibility          [F900-FAFF]   512
  * code points, actually 477 characters PUA (GBK)                    [E815-E86F]
  * 90 code points, actually 80 characters PUA Component Extension [E400-E5FF]
  * 511 code points, actually 452 characters PUA Character Supplement [E600-E6BF]
@@ -246,7 +249,28 @@ inline bool IsCJK(char32_t code) {
   return (code >= 0x4e00 && code <= 0x9FFF) ||
          (code >= 0x3400 && code <= 0x4dbf) ||
          (code >= 0x3040 && code <= 0x30ff) ||
+         (code >= 0x1100 && code <= 0x11ff) ||
+         (code >= 0x3130 && code <= 0x318f) ||
+         (code >= 0xa960 && code <= 0xa97f) ||
+         (code >= 0xac00 && code <= 0xd7ff) ||
          (code >= 0x20000 && code <= 0x2ffff);
+}
+inline bool IsWordSeparator(char32_t code) {
+  return code == 0x0020 || code == 0x00a0 || code == 0x1361 || code == 0x3000 ||
+         code == 0x10100 || code == 0x10101 || code == 0x1039f ||
+         code == 0x1091f;
+}
+inline bool IsCJKPunctuation(char32_t code) {
+  if ((code >= 0x3001 && code <= 0x303f) ||
+      (code >= 0xfe10 && code <= 0xfe1f) ||
+      (code >= 0xfe30 && code <= 0xfe6f) ||
+      (code >= 0xff01 && code <= 0xff0f) ||
+      (code >= 0xff1a && code <= 0xff20) ||
+      (code >= 0xff3b && code <= 0xff40) ||
+      (code >= 0xff5b && code <= 0xff65)) {
+    return true;
+  }
+  return false;
 }
 inline bool IsSpaceChar(char32_t code) {
   return code == ' ' || code == '\r' || code == '\n' || code == '\t' ||

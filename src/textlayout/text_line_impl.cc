@@ -111,8 +111,7 @@ CharPos TextLineImpl::GetStartCharPos() const {
 CharPos TextLineImpl::GetEndCharPos() const {
   return paragraph_->LayoutPositionToCharPos(line_end_pos_);
 }
-void TextLineImpl::SplitToWordDrawer(const LineRange& line_range,
-                                     float word_spacing) {
+void TextLineImpl::SplitToWordDrawer(const LineRange& line_range) {
   for (const auto& run_range : line_range.run_range_lst_) {
     if (run_range->GetRun()->IsGhostRun()) {
       drawer_list_.push_back(std::make_unique<DrawerPiece>(*run_range));
@@ -120,16 +119,16 @@ void TextLineImpl::SplitToWordDrawer(const LineRange& line_range,
       auto* run = run_range->GetRun();
       auto start_char = run_range->GetStartCharPosInParagraph();
       auto end_char = run_range->GetEndCharPosInParagraph();
-      auto next_word_boundary = paragraph_->boundary_analyst_->FindNextBoundary(
-          start_char, BoundaryType::kWord);
-      while (next_word_boundary < end_char) {
+      auto next_justify_opportunity =
+          paragraph_->FindNextJustifyOpportunity(start_char);
+      while (next_justify_opportunity < end_char) {
         auto drawer = std::make_unique<DrawerPiece>(
             run, run_range->GetParent(), start_char - run->GetStartCharPos(),
-            next_word_boundary - run->GetStartCharPos());
+            next_justify_opportunity - run->GetStartCharPos());
         InsertDrawerPiece(std::move(drawer));
-        start_char = next_word_boundary;
-        next_word_boundary = paragraph_->boundary_analyst_->FindNextBoundary(
-            start_char, BoundaryType::kWord);
+        start_char = next_justify_opportunity;
+        next_justify_opportunity =
+            paragraph_->FindNextJustifyOpportunity(start_char);
       }
       if (start_char < end_char) {
         auto drawer = std::make_unique<DrawerPiece>(
@@ -145,7 +144,7 @@ void TextLineImpl::CreateDrawerPiece() {
   auto align = paragraph_->GetParagraphStyle().GetHorizontalAlign();
   for (const auto& line_range : range_lst_) {
     if (align == ParagraphHorizontalAlignment::kJustify) {
-      SplitToWordDrawer(*line_range, 0);
+      SplitToWordDrawer(*line_range);
     } else {
       for (const auto& run_range : line_range->run_range_lst_) {
         auto drawer_piece = std::make_unique<DrawerPiece>(*run_range);

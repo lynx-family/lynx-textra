@@ -199,10 +199,14 @@ LayoutPosition TextLayoutImpl::AddBreakableRunsToLine(
     // break at any position.
     bool is_last_line = region->GetLineCount() + 1 >=
                         line->GetParagraph()->GetParagraphStyle().GetMaxLines();
+    auto& style = paragraph.GetParagraphStyle();
+    bool has_ellipsis =
+        !style.GetEllipsis().empty() || style.GetEllipsisDelegate() != nullptr;
     auto line_break_pos =
-        is_last_line ? greedy_break_pos
-                     : paragraph.FindPrevBoundary(greedy_break_pos,
-                                                  BoundaryType::kLineBreakable);
+        is_last_line && has_ellipsis
+            ? greedy_break_pos
+            : paragraph.FindPrevBoundary(greedy_break_pos,
+                                         BoundaryType::kLineBreakable);
     if (line_break_pos < pos) line_break_pos = pos;
     if (line_break_pos > pos) {
       auto d_height = AddWordListToRunRange(range.get(), paragraph, pos,
