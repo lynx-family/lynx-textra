@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import("../config.gni")
+if (target_cpu == "wasm") {
+  import("//config.gni")
+} else {
+  import("../config.gni")
+}
 
 declare_args() {
   prj_root = rebase_path("..")
   enable_javashaper = is_android && !is_lvgl
-  enable_skshaper = is_android || is_mac || is_harmony || is_win || is_linux
+  enable_skshaper = is_android || is_mac || is_harmony || is_win || is_linux ||
+                    target_cpu == "wasm"
   enable_ctshaper = (is_ios || is_mac) && !is_lvgl
   enable_harmony = is_harmony
   enable_minikin = false
@@ -61,6 +66,10 @@ config("textlayout_internal") {
   visibility = [ ":*" ]
   cflags = [ "-Wshorten-64-to-32" ]
   cflags_cc = [ "-Wshorten-64-to-32" ]
+  if (target_cpu == "wasm") {
+    cflags += [ "-fPIC" ]
+    cflags_cc += [ "-fno-exceptions" ]
+  }
   include_dirs = [
     "$prj_root",
     "$prj_root/public",
@@ -186,7 +195,7 @@ source_set("textlayout") {
 
   sources = []
 
-  if (is_mac || is_linux) {
+  if (is_mac || is_linux || target_cpu == "wasm") {
     deps += [ ":bidi" ]
   }
 
