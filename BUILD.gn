@@ -32,6 +32,9 @@ group("default") {
   if (is_linux) {
     deps = [ "platform/linux:lynxtextra" ]
   }
+  if (target_cpu == "wasm") {
+    deps = [ "src:textlayout" ]
+  }
 }
 
 group("test") {
