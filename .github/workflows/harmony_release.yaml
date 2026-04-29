@@ -89,7 +89,6 @@ jobs:
           echo "CHANGELOG.md generated successfully"
           cat platform/harmony/lynxtextra/CHANGELOG.md
           cp ./LICENSE platform/harmony/lynxtextra/LICENSE
-          cp ./README.md platform/harmony/lynxtextra/README.md
 
       - name: Install dependencies and Build
         shell: bash

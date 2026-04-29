@@ -1,7 +1,7 @@
 {
   "name": "@lynx/lynxtextra",
   "version": "1.0.0",
-  "description": "Please describe the basic information.",
+  "description": "high performance multiplatform textlayout project",
   "main": "Index.ets",
   "author": "Lynx",
   "tags": [
