@@ -34,7 +34,7 @@ class TextLineImpl : public TextLine {
 
  private:
   void SetRangeLst(const std::vector<std::array<float, 2>>& lst);
-  void SplitToWordDrawer(const LineRange& line_range, float word_spacing);
+  void SplitToWordDrawer(const LineRange& line_range);
   void CreateDrawerPiece();
   void TrimTailSpace();
   void InsertDrawerPiece(std::unique_ptr<DrawerPiece> drawer_piece);

@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "src/textlayout/internal/boundary_analyst.h"
+#include "src/textlayout/internal/justify_analyst.h"
 #include "src/textlayout/layout_position.h"
 #include "src/textlayout/run/ghost_run.h"
 #include "src/textlayout/run/object_run.h"
@@ -31,6 +32,7 @@ ParagraphImpl::ParagraphImpl()
       formated_(false),
       style_manager_(std::make_unique<StyleManager>()),
       boundary_analyst_(nullptr),
+      justify_analyst_(nullptr),
       shaper_(nullptr) {}
 ParagraphImpl::~ParagraphImpl() = default;
 void ParagraphImpl::AddTextRun(const Style& style, const char* content,
@@ -373,6 +375,19 @@ LayoutPosition ParagraphImpl::FindPrevBoundary(const LayoutPosition& start,
     pos.PrevRun();
   }
   return ret;
+}
+void ParagraphImpl::InitJustifyAnalyst() const {
+  if (justify_analyst_ != nullptr) return;
+  justify_analyst_ = std::make_unique<JustifyAnalyst>(content_);
+}
+CharPos ParagraphImpl::FindNextJustifyOpportunity(CharPos start_char) const {
+  InitJustifyAnalyst();
+  return justify_analyst_->FindNextJustifyOpportunity(start_char);
+}
+
+bool ParagraphImpl::CanInsertJustifySpaceAfter(CharPos char_pos) const {
+  InitJustifyAnalyst();
+  return justify_analyst_->CanInsertJustifySpaceAfter(char_pos);
 }
 BoundaryType ParagraphImpl::GetBoundaryTypeBefore(
     const LayoutPosition& position) const {

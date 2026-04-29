@@ -32,7 +32,6 @@ class BoundaryAnalyst {
   void UpgradeBoundaryType(const Range& range, BoundaryType type);
 
  private:
- private:
   std::vector<BoundaryType> boundary_;
 };
 }  // namespace tttext

@@ -115,6 +115,8 @@ Pod::Spec.new do |s|
                                 "src/textlayout/dominate_baseline.h",
                                 "src/textlayout/internal/boundary_analyst.cc",
                                 "src/textlayout/internal/boundary_analyst.h",
+                                "src/textlayout/internal/justify_analyst.cc",
+                                "src/textlayout/internal/justify_analyst.h",
                                 "src/textlayout/internal/line_range.h",
                                 "src/textlayout/internal/run_range.h",
                                 "src/textlayout/layout_drawer.cc",

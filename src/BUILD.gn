@@ -199,6 +199,8 @@ source_set("textlayout") {
     "$prj_root/src/textlayout/fontmgr_collection.cc",
     "$prj_root/src/textlayout/internal/boundary_analyst.cc",
     "$prj_root/src/textlayout/internal/boundary_analyst.h",
+    "$prj_root/src/textlayout/internal/justify_analyst.cc",
+    "$prj_root/src/textlayout/internal/justify_analyst.h",
     "$prj_root/src/textlayout/internal/line_range.h",
     "$prj_root/src/textlayout/internal/run_range.h",
     "$prj_root/src/textlayout/layout_drawer.cc",

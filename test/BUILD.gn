@@ -16,6 +16,7 @@ executable("TextLayoutLiteTest") {
     "//demos/darwin/macos/ttreaderdemo/paragraph_test.cc",
     "boundary_analyst_test.cc",
     "inline_block_test.cc",
+    "justify_analyst_test.cc",
     "layout_drawer_test.cc",
     "layout_region_test.cc",
     "paragraph_image_test.cc",

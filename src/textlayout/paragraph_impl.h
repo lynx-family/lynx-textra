@@ -41,6 +41,7 @@ class TextLine;
 class LayoutRegion;
 class RegionPosition;
 class BoundaryAnalyst;
+class JustifyAnalyst;
 class ShaperSkShaper;
 class FontmgrCollection;
 class TTTextContext;
@@ -141,6 +142,8 @@ class ParagraphImpl : public Paragraph {
                                   const BoundaryType& type) const;
   LayoutPosition FindPrevBoundary(const LayoutPosition& start,
                                   const BoundaryType& type) const;
+  CharPos FindNextJustifyOpportunity(CharPos start_char) const;
+  bool CanInsertJustifySpaceAfter(CharPos char_pos) const;
   BoundaryType GetBoundaryTypeBefore(const LayoutPosition& position) const;
   BoundaryType GetBoundaryType(const LayoutPosition& position) const;
   void SetShaper(TTShaper* shaper) { shaper_ = shaper; }
@@ -157,6 +160,7 @@ class ParagraphImpl : public Paragraph {
     return content_.GetCharCount();
   }
   bool SplitRun(uint32_t idx, uint32_t char_pos_in_run);
+  void InitJustifyAnalyst() const;
 
 #ifdef TTTEXT_DEBUG
   std::u32string GetContentWithGhost() const;
@@ -169,6 +173,7 @@ class ParagraphImpl : public Paragraph {
   TTString content_;
   std::unique_ptr<StyleManager> style_manager_;
   std::unique_ptr<BoundaryAnalyst> boundary_analyst_;
+  mutable std::unique_ptr<JustifyAnalyst> justify_analyst_;
   // even: ltr, odd: rtl
   std::vector<uint8_t> bidi_level_;
   std::vector<uint32_t> visual_map_;
