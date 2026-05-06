@@ -55,6 +55,7 @@ class Painter {
         stroke_miter_(0),
         font_family_("pingfang"),
         text_size_(14),
+        text_skew_(0),
         bold_(false),
         italic_(false),
         under_line_(false),
@@ -82,6 +83,8 @@ class Painter {
   }
   float GetTextSize() const { return text_size_; }
   void SetTextSize(float text_size) { text_size_ = text_size; }
+  float GetTextSkew() const { return text_skew_; }
+  void SetTextSkew(float text_skew) { text_skew_ = text_skew; }
   bool IsBold() const { return bold_; }
   void SetBold(bool bold) { bold_ = bold; }
   bool IsItalic() const { return italic_; }
@@ -104,6 +107,7 @@ class Painter {
   float stroke_miter_;
   std::string font_family_;
   float text_size_;
+  float text_skew_;
   bool bold_;
   bool italic_;
   bool under_line_;

@@ -310,7 +310,7 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
           &style_range, run->GetStartCharPos() + piece_start,
           Style::ForegroundColorFlag | Style::ForegroundPainterFlag |
               Style::BaselineOffsetFlag | Style::TextStrokeStyleFlag |
-              Style::TextShadowListFlag);
+              Style::TextShadowListFlag | Style::TextSkewFlag);
       piece_end = std::min(char_end_pos, style_range.GetRange().GetEnd() -
                                              run->GetStartCharPos());
       style = &style_range.GetStyle();
@@ -341,6 +341,7 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
                              layout_style.GetTextScale());
       }
     }
+    painter->SetTextSkew(style->GetTextSkew());
     auto& result = run->shape_result_;
     auto glyph_start = result.CharToGlyph(piece_start);
     auto glyph_end = result.CharToGlyph(piece_end);

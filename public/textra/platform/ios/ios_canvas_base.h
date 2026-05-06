@@ -290,6 +290,7 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     auto mode = ApplyPainterStyle(painter);
     CGContextSaveGState(context_);
     auto text_mat = CGAffineTransformIdentity;
+    auto text_skew = painter->GetTextSkew();
     if (painter->IsBold() || painter->IsItalic()) {
       NSDictionary* traits =
           (__bridge_transfer NSDictionary*)CTFontCopyTraits(ct_font);
@@ -313,12 +314,14 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
         if ([obj isKindOfClass:[NSNumber class]]) {
           NSNumber* slant = reinterpret_cast<NSNumber*>(obj);
           if (slant.doubleValue == 0) {
-            // add fake slant
-            text_mat = CGAffineTransformConcat(
-                text_mat, CGAffineTransformMake(1, 0, 0.3, 1, 0, 0));
+            text_skew -= 0.3f;
           }
         }
       }
+    }
+    if (text_skew != 0) {
+      text_mat = CGAffineTransformConcat(
+          text_mat, CGAffineTransformMake(1, 0, -text_skew, 1, 0, 0));
     }
     CGContextSetTextMatrix(context_, text_mat);
     CGContextTranslateCTM(context_, ox, oy);
