@@ -405,6 +405,8 @@ void ParagraphImpl::ApplyStyleInRange(const Style& style, const CharPos start,
                                       const uint32_t len) const {
   style_manager_->ApplyStyleInRange(style, start, len);
 }
+void ParagraphImpl::SaveStyle() { style_manager_->SaveStyle(); }
+void ParagraphImpl::RestoreStyle() { style_manager_->RestoreStyle(); }
 float ParagraphImpl::GetMaxIntrinsicWidth() const {
   if (!formated_) return 0;
   float max_width = 0;

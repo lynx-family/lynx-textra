@@ -60,6 +60,8 @@ class L_EXPORT Paragraph {
   virtual uint32_t GetRunCount() const = 0;
   virtual void ApplyStyleInRange(const Style& style, uint32_t start,
                                  uint32_t len) const = 0;
+  virtual void SaveStyle() = 0;
+  virtual void RestoreStyle() = 0;
   virtual float GetMaxIntrinsicWidth() const = 0;
   virtual float GetMinIntrinsicWidth() const = 0;
 

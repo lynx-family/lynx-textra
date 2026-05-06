@@ -112,6 +112,24 @@ void StyleManager::ApplyStyleInRange(const Style& style, const uint32_t start,
     style_list_[id].SetRangeValue(Range{start, end}, value);
   }
 }
+void StyleManager::SaveStyle() {
+  StyleState state;
+  for (AttrType k = 0; k < kMaxAttrType; k++) {
+    state.style_list_[k] = style_list_[k];
+  }
+  style_state_stack_.push_back(state);
+}
+void StyleManager::RestoreStyle() {
+  if (style_state_stack_.empty()) {
+    return;
+  }
+  const auto& state = style_state_stack_.back();
+  for (AttrType k = 0; k < kMaxAttrType; k++) {
+    style_list_[k].Clear();
+    style_list_[k] = state.style_list_[k];
+  }
+  style_state_stack_.pop_back();
+}
 Style StyleManager::GetStyle(const uint32_t index) const {
   Style ret(default_style_);
   for (auto idk = kStyleManagerAttrStart; idk < kStyleManagerAttrEnd;
