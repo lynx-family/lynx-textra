@@ -415,6 +415,48 @@ TEST(StyleManager, ApplyStyleInRange) {
   }
 }
 
+TEST(StyleManager, SaveAndRestoreStyle) {
+  StyleManager manager;
+  const TTColor red(TTColor::RED);
+  const TTColor green(TTColor::GREEN);
+  const TTColor blue(TTColor::BLUE);
+
+  manager.SetForegroundColor(red, 0, 4);
+  manager.SetExtraFloatAttributesInRange(AttributeType::kExtraBaselineOffset,
+                                         1.f, 0, 4);
+  manager.SaveStyle();
+
+  manager.SetForegroundColor(green, 1, 2);
+  manager.SetBackgroundColor(blue, 0, 4);
+  manager.SetExtraFloatAttributesInRange(AttributeType::kExtraBaselineOffset,
+                                         2.f, 0, 4);
+  EXPECT_EQ(manager.GetForegroundColor(1), green);
+  EXPECT_EQ(manager.GetBackgroundColor(1), blue);
+  EXPECT_FLOAT_EQ(
+      manager.GetExtraFloatAttributes(AttributeType::kExtraBaselineOffset, 1),
+      2.f);
+
+  manager.SaveStyle();
+  manager.ClearStyleInRange(AttributeType::kForegroundColor, Range{0, 4});
+  EXPECT_EQ(manager.GetForegroundColor(1),
+            Style::DefaultStyle().GetForegroundColor());
+
+  manager.RestoreStyle();
+  EXPECT_EQ(manager.GetForegroundColor(1), green);
+  EXPECT_EQ(manager.GetBackgroundColor(1), blue);
+
+  manager.RestoreStyle();
+  EXPECT_EQ(manager.GetForegroundColor(1), red);
+  EXPECT_EQ(manager.GetBackgroundColor(1),
+            Style::DefaultStyle().GetBackgroundColor());
+  EXPECT_FLOAT_EQ(
+      manager.GetExtraFloatAttributes(AttributeType::kExtraBaselineOffset, 1),
+      2.f);
+
+  manager.RestoreStyle();
+  EXPECT_EQ(manager.GetForegroundColor(1), red);
+}
+
 TEST(StyleManager, ClearStyleInRange) {
   StyleManager manager;
   const AttributeType fg_attr = AttributeType::kForegroundColor;

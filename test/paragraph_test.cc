@@ -5,7 +5,9 @@
 #include <gtest/gtest.h>
 #include <textra/paragraph.h>
 
+#include "src/textlayout/paragraph_impl.h"
 #include "src/textlayout/run/base_run.h"
+#include "src/textlayout/style/style_manager.h"
 #include "test_utils.h"
 
 using namespace ttoffice::tttext;
@@ -54,6 +56,31 @@ TEST(ParagraphTest, SetParagraphStyle) {
   paragraph->SetParagraphStyle(&new_style);
   EXPECT_EQ(paragraph->GetParagraphStyle().GetWriteDirection(),
             WriteDirection::kRTL);
+}
+
+TEST(ParagraphTest, SaveRestoreStyle) {
+  class TestParagraphImpl : public ParagraphImpl {
+   public:
+    StyleManager* GetStyleManager() { return style_manager_.get(); }
+  };
+
+  auto paragraph_impl = std::make_unique<TestParagraphImpl>();
+  auto* style_manager = paragraph_impl->GetStyleManager();
+  std::unique_ptr<Paragraph> paragraph = std::move(paragraph_impl);
+  paragraph->AddTextRun(nullptr, "abc");
+
+  Style red_style;
+  red_style.SetForegroundColor(TTColor::RED);
+  Style green_style;
+  green_style.SetForegroundColor(TTColor::GREEN);
+
+  paragraph->ApplyStyleInRange(red_style, 0, 3);
+  paragraph->SaveStyle();
+  paragraph->ApplyStyleInRange(green_style, 1, 1);
+  EXPECT_EQ(style_manager->GetForegroundColor(1), TTColor(TTColor::GREEN));
+
+  paragraph->RestoreStyle();
+  EXPECT_EQ(style_manager->GetForegroundColor(1), TTColor(TTColor::RED));
 }
 
 TEST(ParagraphTest, GetContentString_English) {

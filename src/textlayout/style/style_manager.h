@@ -87,6 +87,10 @@ class AttributesRangeList {
 };
 class StyleManager {
  public:
+  struct StyleState {
+    AttributesRangeList style_list_[kMaxAttrType];
+  };
+
   StyleManager() { style_list_[kDecorationType].SetMergeRange(false); }
   StyleManager(const StyleManager& other)
       : extra_style_list_(other.extra_style_list_),
@@ -287,6 +291,8 @@ class StyleManager {
   void ClearStyleInRange(const AttributeType type, const Range& range) {
     style_list_[type].ClearRangeValue(range);
   }
+  void SaveStyle();
+  void RestoreStyle();
 
   Style GetStyle(const uint32_t index) const;
   void GetStyleRange(StyleRange* style_range, uint32_t start_char,
@@ -314,6 +320,7 @@ class StyleManager {
   std::map<AttrType, AttributesRangeList> extra_style_list_;
   Style default_style_;
   std::list<TextShadowList> text_shadow_list_;
+  std::vector<StyleState> style_state_stack_;
 };
 }  // namespace tttext
 }  // namespace ttoffice

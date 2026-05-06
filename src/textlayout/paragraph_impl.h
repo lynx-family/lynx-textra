@@ -98,6 +98,8 @@ class ParagraphImpl : public Paragraph {
   }
   void ApplyStyleInRange(const Style& style, CharPos start,
                          uint32_t len) const override;
+  void SaveStyle() override;
+  void RestoreStyle() override;
   float GetMaxIntrinsicWidth() const override;
   float GetMinIntrinsicWidth() const override;
 
