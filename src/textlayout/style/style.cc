@@ -61,6 +61,9 @@ Style& Style::operator=(const Style& other) {
   if (other.HasStyleAttribute(Style::BaselineOffsetFlag)) {
     SetBaselineOffset(other.GetBaselineOffset());
   }
+  if (other.HasStyleAttribute(Style::TextSkewFlag)) {
+    SetTextSkew(other.GetTextSkew());
+  }
   flag_ = other.flag_;
   return *this;
 }

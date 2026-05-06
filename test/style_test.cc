@@ -43,6 +43,7 @@ TEST(StyleTest, AttributeSetterGetterAndFlag) {
   SET_ATTRIBUTE_AND_CHECK_RESULT(BackgroundPainter, std::equal_to<>{});
   SET_ATTRIBUTE_AND_CHECK_RESULT(WordBreak, std::equal_to<>{});
   SET_ATTRIBUTE_AND_CHECK_RESULT(BaselineOffset, ttoffice::FloatsEqual);
+  SET_ATTRIBUTE_AND_CHECK_RESULT(TextSkew, ttoffice::FloatsEqual);
   {
     Style style;
     EXPECT_FALSE(style.HasStyleAttribute(Style::TextStrokeStyleFlag));

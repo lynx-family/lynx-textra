@@ -230,6 +230,8 @@ void StyleManager::SetStyle(Style* style, uint64_t value,
       return style->SetWordBreak(static_cast<WordBreakType>(value));
     case AttributeType::kBaselineOffset:
       return style->SetBaselineOffset(UnPackValue<float>(value));
+    case AttributeType::kTextSkew:
+      return style->SetTextSkew(UnPackValue<float>(value));
     default:
       TTASSERT(false);
   }
@@ -265,6 +267,8 @@ AttributesRangeList::ValueType StyleManager::GetStyleValue(
       return static_cast<uint64_t>(style->GetWordBreak());
     case AttributeType::kBaselineOffset:
       return PackValue(style->GetBaselineOffset());
+    case AttributeType::kTextSkew:
+      return PackValue(style->GetTextSkew());
     default:
       TTASSERT(false);
       AttributesRangeList::Undefined();

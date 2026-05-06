@@ -417,6 +417,18 @@ class L_EXPORT Style {
   }
 
   /**
+   * @brief Horizontal skew applied during text rendering.
+   *
+   * Value: Float skew factor, default 0.0f.
+   */
+ public:
+  float GetTextSkew() const { return text_skew_; }
+  void SetTextSkew(const float& val) {
+    text_skew_ = val;
+    flag_ |= TextSkewFlag;
+  }
+
+  /**
    * @brief Text shadow effects.
    *
    * Enables multiple shadow effects on text, each with independent offset,
@@ -466,6 +478,7 @@ class L_EXPORT Style {
   static constexpr AttrType BackgroundPainterFlag = 1u << (kBackgroundPainter);
   static constexpr AttrType WordBreakFlag = 1u << (kWordBreak);
   static constexpr AttrType BaselineOffsetFlag = 1u << (kBaselineOffset);
+  static constexpr AttrType TextSkewFlag = 1u << (kTextSkew);
   static constexpr FlagType TextShadowListFlag = 1u << (kTextShadowList);
 
  public:
@@ -501,6 +514,7 @@ class L_EXPORT Style {
   Painter* bg_painter_ = nullptr;
   WordBreakType word_break_ = WordBreakType::kNormal;
   float baseline_offset_ = 0.f;
+  float text_skew_ = 0.f;
   TextShadowList text_shadow_list_{};
   FlagType flag_ = 0;
   mutable std::unique_ptr<ShapeStyle> shape_style_{};

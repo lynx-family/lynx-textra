@@ -170,6 +170,7 @@ class JavaCanvasHelper : public ICanvasHelper {
     stream_.WriteInt32(painter->GetFillColor());
     stream_.WriteInt32(painter->GetStrokeColor());
     stream_.WriteFloat(painter->GetTextSize());
+    stream_.WriteFloat(painter->GetTextSkew());
     int8_t flag = 0;
     if (painter->IsBold()) {
       flag = flag | (1 << 2);

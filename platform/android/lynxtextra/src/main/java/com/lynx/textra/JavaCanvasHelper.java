@@ -368,7 +368,7 @@ public class JavaCanvasHelper {
     paint_.setTypeface(ttfont.mTypeface);
     Paint p = ReadPaint(stream, paint_);
     p.setFakeBoldText(is_bold_);
-    p.setTextSkewX(is_italic_ ? -0.25f : 0f);
+    p.setTextSkewX((is_italic_ ? -0.25f : 0f) + text_skew_);
     p.setColor(color_);
     if (color_ != 0 && stroke_color_ == color_) {
       p.setStyle(Paint.Style.FILL_AND_STROKE);
@@ -453,6 +453,7 @@ public class JavaCanvasHelper {
     stroke_color_ = stream.readInt();
     text_size_ = TTTextUtils.Dp2Px(stream.readFloat());
     painter.setTextSize(text_size_);
+    text_skew_ = stream.readFloat();
     int flag = stream.readByte();
     is_bold_ = (flag & (1 << 2)) > 0;
     is_italic_ = (flag & (1 << 3)) > 0;
@@ -516,6 +517,7 @@ public class JavaCanvasHelper {
   protected boolean is_underline_;
 
   protected float text_size_;
+  protected float text_skew_;
 
   protected int color_;
   protected int stroke_color_;

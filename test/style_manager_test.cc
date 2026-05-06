@@ -300,6 +300,13 @@ TEST(StyleManager, AttributeGettersAndSetters) {
   EXPECT_EQ(manager.GetBaselineOffset(1), baseline_offset);
   EXPECT_EQ(manager.GetBaselineOffset(5), baseline_offset);
   EXPECT_EQ(manager.GetBaselineOffset(6), default_style.GetBaselineOffset());
+  // Test TextSkew
+  const float text_skew = -0.25f;
+  manager.SetTextSkew(text_skew, 1, 5);
+  EXPECT_EQ(manager.GetTextSkew(0), default_style.GetTextSkew());
+  EXPECT_EQ(manager.GetTextSkew(1), text_skew);
+  EXPECT_EQ(manager.GetTextSkew(5), text_skew);
+  EXPECT_EQ(manager.GetTextSkew(6), default_style.GetTextSkew());
   // Test TextShadowList
   TextShadow shadow;
   StyleManager::TextShadowList expected_shadow_list{shadow};

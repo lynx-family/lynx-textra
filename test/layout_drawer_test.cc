@@ -107,6 +107,44 @@ TEST(LayoutDrawer, DrawLayoutPage_TextWithUnderline) {
   drawer.DrawLayoutPage(page.get());
 }
 
+TEST(LayoutDrawer, DrawTextRunPassesTextSkewToPainter) {
+  // Arrange
+  const char* text = "Hello";
+  const uint32_t text_length = strlen(text);
+  const float text_skew = -0.25f;
+  ParagraphImpl para;
+  Style style;
+  style.SetTextSize(1.f);
+  style.SetTextSkew(text_skew);
+  para.AddTextRun(&style, text);
+
+  TTTextContext context;
+  auto page = std::make_unique<LayoutRegion>(100.f, 100.f);
+  TextLayout layout(TestUtils::getTestShaper());
+  layout.Layout(&para, page.get(), context);
+
+  ASSERT_GT(page->GetLineCount(), 0u);
+  TextLine* text_line = page->GetLine(0);
+  ASSERT_NE(text_line, nullptr);
+
+  NiceMock<MockCanvasHelper> canvas_helper;
+  LayoutDrawer drawer(&canvas_helper);
+  ON_CALL(canvas_helper, CreatePainter()).WillByDefault(Invoke([]() {
+    return std::make_unique<Painter>();
+  }));
+
+  EXPECT_CALL(canvas_helper,
+              DrawGlyphs(_, text_length, _, nullptr, 0, _, _, _, _, _))
+      .WillOnce(Invoke([&](const ITypefaceHelper*, uint32_t, const uint16_t*,
+                           const char*, uint32_t, float, float, float*, float*,
+                           Painter* painter) {
+        EXPECT_FLOAT_EQ(painter->GetTextSkew(), text_skew);
+      }));
+
+  // Act
+  drawer.DrawTextLine(text_line, 0, text_length);
+}
+
 TEST(LayoutDrawer, DrawTextLine_ExclusiveEndDoesNotDrawNextDecoration) {
   // Arrange
   ParagraphImpl para;

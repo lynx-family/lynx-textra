@@ -50,6 +50,7 @@ enum AttributeType : AttrType {
   kBackgroundPainter,
   kWordBreak,
   kBaselineOffset,
+  kTextSkew,
   kStyleManagerAttrEnd,
   kMaxAttrType = kStyleManagerAttrEnd,
   kExtraAttrStart = 128,
