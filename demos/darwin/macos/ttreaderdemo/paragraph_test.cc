@@ -770,7 +770,9 @@ void ParagraphTest::TestFontStyle(ICanvasHelper* canvas, float width) const {
   // TODO(hfuttyh): italic not working
   Style font_italic_rpr;
   font_italic_rpr.SetItalic(true);
-  paragraph.AddTextRun(&font_italic_rpr, "斜体字\n");
+  paragraph.AddTextRun(&font_italic_rpr, "斜体字");
+  font_italic_rpr.SetItalic(false);
+  paragraph.AddTextRun(&font_italic_rpr, "斜体后文本\n");
   Style decorator_rpr;
   decorator_rpr.SetDecorationType(DecorationType::kUnderLine);
   decorator_rpr.SetDecorationColor(TTColor(0xFF00FF00));
@@ -779,6 +781,12 @@ void ParagraphTest::TestFontStyle(ICanvasHelper* canvas, float width) const {
   paragraph.AddTextRun(&text_stroke, "文本描边:");
   text_stroke.SetTextStrokeStyle(TTColor::GREEN, 0.5);
   paragraph.AddTextRun(&text_stroke, "中国人, abc\n");
+  Style skew;
+  paragraph.AddTextRun(&skew, "skew倾斜:");
+  skew.SetTextSkew(-0.25);
+  paragraph.AddTextRun(&skew, "往前倾斜");
+  skew.SetTextSkew(0.25);
+  paragraph.AddTextRun(&skew, "往后倾斜\n");
   DrawParagraph(canvas, paragraph, width);
 }
 void ParagraphTest::TestCRLF(ICanvasHelper* canvas, float width) const {

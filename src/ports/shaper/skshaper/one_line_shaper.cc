@@ -612,7 +612,7 @@ bool OneLineShaper::shape(const char32_t* content, uint32_t len,
     const bool fakeItalic = need_italic && typeface->FontStyle().GetSlant() !=
                                                FontStyle::kItalic_Slant;
     font.SetFakeBold(fakeBold);
-    font.SetSkewX(fakeItalic ? -0.25 : 0);
+    font.SetSkewX(fakeItalic ? FAKE_ITALIC_SKEW : 0);
 
     // Walk through all the currently unresolved blocks
     // (ignoring those that appear later)

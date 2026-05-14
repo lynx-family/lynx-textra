@@ -487,7 +487,8 @@ class L_EXPORT Style {
       TextSizeFlag | TextScaleFlag | VerticalAlignmentFlag;
   static constexpr FlagType MeasureFlag =
       FontDescriptorFlag | SubSupFlag | LetterSpacingFlag;
-  static constexpr FlagType LayoutFlag = MeasureFlag | BoldFlag | ItalicFlag;
+  static constexpr FlagType LayoutFlag =
+      MeasureFlag | BoldFlag | ItalicFlag | TextSkewFlag;
   static constexpr FlagType DecorationFlag =
       DecorationColorFlag | DecorationStyleFlag | DecorationTypeFlag |
       DecorationThicknessMultiplierFlag;

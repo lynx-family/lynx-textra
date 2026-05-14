@@ -157,6 +157,7 @@ class BaseRun {
   const ShapeStyle& GetShapeStyle() const {
     return layout_style_.GetShapeStyle();
   }
+  float GetSkewExtraWidth() const;
   bool CanBeAppendToShaping(const BaseRun& prev_run) const {
     TTASSERT(!prev_run.IsGhostRun() && !prev_run.IsBlockRun());
     if (&prev_run == this) return true;

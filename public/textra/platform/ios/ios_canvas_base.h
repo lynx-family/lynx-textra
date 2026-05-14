@@ -9,6 +9,7 @@
 #import <CoreText/CoreText.h>
 #import <UIKit/UIKit.h>
 #include <textra/i_canvas_helper.h>
+#include <textra/layout_definition.h>
 #include <textra/platform/ios/typeface_coretext.h>
 
 #include <memory>
@@ -314,7 +315,7 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
         if ([obj isKindOfClass:[NSNumber class]]) {
           NSNumber* slant = reinterpret_cast<NSNumber*>(obj);
           if (slant.doubleValue == 0) {
-            text_skew -= 0.3f;
+            text_skew += FAKE_ITALIC_SKEW;
           }
         }
       }

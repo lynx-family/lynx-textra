@@ -25,6 +25,7 @@ namespace tttext {
 using AttrType = uint32_t;
 constexpr float LAYOUT_MAX_UNITS = 10e5;
 constexpr float LAYOUT_MIN_UNITS = -10e5;
+constexpr float FAKE_ITALIC_SKEW = -0.25f;
 enum AttributeType : AttrType {
   kLayoutAttrStart = 0,
   kFontDescriptor = kLayoutAttrStart,

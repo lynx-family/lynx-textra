@@ -6,6 +6,7 @@
 #define PUBLIC_TEXTRA_PLATFORM_SKIA_SKIA_CANVAS_HELPER_H_
 
 #include <textra/i_canvas_helper.h>
+#include <textra/layout_definition.h>
 #include <textra/layout_drawer_listener.h>
 #include <textra/macro.h>
 #include <textra/platform/skia/skia_painter.h>
@@ -181,7 +182,7 @@ class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
     }
     auto typeface = reinterpret_cast<const tttext::SkiaTypefaceHelper*>(font);
     SkFont sk_font(typeface->GetSkTypeface(), painter->GetTextSize(), 1,
-                   painter->IsItalic() ? -0.25 : 0);
+                   painter->IsItalic() ? tttext::FAKE_ITALIC_SKEW : 0);
     SkTextBlobBuilder builder;
     auto run_buffer = builder.allocRunPosH(sk_font, glyph_count, 0, nullptr);
     for (uint32_t k = 0; k < glyph_count; k++) {
