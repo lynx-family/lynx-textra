@@ -7,6 +7,7 @@
 #include <textra/text_layout.h>
 #include <textra/tttext_context.h>
 
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -244,6 +245,50 @@ TEST_F(TextLayoutTest, DominantBaselineTopAlignsSmallerRun) {
 
   EXPECT_GT(rect_default[1], line_default->GetLineTop());
   EXPECT_FLOAT_EQ(rect_top[1], line_top->GetLineTop());
+}
+
+TEST_F(TextLayoutTest, GetCharBoundingRectIncludesItalicExtraWidth) {
+  const float text_size = 10.f;
+  auto para = std::make_unique<ParagraphImpl>();
+  Style style;
+  style.SetTextSize(text_size);
+  style.SetItalic(true);
+  para->AddTextRun(&style, "A");
+
+  TTTextContext context;
+  TextLayout layout(GetFixedSizeMockShaper());
+  auto region = std::make_unique<LayoutRegion>(100.f, 50.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  float rect[4]{};
+  region->GetLine(0)->GetCharBoundingRect(rect, 0);
+
+  const auto expected_extra_width =
+      std::abs(FAKE_ITALIC_SKEW) * 0.75f * text_size;
+  EXPECT_FLOAT_EQ(rect[2], text_size + expected_extra_width);
+}
+
+TEST_F(TextLayoutTest, GetCharBoundingRectIncludesTextSkewExtraWidth) {
+  const float text_size = 10.f;
+  const float text_skew = 0.2f;
+  auto para = std::make_unique<ParagraphImpl>();
+  Style style;
+  style.SetTextSize(text_size);
+  style.SetTextSkew(text_skew);
+  para->AddTextRun(&style, "A");
+
+  TTTextContext context;
+  TextLayout layout(GetFixedSizeMockShaper());
+  auto region = std::make_unique<LayoutRegion>(100.f, 50.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  float rect[4]{};
+  region->GetLine(0)->GetCharBoundingRect(rect, 0);
+
+  const auto expected_extra_width = text_skew * 0.75f * text_size;
+  EXPECT_FLOAT_EQ(rect[2], text_size + expected_extra_width);
 }
 
 TEST_F(TextLayoutTest, ParagraphStyle_HorizontalAlignment) {

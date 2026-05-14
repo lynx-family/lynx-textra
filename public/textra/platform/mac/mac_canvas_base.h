@@ -11,6 +11,7 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <CoreText/CoreText.h>
 #include <textra/i_canvas_helper.h>
+#include <textra/layout_definition.h>
 #include <textra/platform/ios/typeface_coretext.h>
 
 #include <memory>
@@ -318,7 +319,8 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
           if (slant.doubleValue == 0) {
             // add fake slant
             text_mat = CGAffineTransformConcat(
-                text_mat, CGAffineTransformMake(1, 0, 0.3, 1, 0, 0));
+                text_mat,
+                CGAffineTransformMake(1, 0, -FAKE_ITALIC_SKEW, 1, 0, 0));
           }
         }
       }

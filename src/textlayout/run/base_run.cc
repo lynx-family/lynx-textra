@@ -7,6 +7,7 @@
 #include <textra/layout_definition.h>
 #include <textra/paragraph.h>
 
+#include <cmath>
 #include <memory>
 #include <utility>
 
@@ -20,7 +21,6 @@
 
 namespace ttoffice {
 namespace tttext {
-
 std::pair<RunType, const char*>* BaseRun::ControlRunList() {
   static std::pair<RunType, const char*> list[] = {
       {RunType::kNLFRun, base::NLF_STR()},
@@ -50,29 +50,57 @@ float BaseRun::GetWidth(uint32_t char_start_in_run, uint32_t char_count) const {
   TTASSERT(char_start_in_run < GetCharCount() && char_count <= GetCharCount());
   auto letter_spacing = layout_style_.GetLetterSpacing();
   return shape_result_.MeasureWidth(char_start_in_run, char_count,
-                                    letter_spacing);
+                                    letter_spacing) +
+         std::abs(GetSkewExtraWidth());
 }
 float BaseRun::MeasureRunByWidth(uint32_t& break_pos_in_run,
                                  float max_width) const {
   TTASSERT(break_pos_in_run < GetCharCount());
   TTASSERT(shape_result_.Valid());
+  auto advance_width = 0.f;
   auto width = 0.f;
   auto& idx = break_pos_in_run;
   uint32_t prev_glyph_id = -1;
   auto letter_spacing = layout_style_.GetLetterSpacing();
+  const auto skew_extra_width = std::abs(GetSkewExtraWidth());
   while (idx < GetCharCount()) {
     TTASSERT(idx < shape_result_.CharCount());
     auto glyph_id = shape_result_.CharToGlyph(idx);
     TTASSERT(glyph_id < shape_result_.GlyphCount());
     if (glyph_id != prev_glyph_id) {
       const auto ww = shape_result_.Advances(glyph_id)[0] + letter_spacing;
-      if (FloatsLarger(width + ww, max_width)) break;
-      width += ww;
+      const auto next_advance_width = advance_width + ww;
+      if (FloatsLarger(next_advance_width + skew_extra_width, max_width)) break;
+      advance_width = next_advance_width;
+      width = advance_width + skew_extra_width;
     }
     idx++;
     prev_glyph_id = glyph_id;
   }
   return width;
+}
+float BaseRun::GetSkewExtraWidth() const {
+  if (GetCharCount() == 0 || (!IsTextRun() && GetType() != RunType::kGhostRun))
+    return 0;
+
+  const auto& typeface = shape_result_.FontByCharId(0);
+  if (typeface == nullptr) return 0;
+
+  const auto& shape_style = layout_style_.GetShapeStyle();
+  const auto& desired_font_style = shape_style.GetFontDescriptor().font_style_;
+  auto skew = layout_style_.GetTextSkew();
+  auto fake_italic = layout_style_.GetItalic();
+  if (desired_font_style != typeface->FontStyle()) {
+    fake_italic = desired_font_style.GetSlant() == FontStyle::kItalic_Slant &&
+                  typeface->FontStyle().GetSlant() != FontStyle::kItalic_Slant;
+  }
+  if (fake_italic) {
+    skew += FAKE_ITALIC_SKEW;
+  }
+  if (FloatsEqual(skew, 0)) return 0;
+
+  const auto font_info = typeface->GetFontInfo(shape_style.GetFontSize());
+  return skew * std::abs(font_info.GetAscent());
 }
 LayoutMetrics BaseRun::CalculateLayoutMetrics(uint32_t start_char,
                                               uint32_t char_count,

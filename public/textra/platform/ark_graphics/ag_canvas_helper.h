@@ -18,6 +18,7 @@
 #include <native_drawing/drawing_sampling_options.h>
 #include <native_drawing/drawing_text_blob.h>
 #include <textra/i_canvas_helper.h>
+#include <textra/layout_definition.h>
 #include <textra/macro.h>
 #include <textra/painter.h>
 #include <textra/platform/ark_graphics/ag_typeface_helper.h>
@@ -223,7 +224,7 @@ class AGCanvasHelper : public ICanvasHelper {
     }
     OH_Drawing_CanvasTranslate(canvas_, origin_x, origin_y);
     if (painter->IsItalic()) {
-      OH_Drawing_CanvasSkew(canvas_, -0.3f, 0);
+      OH_Drawing_CanvasSkew(canvas_, FAKE_ITALIC_SKEW, 0);
     }
     OH_Drawing_CanvasDrawTextBlob(canvas_, textBlob, 0, 0);
     OH_Drawing_CanvasDetachBrush(canvas_);

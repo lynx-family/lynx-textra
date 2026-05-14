@@ -248,7 +248,9 @@ void LayoutDrawer::DrawDrawerPiece(const TextLine* line,
     auto glyph_count = glyph_end - glyph_start;
     std::vector<float> pos_x(glyph_count);
     std::vector<float> pos_y(glyph_count);
-    float char_x_pos = 0.f;
+    const auto skew_extra_width = run->GetSkewExtraWidth();
+    float char_x_pos =
+        FloatsLarger(skew_extra_width, 0.f) ? skew_extra_width : 0.f;
     for (uint32_t k = 0; k < glyph_count; k++) {
       auto invert_glyph_id =
           glyph_start + (run->IsRtl() ? glyph_count - k - 1 : k);
