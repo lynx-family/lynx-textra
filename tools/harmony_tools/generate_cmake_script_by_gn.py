@@ -75,7 +75,7 @@ def parse_args(args):
   parser.add_argument('--gn-args', type=str, dest='gn_args')
   parser.add_argument('--is-debug', dest='is_debug', action='store_true', default=False)
   parser.add_argument('--harmony', dest='target_os', action='store_const', const='harmony')
-  parser.add_argument('--harmony-cpu', type=str, choices=['arm', 'arm64'], default='arm')
+  parser.add_argument('--harmony-cpu', type=str, choices=['arm', 'arm64', 'x64'], default='arm')
   parser.add_argument('--ide', default='', type=str,
                       help='The IDE files to generate using GN. Use `gn gen help` and look for the --ide flag to' +
                       ' see supported IDEs. If this flag is not specified, a platform specific default is selected.')
