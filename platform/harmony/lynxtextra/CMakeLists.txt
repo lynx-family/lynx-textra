@@ -19,6 +19,8 @@ message(STATUS "BuildType: ${CMAKE_BUILD_TYPE}")
 
 if (${CMAKE_OHOS_ARCH_ABI} STREQUAL "arm64-v8a")
    set(ABI "arm64")
+elseif (${CMAKE_OHOS_ARCH_ABI} STREQUAL "x86_64")
+   set(ABI "x64")
 else()
    set(ABI "arm")
 endif()
