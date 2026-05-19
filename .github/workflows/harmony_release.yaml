@@ -113,8 +113,9 @@ jobs:
           ohpm config set publish_registry https://ohpm.openharmony.cn/ohpm
           pushd platform/harmony/lynxtextra/build/default/outputs/default/
           # ohpm uses an interactive confirmation here, so publish via a pseudo-terminal.
-          PUBLISH_CMD="ohpm publish lynxtextra.har --publish_id ${{ secrets.HARMONY_PUBLISH_ID }} --key_path $PROJECT_ROOT/publish_key"
-          script -q -e -c "$PUBLISH_CMD" /dev/null <<< $'y\n'
+          # Give the registry enough time to respond and retry transient network failures.
+          ohpm config set use_stream_threshold_size 50
+          ohpm publish lynxtextra.har --publish_registry https://ohpm.openharmony.cn/ohpm --publish_id ${{ secrets.HARMONY_PUBLISH_ID }} --key_path $PROJECT_ROOT/publish_key --fetch_timeout 300000
           popd
 
       - name: Prepare Harmony Artifact For GitHub Release
