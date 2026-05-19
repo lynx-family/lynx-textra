@@ -14,7 +14,7 @@ shared_library("lynxtextra") {
     "libnative_display_manager.so",
   ]
   include_dirs = [
-    "src/main/jni/include",
+    "src/main/cpp/include",
     "//third_party/icu/source/common",
   ]
   sources = [

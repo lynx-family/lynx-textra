@@ -4,7 +4,7 @@
     "nativeLib": {
       "headerPath": [
         "../../../public",
-        "./src/main/cpp"
+        "./src/main/cpp/include"
       ]
     },
     "externalNativeOptions": {
