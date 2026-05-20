@@ -97,7 +97,7 @@ public class JavaFontManager {
       }
     }
 
-    return cached_typeface != null ? cached_typeface.mNativeHandler : mNativeHandler;
+    return cached_typeface != null ? cached_typeface.mNativeHandler : 0;
   }
 
   private synchronized JavaTypeface RegisterTypeface(
