@@ -198,8 +198,10 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
       text_style, static_cast<int32_t>(fd.font_family_list_.size()), families);
   if (fd.font_style_.GetSlant() != FontStyle::kUpright_Slant)
     OH_Drawing_SetTextStyleFontStyle(text_style, FONT_STYLE_ITALIC);
-  OH_Drawing_SetTextStyleFontWeight(text_style,
-                                    fd.font_style_.GetWeight() / 100);
+  int weight = fd.font_style_.GetWeight() / 100 - 1;
+  if (weight < 0) weight = 0;
+  if (weight > 8) weight = 8;
+  OH_Drawing_SetTextStyleFontWeight(text_style, weight);
   OH_Drawing_TypographyHandlerPushTextStyle(typography_handler, text_style);
   auto u32_text(key.text_);
   for (auto& ch : u32_text) {
