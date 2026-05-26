@@ -100,6 +100,45 @@ uint32_t ParseArgbColor(const std::string& color_str) {
   return std::stoul(hex, nullptr, 16);
 }
 
+void ParseTextShadowList(const Value& style_data, Style& style) {
+  if (!HasOptionalField(style_data, "text_shadow_list")) {
+    return;
+  }
+
+  const auto& shadow_list_data = style_data["text_shadow_list"];
+  if (!shadow_list_data.IsArray()) {
+    return;
+  }
+
+  std::vector<TextShadow> text_shadow_list;
+  for (size_t i = 0; i < shadow_list_data.Size(); i++) {
+    const auto& shadow_data = shadow_list_data[i];
+    if (shadow_data.IsObject()) {
+      TextShadow shadow;
+
+      // Parse color
+      auto color_str = GetRequiredField<std::string>(shadow_data, "color");
+      shadow.color_ = TTColor(ParseArgbColor(color_str));
+
+      // Parse offset
+      if (HasOptionalField(shadow_data, "offset")) {
+        const auto& offset_data = shadow_data["offset"];
+        if (offset_data.IsArray() && offset_data.Size() >= 2) {
+          shadow.offset_[0] = offset_data[0].GetFloat();
+          shadow.offset_[1] = offset_data[1].GetFloat();
+        }
+      }
+
+      // Parse blur_radius
+      shadow.blur_radius_ =
+          GetRequiredField<double>(shadow_data, "blur_radius");
+
+      text_shadow_list.push_back(shadow);
+    }
+  }
+  style.SetTextShadowList(text_shadow_list);
+}
+
 // Parse JSON Value into Style object
 Style ParseStyle(const Value& style_data) {
   if (!style_data.IsObject()) {
@@ -282,6 +321,27 @@ Style ParseStyle(const Value& style_data) {
     style.SetDecorationThicknessMultiplier(thickness);
   }
 
+  // Parse DecorationElementLength
+  if (HasOptionalField(style_data, "decoration_element_length")) {
+    auto element_length =
+        GetRequiredField<float>(style_data, "decoration_element_length");
+    style.SetDecorationElementLength(element_length);
+  }
+
+  // Parse DecorationGapLength
+  if (HasOptionalField(style_data, "decoration_gap_length")) {
+    auto gap_length =
+        GetRequiredField<float>(style_data, "decoration_gap_length");
+    style.SetDecorationGapLength(gap_length);
+  }
+
+  // Parse DecorationSideMargin
+  if (HasOptionalField(style_data, "decoration_side_margin")) {
+    auto side_margin =
+        GetRequiredField<float>(style_data, "decoration_side_margin");
+    style.SetDecorationSideMargin(side_margin);
+  }
+
   // Parse Bold
   if (HasOptionalField(style_data, "bold")) {
     auto bold = GetRequiredField<bool>(style_data, "bold");
@@ -362,39 +422,7 @@ Style ParseStyle(const Value& style_data) {
     style.SetBaselineOffset(offset);
   }
 
-  // Parse TextShadowList
-  if (HasOptionalField(style_data, "text_shadow_list")) {
-    const auto& shadow_list_data = style_data["text_shadow_list"];
-    if (shadow_list_data.IsArray()) {
-      std::vector<TextShadow> text_shadow_list;
-      for (size_t i = 0; i < shadow_list_data.Size(); i++) {
-        const auto& shadow_data = shadow_list_data[i];
-        if (shadow_data.IsObject()) {
-          TextShadow shadow;
-
-          // Parse color
-          auto color_str = GetRequiredField<std::string>(shadow_data, "color");
-          shadow.color_ = TTColor(ParseArgbColor(color_str));
-
-          // Parse offset
-          if (HasOptionalField(shadow_data, "offset")) {
-            const auto& offset_data = shadow_data["offset"];
-            if (offset_data.IsArray() && offset_data.Size() >= 2) {
-              shadow.offset_[0] = offset_data[0].GetFloat();
-              shadow.offset_[1] = offset_data[1].GetFloat();
-            }
-          }
-
-          // Parse blur_radius
-          shadow.blur_radius_ =
-              GetRequiredField<double>(shadow_data, "blur_radius");
-
-          text_shadow_list.push_back(shadow);
-        }
-      }
-      style.SetTextShadowList(text_shadow_list);
-    }
-  }
+  ParseTextShadowList(style_data, style);
 
   return style;
 }

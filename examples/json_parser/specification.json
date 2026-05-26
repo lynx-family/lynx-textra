@@ -201,6 +201,18 @@
                         // [Number] Multiplier for decoration line thickness
                         // [Optional] Default: 1.0
                         "decoration_thickness_multiplier": 1.0,
+                        // decoration_element_length
+                        // [Number] Length of each dashed decoration element
+                        // [Optional] Default: 2.5
+                        "decoration_element_length": 2.5,
+                        // decoration_gap_length
+                        // [Number] Gap length between dashed decoration elements
+                        // [Optional] Default: 1.5
+                        "decoration_gap_length": 1.5,
+                        // decoration_side_margin
+                        // [Number] Maximum side margin for dashed decoration lines
+                        // [Optional] Default: 2.5
+                        "decoration_side_margin": 2.5,
                         // bold
                         // [Boolean] Whether text is bold
                         // [Optional] Default: false

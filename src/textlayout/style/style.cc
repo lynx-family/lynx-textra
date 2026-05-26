@@ -38,6 +38,12 @@ Style& Style::operator=(const Style& other) {
     SetDecorationStyle(other.GetDecorationStyle());
   if (other.HasStyleAttribute(Style::DecorationThicknessMultiplierFlag))
     SetDecorationThicknessMultiplier(other.GetDecorationThicknessMultiplier());
+  if (other.HasStyleAttribute(Style::DecorationElementLengthFlag))
+    SetDecorationElementLength(other.GetDecorationElementLength());
+  if (other.HasStyleAttribute(Style::DecorationGapLengthFlag))
+    SetDecorationGapLength(other.GetDecorationGapLength());
+  if (other.HasStyleAttribute(Style::DecorationSideMarginFlag))
+    SetDecorationSideMargin(other.GetDecorationSideMargin());
   if (other.HasStyleAttribute(Style::TextStrokeStyleFlag)) {
     SetTextStrokeValue(other.GetTextStrokeValue());
   }

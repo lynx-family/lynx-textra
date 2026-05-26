@@ -268,6 +268,33 @@ TEST(StyleManager, AttributeGettersAndSetters) {
   EXPECT_EQ(manager.GetDecorationThicknessMultiplier(5), thickness);
   EXPECT_EQ(manager.GetDecorationThicknessMultiplier(6),
             default_style.GetDecorationThicknessMultiplier());
+  // Test DecorationElementLength
+  const float element_length = 4.f;
+  manager.SetDecorationElementLength(element_length, 1, 5);
+  EXPECT_EQ(manager.GetDecorationElementLength(0),
+            default_style.GetDecorationElementLength());
+  EXPECT_EQ(manager.GetDecorationElementLength(1), element_length);
+  EXPECT_EQ(manager.GetDecorationElementLength(5), element_length);
+  EXPECT_EQ(manager.GetDecorationElementLength(6),
+            default_style.GetDecorationElementLength());
+  // Test DecorationGapLength
+  const float gap_length = 2.f;
+  manager.SetDecorationGapLength(gap_length, 1, 5);
+  EXPECT_EQ(manager.GetDecorationGapLength(0),
+            default_style.GetDecorationGapLength());
+  EXPECT_EQ(manager.GetDecorationGapLength(1), gap_length);
+  EXPECT_EQ(manager.GetDecorationGapLength(5), gap_length);
+  EXPECT_EQ(manager.GetDecorationGapLength(6),
+            default_style.GetDecorationGapLength());
+  // Test DecorationSideMargin
+  const float side_margin = 1.f;
+  manager.SetDecorationSideMargin(side_margin, 1, 5);
+  EXPECT_EQ(manager.GetDecorationSideMargin(0),
+            default_style.GetDecorationSideMargin());
+  EXPECT_EQ(manager.GetDecorationSideMargin(1), side_margin);
+  EXPECT_EQ(manager.GetDecorationSideMargin(5), side_margin);
+  EXPECT_EQ(manager.GetDecorationSideMargin(6),
+            default_style.GetDecorationSideMargin());
   // Test ForegroundPainter
   Painter fg_painter;
   manager.SetForegroundPainter(&fg_painter, 1, 5);
@@ -325,14 +352,23 @@ TEST(StyleManager, GetStyle) {
   TTColor fg_color(TTColor::RED);
   TTColor bg_color(TTColor::GREEN);
   LineType line_type = LineType::kDashed;
+  const float element_length = 4.f;
+  const float gap_length = 2.f;
+  const float side_margin = 1.f;
   manager.SetForegroundColor(fg_color, 1, 5);
   manager.SetBackgroundColor(bg_color, 1, 5);
   manager.SetDecorationStyle(line_type, 1, 5);
+  manager.SetDecorationElementLength(element_length, 1, 5);
+  manager.SetDecorationGapLength(gap_length, 1, 5);
+  manager.SetDecorationSideMargin(side_margin, 1, 5);
 
   Style style = manager.GetStyle(3);
   EXPECT_EQ(style.GetForegroundColor(), fg_color);
   EXPECT_EQ(style.GetBackgroundColor(), bg_color);
   EXPECT_EQ(style.GetDecorationStyle(), line_type);
+  EXPECT_EQ(style.GetDecorationElementLength(), element_length);
+  EXPECT_EQ(style.GetDecorationGapLength(), gap_length);
+  EXPECT_EQ(style.GetDecorationSideMargin(), side_margin);
 }
 
 TEST(StyleManager, ApplyStyleInRange) {

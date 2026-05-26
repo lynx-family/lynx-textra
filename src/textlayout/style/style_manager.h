@@ -193,6 +193,51 @@ class StyleManager {
                : UnPackValue<float>(value);
   }
 
+  void SetDecorationElementLength(const float attr, const uint32_t start,
+                                  const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kDecorationElementLength].SetRangeValue(Range{start, end},
+                                                        PackValue(attr));
+  }
+
+  float GetDecorationElementLength(const uint32_t idx) const {
+    const auto value = style_list_[kDecorationElementLength].GetAttrValue(idx);
+    return value == AttributesRangeList::Undefined()
+               ? (default_style_.GetDecorationElementLength())
+               : UnPackValue<float>(value);
+  }
+
+  void SetDecorationGapLength(const float attr, const uint32_t start,
+                              const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kDecorationGapLength].SetRangeValue(Range{start, end},
+                                                    PackValue(attr));
+  }
+
+  float GetDecorationGapLength(const uint32_t idx) const {
+    const auto value = style_list_[kDecorationGapLength].GetAttrValue(idx);
+    return value == AttributesRangeList::Undefined()
+               ? (default_style_.GetDecorationGapLength())
+               : UnPackValue<float>(value);
+  }
+
+  void SetDecorationSideMargin(const float attr, const uint32_t start,
+                               const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kDecorationSideMargin].SetRangeValue(Range{start, end},
+                                                     PackValue(attr));
+  }
+
+  float GetDecorationSideMargin(const uint32_t idx) const {
+    const auto value = style_list_[kDecorationSideMargin].GetAttrValue(idx);
+    return value == AttributesRangeList::Undefined()
+               ? (default_style_.GetDecorationSideMargin())
+               : UnPackValue<float>(value);
+  }
+
   void SetForegroundPainter(const Painter* attr, const uint32_t start,
                             const uint32_t len = 1) {
     constexpr auto max_end = Range::MaxIndex();
