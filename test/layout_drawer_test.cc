@@ -107,6 +107,41 @@ TEST(LayoutDrawer, DrawLayoutPage_TextWithUnderline) {
   drawer.DrawLayoutPage(page.get());
 }
 
+TEST(LayoutDrawer,
+     DrawLayoutPage_TextWithDashedUnderlineUsesDecorationLengths) {
+  // Arrange
+  const float width = 100.f;
+  const float height = 100.f;
+  const char* text = "Hello World!";
+  ParagraphImpl para;
+  Style style;
+  style.SetTextSize(1.f);
+  style.SetDecorationType(DecorationType::kUnderLine);
+  style.SetDecorationStyle(LineType::kDashed);
+  style.SetDecorationColor(TTColor::BLACK);
+  style.SetDecorationElementLength(4.f);
+  style.SetDecorationGapLength(2.f);
+  style.SetDecorationSideMargin(1.f);
+  para.AddTextRun(&style, text);
+  TTTextContext context;
+  std::unique_ptr<LayoutRegion> page =
+      std::make_unique<LayoutRegion>(width, height);
+  TextLayout layout(TestUtils::getTestShaper());
+  layout.Layout(&para, page.get(), context);
+  // Assert
+  NiceMock<MockCanvasHelper> canvas_helper;
+  LayoutDrawer drawer(&canvas_helper);
+  ON_CALL(canvas_helper, CreatePainter()).WillByDefault(Invoke([]() {
+    return std::make_unique<Painter>();
+  }));
+  EXPECT_CALL(canvas_helper, DrawLine(FloatEq(1.f), _, FloatEq(5.f), _, _))
+      .Times(1);
+  EXPECT_CALL(canvas_helper, DrawLine(FloatEq(7.f), _, FloatEq(11.f), _, _))
+      .Times(1);
+  // Act
+  drawer.DrawLayoutPage(page.get());
+}
+
 TEST(LayoutDrawer, DrawTextRunPassesTextSkewToPainter) {
   // Arrange
   const char* text = "Hello";

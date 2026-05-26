@@ -230,6 +230,55 @@ class L_EXPORT Style {
   }
 
   /**
+   * @brief Length of each dashed decoration element.
+   *
+   * Controls the dash length used for dashed text decorations.
+   *
+   * Value: Positive float in pixels, default 2.5f.
+   */
+ public:
+  float GetDecorationElementLength() const {
+    return decoration_element_length_;
+  }
+
+  void SetDecorationElementLength(const float& val) {
+    decoration_element_length_ = val;
+    flag_ |= DecorationElementLengthFlag;
+  }
+
+  /**
+   * @brief Gap length between dashed decoration elements.
+   *
+   * Controls the spacing between dash elements used for dashed text
+   * decorations.
+   *
+   * Value: Non-negative float in pixels, default 1.5f.
+   */
+ public:
+  float GetDecorationGapLength() const { return decoration_gap_length_; }
+
+  void SetDecorationGapLength(const float& val) {
+    decoration_gap_length_ = val;
+    flag_ |= DecorationGapLengthFlag;
+  }
+
+  /**
+   * @brief Side margin for dashed decoration lines.
+   *
+   * Limits the leading and trailing inset used when drawing dashed text
+   * decorations.
+   *
+   * Value: Non-negative float in pixels, default 2.5f.
+   */
+ public:
+  float GetDecorationSideMargin() const { return decoration_side_margin_; }
+
+  void SetDecorationSideMargin(const float& val) {
+    decoration_side_margin_ = val;
+    flag_ |= DecorationSideMarginFlag;
+  }
+
+  /**
    * @brief Text Stroke Style.
    *
    * Useful for setting text stroke style
@@ -468,6 +517,12 @@ class L_EXPORT Style {
   static constexpr AttrType DecorationStyleFlag = 1u << (kDecorationStyle);
   static constexpr AttrType DecorationThicknessMultiplierFlag =
       1u << (kDecorationThicknessMultiplier);
+  static constexpr AttrType DecorationElementLengthFlag =
+      1u << (kDecorationElementLength);
+  static constexpr AttrType DecorationGapLengthFlag = 1u
+                                                      << (kDecorationGapLength);
+  static constexpr AttrType DecorationSideMarginFlag =
+      1u << (kDecorationSideMargin);
   static constexpr AttrType TextStrokeStyleFlag = 1u << (kTextStrokeStyle);
   static constexpr AttrType BoldFlag = 1u << (kBold);
   static constexpr AttrType ItalicFlag = 1u << (kItalic);
@@ -491,7 +546,8 @@ class L_EXPORT Style {
       MeasureFlag | BoldFlag | ItalicFlag | TextSkewFlag;
   static constexpr FlagType DecorationFlag =
       DecorationColorFlag | DecorationStyleFlag | DecorationTypeFlag |
-      DecorationThicknessMultiplierFlag;
+      DecorationThicknessMultiplierFlag | DecorationElementLengthFlag |
+      DecorationGapLengthFlag | DecorationSideMarginFlag;
 
  private:
   FontDescriptor font_descriptor_{{}, FontStyle::Normal(), 0};
@@ -503,6 +559,9 @@ class L_EXPORT Style {
   DecorationType decoration_type_ = DecorationType::kNone;
   LineType decoration_style_ = LineType::kSolid;
   float decoration_thickness_multiplier_ = 1.0f;
+  float decoration_element_length_ = 2.5f;
+  float decoration_gap_length_ = 1.5f;
+  float decoration_side_margin_ = 2.5f;
   DecorationStyle text_stroke_ = {
       .style_ = {TTColor::UNDEFINED, 10, LineType::kSolid}};
   bool bold_ = false;

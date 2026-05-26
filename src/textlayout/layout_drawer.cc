@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 
 // #include "block_region.h"
 #include <textra/i_canvas_helper.h>
@@ -24,10 +25,7 @@
 // #define DRAW_AUXILIARY_LINE
 #endif
 namespace {
-constexpr float kUnderlineDefaultDashLength = 2.5f;
-constexpr float kUnderlineDefaultGapLength = 1.5f;
 constexpr float kUnderlineDefaultStrokeWidth = 1.f;
-constexpr float kUnderlineDefaultSideMargin = 2.5f;
 }  // namespace
 namespace ttoffice {
 namespace tttext {
@@ -183,11 +181,21 @@ void LayoutDrawer::DrawLineDecoration(TextLine* i_line,
           painter->SetStrokeWidth(
               kUnderlineDefaultStrokeWidth *
               decorate_style.GetDecorationThicknessMultiplier());
-          const float dash_len = kUnderlineDefaultDashLength;
-          const float side_margin = std::clamp(((rect[2] - dash_len) / 2), 0.f,
-                                               kUnderlineDefaultSideMargin);
+          const float dash_len = decorate_style.GetDecorationElementLength();
+          if (!std::isfinite(dash_len) || dash_len <= 0.f) {
+            break;
+          }
+          float side_margin_limit = decorate_style.GetDecorationSideMargin();
+          if (!std::isfinite(side_margin_limit) || side_margin_limit < 0.f) {
+            side_margin_limit = 0.f;
+          }
+          const float side_margin =
+              std::clamp(((rect[2] - dash_len) / 2), 0.f, side_margin_limit);
           const float total_len = rect[2] - 2 * side_margin;
-          float gap_len = kUnderlineDefaultGapLength;
+          float gap_len = decorate_style.GetDecorationGapLength();
+          if (!std::isfinite(gap_len) || gap_len < 0.f) {
+            gap_len = 0.f;
+          }
           int num_full_dashes = static_cast<int>(
               std::floor((total_len + gap_len) / (dash_len + gap_len)));
           const int num_dashes = std::max(num_full_dashes, 1);

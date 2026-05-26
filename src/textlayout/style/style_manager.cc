@@ -213,6 +213,12 @@ void StyleManager::SetStyle(Style* style, uint64_t value,
       return style->SetDecorationStyle(static_cast<LineType>(value));
     case AttributeType::kDecorationThicknessMultiplier:
       return style->SetDecorationThicknessMultiplier(UnPackValue<float>(value));
+    case AttributeType::kDecorationElementLength:
+      return style->SetDecorationElementLength(UnPackValue<float>(value));
+    case AttributeType::kDecorationGapLength:
+      return style->SetDecorationGapLength(UnPackValue<float>(value));
+    case AttributeType::kDecorationSideMargin:
+      return style->SetDecorationSideMargin(UnPackValue<float>(value));
     case AttributeType::kTextStrokeStyle:
       return style->SetTextStrokeValue(value);
     case AttributeType::kBold:
@@ -251,6 +257,12 @@ AttributesRangeList::ValueType StyleManager::GetStyleValue(
       return static_cast<uint64_t>(style->GetDecorationStyle());
     case AttributeType::kDecorationThicknessMultiplier:
       return PackValue(style->GetDecorationThicknessMultiplier());
+    case AttributeType::kDecorationElementLength:
+      return PackValue(style->GetDecorationElementLength());
+    case AttributeType::kDecorationGapLength:
+      return PackValue(style->GetDecorationGapLength());
+    case AttributeType::kDecorationSideMargin:
+      return PackValue(style->GetDecorationSideMargin());
     case AttributeType::kTextStrokeStyle:
       return style->GetTextStrokeValue();
     case AttributeType::kBold:

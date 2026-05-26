@@ -34,6 +34,10 @@ TEST(StyleTest, AttributeSetterGetterAndFlag) {
   SET_ATTRIBUTE_AND_CHECK_RESULT(DecorationStyle, std::equal_to<>{});
   SET_ATTRIBUTE_AND_CHECK_RESULT(DecorationThicknessMultiplier,
                                  ttoffice::FloatsEqual);
+  SET_ATTRIBUTE_AND_CHECK_RESULT(DecorationElementLength,
+                                 ttoffice::FloatsEqual);
+  SET_ATTRIBUTE_AND_CHECK_RESULT(DecorationGapLength, ttoffice::FloatsEqual);
+  SET_ATTRIBUTE_AND_CHECK_RESULT(DecorationSideMargin, ttoffice::FloatsEqual);
   SET_ATTRIBUTE_AND_CHECK_RESULT(Bold, std::equal_to<>{});
   SET_ATTRIBUTE_AND_CHECK_RESULT(Italic, std::equal_to<>{});
   SET_ATTRIBUTE_AND_CHECK_RESULT(VerticalAlignment, std::equal_to<>{});

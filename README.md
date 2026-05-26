@@ -25,7 +25,7 @@ It supports a wide range of text layout features, including:
 | | text_size | ![Text Size](examples/demo_images/style_text_size.png) |
 | | foreground_color | ![Foreground Color](examples/demo_images/style_foreground_color.png) |
 | | background_color | ![Background Color](examples/demo_images/style_background_color.png) |
-| | decoration_color<br>decoration_type<br>decoration_style<br>decoration_thickness_multiplier | ![Decoration](examples/demo_images/style_decoration.png) |
+| | decoration_color<br>decoration_type<br>decoration_style<br>decoration_thickness_multiplier<br>decoration_element_length<br>decoration_gap_length<br>decoration_side_margin | ![Decoration](examples/demo_images/style_decoration.png) |
 | | vertical_alignment | ![Vertical Alignment](examples/demo_images/style_vertical_alignment.png) |
 | | letter_spacing | ![Word & Letter Spacing](examples/demo_images/style_word_letter_spacing.png) |
 | | word_break | ![Word Break](examples/demo_images/style_word_break.png) |

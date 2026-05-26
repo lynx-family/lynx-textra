@@ -38,7 +38,10 @@
                     "style": {
                         "decoration_type": "kUnderLine",
                         "decoration_style": "kDashed",
-                        "decoration_color": "#FF000000"
+                        "decoration_color": "#FF000000",
+                        "decoration_element_length": 4.0,
+                        "decoration_gap_length": 2.0,
+                        "decoration_side_margin": 1.0
                     }
                 },
                 {
