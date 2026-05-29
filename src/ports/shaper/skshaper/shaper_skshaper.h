@@ -25,6 +25,7 @@ class ShaperSkShaper : public TTShaper {
  public:
   explicit ShaperSkShaper(FontmgrCollection& font_collections);
   ~ShaperSkShaper() override;
+  static bool Preload();
 
  public:
   void SetContext(TTTextContext& context) override;

@@ -36,6 +36,7 @@ class TTShaper {
 
   static std::unique_ptr<TTShaper> CreateShaper(
       FontmgrCollection* font_collection, ShaperType type = kSystem);
+  static bool Preload(ShaperType type);
 
   const FontmgrCollection& GetFontCollection() const noexcept {
     return font_collection_;

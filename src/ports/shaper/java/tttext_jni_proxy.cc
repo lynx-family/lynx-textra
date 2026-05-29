@@ -7,6 +7,7 @@
 #include <textra/icu_wrapper.h>
 #include <textra/platform/java/java_typeface.h>
 #include <textra/platform/java/tttext_jni_proxy.h>
+#include <textra/text_layout.h>
 
 #include "src/ports/shaper/java/java_utils.h"
 #include "utils/u_8_string.h"
@@ -231,6 +232,12 @@ TTTextNativeGetDefaultFontManager(JNIEnv* env, jclass clazz) {
   auto font_manager =
       tttext::TTTextJNIProxy::GetInstance().GetDefaultFontManager();
   return font_manager->GetInstance();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_lynx_textra_TTText_nativePreloadSelfRendering(JNIEnv* env,
+                                                       jclass clazz) {
+  return tttext::TextLayout::Preload(tttext::kSelfRendering);
 }
 
 static JNINativeMethod tttext_methods[] = {

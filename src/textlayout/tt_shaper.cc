@@ -64,6 +64,22 @@ std::unique_ptr<TTShaper> TTShaper::CreateShaper(
   TTASSERT(false);
   return nullptr;
 }
+
+bool TTShaper::Preload(ShaperType type) {
+  switch (type) {
+    case kSelfRendering: {
+#ifdef ENABLE_SKSHAPER
+      return ShaperSkShaper::Preload();
+#endif
+      return true;
+    }
+    case kSystem:
+      return true;
+    default:
+      return false;
+  }
+}
+
 TTShaper::TTShaper(FontmgrCollection font_collection) noexcept
     : font_collection_(font_collection), context_(nullptr) {}
 TTShaper::~TTShaper() = default;

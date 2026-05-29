@@ -8,6 +8,7 @@ import android.graphics.Paint;
 
 public class TTText {
   private static boolean sInitialized = false;
+  private static boolean sSelfRenderingPreloaded = false;
 
   public static void Initial() {
     Initial(false);
@@ -25,7 +26,24 @@ public class TTText {
     sInitialized = true;
   }
 
+  public static boolean PreloadSelfRendering() {
+    return PreloadSelfRendering(false);
+  }
+
+  public static synchronized boolean PreloadSelfRendering(boolean load_library) {
+    if (sSelfRenderingPreloaded) {
+      return true;
+    }
+    if (load_library) {
+      System.loadLibrary("lynxtextra");
+    }
+    sSelfRenderingPreloaded = nativePreloadSelfRendering();
+    return sSelfRenderingPreloaded;
+  }
+
   private native static void nativeInitialCache();
+
+  private native static boolean nativePreloadSelfRendering();
 
   private native static JavaFontManager nativeGetDefaultFontManager();
 
