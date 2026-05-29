@@ -47,6 +47,8 @@ class L_EXPORT TextLayout {
   ~TextLayout();
 
  public:
+  static bool Preload(ShaperType type);
+
   LayoutResult Layout(Paragraph* para, LayoutRegion* page,
                       TTTextContext& context) const {
     return LayoutEx(para, page, context);

@@ -22,6 +22,8 @@ TextLayout::TextLayout(std::unique_ptr<TTShaper> shaper)
 
 TextLayout::~TextLayout() = default;
 
+bool TextLayout::Preload(ShaperType type) { return TTShaper::Preload(type); }
+
 LayoutResult TextLayout::LayoutEx(Paragraph* para, LayoutRegion* page,
                                   TTTextContext& context) const {
   TTASSERT(para);

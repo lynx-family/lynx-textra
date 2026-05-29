@@ -10,6 +10,10 @@
 #include "icu_substitute/bidi/bidi_wrapper.h"
 #endif
 
+#ifdef SK_SHAPER_HARFBUZZ_AVAILABLE
+#include "src/ports/shaper/skshaper/harfbuzz_lib.h"
+#endif
+
 #ifdef TTTEXT_OS_ANDROID
 #include <textra/platform/java/tttext_jni_proxy.h>
 #endif
@@ -28,6 +32,13 @@ ShaperSkShaper::ShaperSkShaper(FontmgrCollection& font_collection)
   shaper_ = std::make_unique<OneLineShaper>(font_collection_);
 }
 ShaperSkShaper::~ShaperSkShaper() = default;
+bool ShaperSkShaper::Preload() {
+#ifdef SK_SHAPER_HARFBUZZ_AVAILABLE
+  return HarfbuzzLib::HasHarfbuzzLib();
+#else
+  return true;
+#endif
+}
 
 class ShapingBlockReader : public PlatformShapingResultReader {
  public:
