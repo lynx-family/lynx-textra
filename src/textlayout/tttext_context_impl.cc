@@ -20,6 +20,7 @@ TTTextContextImpl::TTTextContextImpl()
       trim_line_tail_space_(true),
       harmony_shaper_force_low_api_(false),
       enable_system_font_adjust_(false),
+      disable_shape_cache_(false),
       layout_bottom_(0) {}
 
 TTTextContext::TTTextContext() : impl_(std::make_unique<TTTextContextImpl>()) {}
@@ -75,6 +76,9 @@ void TTTextContext::EnableFeature(FeatureOption feature_option, bool value) {
       break;
     case kSystemFontAdjust:
       impl_->enable_system_font_adjust_ = value;
+      break;
+    case kDisableShapeCache:
+      impl_->disable_shape_cache_ = value;
       break;
     default:
       break;

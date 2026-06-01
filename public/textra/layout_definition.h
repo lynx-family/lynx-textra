@@ -196,6 +196,7 @@ enum FeatureOption : uint8_t {
   kTrimLineTailSpace,
   kHarmonyShaperForceUseLowAPI,
   kSystemFontAdjust,
+  kDisableShapeCache,
 };
 enum class DominantBaseline : uint8_t {
   kAlphabetic,
