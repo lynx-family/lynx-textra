@@ -75,6 +75,8 @@ enum class ParagraphHorizontalAlignment : uint8_t {
   kRight,
   kJustify,
   kDistributed,
+  kStart,
+  kEnd,
 };
 enum class ParagraphVerticalAlignment : uint8_t {
   kTop,

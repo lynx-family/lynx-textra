@@ -140,6 +140,8 @@ class ParagraphImpl : public Paragraph {
                                           : bidi_level_[bidi_level_.size() - 1];
     return level % 2 == 1;
   }
+  WriteDirection GetResolvedWriteDirection() const;
+  ParagraphHorizontalAlignment GetResolvedHorizontalAlignment() const;
   LayoutPosition FindNextBoundary(const LayoutPosition& start,
                                   const BoundaryType& type) const;
   LayoutPosition FindPrevBoundary(const LayoutPosition& start,
@@ -161,6 +163,10 @@ class ParagraphImpl : public Paragraph {
     if (!text.empty()) content_ += text;
     return content_.GetCharCount();
   }
+  static WriteDirection ResolveWriteDirection(
+      WriteDirection direction, const std::vector<uint8_t>& bidi_level);
+  ParagraphHorizontalAlignment ResolveHorizontalAlignment(
+      ParagraphHorizontalAlignment h_align) const;
   bool SplitRun(uint32_t idx, uint32_t char_pos_in_run);
   void InitJustifyAnalyst() const;
 
@@ -176,6 +182,7 @@ class ParagraphImpl : public Paragraph {
   std::unique_ptr<StyleManager> style_manager_;
   std::unique_ptr<BoundaryAnalyst> boundary_analyst_;
   mutable std::unique_ptr<JustifyAnalyst> justify_analyst_;
+  WriteDirection resolved_write_direction_;
   // even: ltr, odd: rtl
   std::vector<uint8_t> bidi_level_;
   std::vector<uint32_t> visual_map_;

@@ -295,22 +295,32 @@ TEST_F(TextLayoutTest, ParagraphStyle_HorizontalAlignment) {
   const char* text = "Hello world!";  // 12 characters, each 1 x 1 size
   const float page_width = 10.5f;     // Line fits 10 characters + 0.5 spacing
 
-  const auto layout_helper = [this, page_width,
-                              text](ParagraphHorizontalAlignment alignment) {
-    auto para = std::make_unique<ParagraphImpl>();
-    ParagraphStyle para_style;
-    Style style;
-    style.SetTextSize(1.f);
-    para_style.SetDefaultStyle(style);
-    para_style.SetHorizontalAlign(alignment);
-    para->SetParagraphStyle(&para_style);
-    para->AddTextRun(nullptr, text);
-    TTTextContext context;
-    TextLayout layout(GetFixedSizeMockShaper());
-    auto region = std::make_unique<LayoutRegion>(page_width, 10.f);
-    layout.Layout(para.get(), region.get(), context);
-    return std::make_pair(std::move(para), std::move(region));
-  };
+  const auto layout_helper =
+      [this, page_width, text](ParagraphHorizontalAlignment alignment,
+                               WriteDirection direction = WriteDirection::kLTR,
+                               const char* content = nullptr,
+                               bool use_real_shaper = false) {
+        auto para = std::make_unique<ParagraphImpl>();
+        ParagraphStyle para_style;
+        Style style;
+        style.SetTextSize(1.f);
+        para_style.SetDefaultStyle(style);
+        para_style.SetHorizontalAlign(alignment);
+        para_style.SetWriteDirection(direction);
+        para->SetParagraphStyle(&para_style);
+        para->AddTextRun(nullptr, content == nullptr ? text : content);
+        TTTextContext context;
+        std::unique_ptr<TTShaper> shaper;
+        if (use_real_shaper) {
+          shaper = TestUtils::getRealShaper();
+        } else {
+          shaper = GetFixedSizeMockShaper();
+        }
+        TextLayout layout(std::move(shaper));
+        auto region = std::make_unique<LayoutRegion>(page_width, 10.f);
+        layout.Layout(para.get(), region.get(), context);
+        return std::make_pair(std::move(para), std::move(region));
+      };
 
   {
     auto [_, region] = layout_helper(ParagraphHorizontalAlignment::kLeft);
@@ -347,6 +357,58 @@ TEST_F(TextLayoutTest, ParagraphStyle_HorizontalAlignment) {
     EXPECT_GT(second_line->GetLineLeft(), 0.f);
     EXPECT_FLOAT_EQ(first_line->GetLineRight(), page_width);
     EXPECT_FLOAT_EQ(second_line->GetLineRight(), page_width);
+  }
+  {
+    auto [_, region] = layout_helper(ParagraphHorizontalAlignment::kStart,
+                                     WriteDirection::kLTR);
+    EXPECT_EQ(region->GetLineCount(), 2u);
+    auto* first_line = region->GetLine(0);
+    auto* second_line = region->GetLine(1);
+    EXPECT_FLOAT_EQ(first_line->GetLineLeft(), 0.f);
+    EXPECT_FLOAT_EQ(second_line->GetLineLeft(), 0.f);
+  }
+  {
+    auto [_, region] =
+        layout_helper(ParagraphHorizontalAlignment::kEnd, WriteDirection::kLTR);
+    EXPECT_EQ(region->GetLineCount(), 2u);
+    auto* first_line = region->GetLine(0);
+    auto* second_line = region->GetLine(1);
+    EXPECT_FLOAT_EQ(first_line->GetLineRight(), page_width);
+    EXPECT_FLOAT_EQ(second_line->GetLineRight(), page_width);
+  }
+  {
+    auto [_, region] = layout_helper(ParagraphHorizontalAlignment::kStart,
+                                     WriteDirection::kRTL);
+    EXPECT_EQ(region->GetLineCount(), 2u);
+    auto* first_line = region->GetLine(0);
+    auto* second_line = region->GetLine(1);
+    EXPECT_FLOAT_EQ(first_line->GetLineRight(), page_width);
+    EXPECT_FLOAT_EQ(second_line->GetLineRight(), page_width);
+  }
+  {
+    auto [_, region] =
+        layout_helper(ParagraphHorizontalAlignment::kEnd, WriteDirection::kRTL);
+    EXPECT_EQ(region->GetLineCount(), 2u);
+    auto* first_line = region->GetLine(0);
+    auto* second_line = region->GetLine(1);
+    EXPECT_FLOAT_EQ(first_line->GetLineLeft(), 0.f);
+    EXPECT_FLOAT_EQ(second_line->GetLineLeft(), 0.f);
+  }
+  {
+    const char* auto_rtl_text = "123 \xD7\x90\xD7\x91";
+    auto [_, region] =
+        layout_helper(ParagraphHorizontalAlignment::kStart,
+                      WriteDirection::kAuto, auto_rtl_text, true);
+    EXPECT_EQ(region->GetLineCount(), 1u);
+    EXPECT_FLOAT_EQ(region->GetLine(0)->GetLineRight(), page_width);
+  }
+  {
+    const char* auto_rtl_text = "123 \xD7\x90\xD7\x91";
+    auto [_, region] =
+        layout_helper(ParagraphHorizontalAlignment::kEnd, WriteDirection::kAuto,
+                      auto_rtl_text, true);
+    EXPECT_EQ(region->GetLineCount(), 1u);
+    EXPECT_FLOAT_EQ(region->GetLine(0)->GetLineLeft(), 0.f);
   }
   {
     auto [_, region] = layout_helper(ParagraphHorizontalAlignment::kJustify);
@@ -635,6 +697,41 @@ TEST_F(TextLayoutTest, ParagraphStyle_WriteDirection) {
     // Expected output: "...The quick"
     EXPECT_FLOAT_EQ(text_run_rect[0], strlen(ellipsis) * text_size);
   }
+}
+
+TEST_F(TextLayoutTest, ParagraphStyle_WriteDirectionUpdatesAfterLayout) {
+  const char* text = "The quick brown fox jumps over the lazy dog.";
+  const float page_width = 12.0f;
+  const float page_height = 3.0f;
+  const float text_size = 1.0f;
+  const char* ellipsis = "...";
+
+  auto para = std::make_unique<ParagraphImpl>();
+  Style style;
+  style.SetTextSize(text_size);
+  auto& para_style = para->GetParagraphStyle();
+  para_style.SetDefaultStyle(style);
+  para_style.SetWriteDirection(WriteDirection::kLTR);
+  para->AddTextRun(&style, text);
+
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  auto initial_region = std::make_unique<LayoutRegion>(page_width, page_height);
+  layout.Layout(para.get(), initial_region.get(), context);
+
+  para_style.SetWriteDirection(WriteDirection::kRTL);
+  para_style.SetMaxLines(1);
+  para_style.SetEllipsis(ellipsis);
+
+  TTTextContext rtl_context;
+  auto rtl_region = std::make_unique<LayoutRegion>(page_width, page_height);
+  layout.Layout(para.get(), rtl_region.get(), rtl_context);
+
+  ASSERT_EQ(rtl_region->GetLineCount(), 1u);
+  auto* line = rtl_region->GetLine(0);
+  float text_run_rect[4];
+  line->GetCharBoundingRect(text_run_rect, line->GetStartCharPos());
+  EXPECT_FLOAT_EQ(text_run_rect[0], strlen(ellipsis) * text_size);
 }
 
 TEST_F(TextLayoutTest, ParagraphStyle_Ellipsis) {

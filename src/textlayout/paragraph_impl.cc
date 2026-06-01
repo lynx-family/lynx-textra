@@ -33,8 +33,49 @@ ParagraphImpl::ParagraphImpl()
       style_manager_(std::make_unique<StyleManager>()),
       boundary_analyst_(nullptr),
       justify_analyst_(nullptr),
+      resolved_write_direction_(WriteDirection::kLTR),
       shaper_(nullptr) {}
 ParagraphImpl::~ParagraphImpl() = default;
+WriteDirection ParagraphImpl::ResolveWriteDirection(
+    WriteDirection direction, const std::vector<uint8_t>& bidi_level) {
+  if (direction != WriteDirection::kAuto) {
+    return direction;
+  }
+
+  if (!bidi_level.empty()) {
+    // ProcessBidirection has already resolved kAuto via the shaper's bidi
+    // wrapper. The lowest embedding level is the paragraph base level.
+    auto para_level = *std::min_element(bidi_level.begin(), bidi_level.end());
+    return para_level % 2 == 1 ? WriteDirection::kRTL : WriteDirection::kLTR;
+  }
+  return WriteDirection::kLTR;
+}
+WriteDirection ParagraphImpl::GetResolvedWriteDirection() const {
+  auto write_direction = paragraph_style_.GetWriteDirection();
+  if (write_direction != WriteDirection::kAuto) {
+    return write_direction;
+  }
+  return resolved_write_direction_;
+}
+ParagraphHorizontalAlignment ParagraphImpl::GetResolvedHorizontalAlignment()
+    const {
+  return ResolveHorizontalAlignment(paragraph_style_.GetHorizontalAlign());
+}
+ParagraphHorizontalAlignment ParagraphImpl::ResolveHorizontalAlignment(
+    ParagraphHorizontalAlignment h_align) const {
+  if (h_align != ParagraphHorizontalAlignment::kStart &&
+      h_align != ParagraphHorizontalAlignment::kEnd) {
+    return h_align;
+  }
+
+  const bool is_rtl = GetResolvedWriteDirection() == WriteDirection::kRTL;
+  if (h_align == ParagraphHorizontalAlignment::kStart) {
+    return is_rtl ? ParagraphHorizontalAlignment::kRight
+                  : ParagraphHorizontalAlignment::kLeft;
+  }
+  return is_rtl ? ParagraphHorizontalAlignment::kLeft
+                : ParagraphHorizontalAlignment::kRight;
+}
 void ParagraphImpl::AddTextRun(const Style& style, const char* content,
                                uint32_t length, bool ghost_text) {
   if (length == 0) {
@@ -121,6 +162,8 @@ void ParagraphImpl::FormatRunList() {
         u32_content.data(), static_cast<uint32_t>(u32_content.length()),
         paragraph_style_.GetWriteDirection(), visual_map_.data(),
         logical_map_.data(), bidi_level_.data());
+    resolved_write_direction_ = ResolveWriteDirection(
+        paragraph_style_.GetWriteDirection(), bidi_level_);
 
     bool need_split = false;
     for (auto k = 0u; k + 1 < GetCharCount(); k++) {

@@ -140,6 +140,8 @@ class ParagraphTest {
   void TestIntrinsicWidth(ICanvasHelper* canvas, float width) const;
   void TestLongestLine(ICanvasHelper* canvas, float width) const;
   void TestAlignment(ICanvasHelper* canvas, float width) const;
+  void TestStartEndAlignmentWithWriteDirection(ICanvasHelper* canvas,
+                                               float width) const;
   void TestBaselineOffset(ICanvasHelper* canvas, float width) const;
   void TestPieceDraw(ICanvasHelper* canvas, float width) const;
   void TestWordBoundary(ICanvasHelper* canvas, float width) const;

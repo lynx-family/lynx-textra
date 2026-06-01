@@ -62,7 +62,8 @@ class L_EXPORT ParagraphStyle {
    * @brief Horizontal text alignment within the paragraph.
    *
    * Controls how text lines are positioned horizontally within the available
-   * paragraph width. This affects text distribution and spacing.
+   * paragraph width. kStart and kEnd resolve to kLeft or kRight according to
+   * the paragraph writing direction.
    *
    * Value: See ParagraphHorizontalAlignment enum, default kLeft.
    *
