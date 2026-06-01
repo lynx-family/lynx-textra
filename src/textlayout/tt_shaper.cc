@@ -25,6 +25,7 @@
 #include "src/textlayout/run/base_run.h"
 #include "src/textlayout/shape_cache.h"
 #include "src/textlayout/style/style_manager.h"
+#include "src/textlayout/tttext_context_impl.h"
 #include "src/textlayout/utils/log_util.h"
 namespace ttoffice {
 namespace tttext {
@@ -64,7 +65,7 @@ std::unique_ptr<TTShaper> TTShaper::CreateShaper(
   return nullptr;
 }
 TTShaper::TTShaper(FontmgrCollection font_collection) noexcept
-    : font_collection_(font_collection) {}
+    : font_collection_(font_collection), context_(nullptr) {}
 TTShaper::~TTShaper() = default;
 void TTShaper::ProcessBidirection(const char32_t* text, uint32_t length,
                                   WriteDirection write_direction,
@@ -80,7 +81,10 @@ ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
                                    const ShapeStyle* shape_style,
                                    bool rtl) const {
   const ShapeKey key(text, length, shape_style, rtl);
-  auto result = ShapeCache::GetInstance().Find(key);
+  const auto disable_shape_cache =
+      context_ != nullptr && context_->GetImpl().IsShapeCacheDisabled();
+  auto result =
+      disable_shape_cache ? nullptr : ShapeCache::GetInstance().Find(key);
   if (result == nullptr) {
     result = std::make_shared<ShapeResult>(length, rtl);
     OnShapeText(key, result.get());
@@ -92,7 +96,9 @@ ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
         result->advances_[result->CharToGlyph(k)][1] = 0;
       }
     }
-    ShapeCache::GetInstance().AddToCache(key, result);
+    if (!disable_shape_cache) {
+      ShapeCache::GetInstance().AddToCache(key, result);
+    }
   }
   TTASSERT(result != nullptr);
   return result;
