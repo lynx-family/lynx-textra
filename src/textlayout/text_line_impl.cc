@@ -239,19 +239,7 @@ bool TextLineImpl::StripContentByWidth(float space) {
 void TextLineImpl::AppendGhostRun(std::unique_ptr<BaseRun> ghost_run) {
   auto drawer_piece = std::make_unique<RunRange>(
       ghost_run.get(), range_lst_.back().get(), 0, ghost_run->GetCharCount());
-  // Invalid paragraph direction for now
-  WriteDirection para_dir = paragraph_->GetParagraphStyle().GetWriteDirection();
-  TTASSERT(para_dir != WriteDirection::kTTB &&
-           para_dir != WriteDirection::kBTT);
-  if (para_dir == WriteDirection::kAuto) {
-    // Follow the way of paragraph direction detection in Lynx
-    if (GetParagraph()->GetCharCount() > 0 &&
-        GetParagraph()->IsRtlCharacter(0)) {
-      para_dir = WriteDirection::kRTL;
-    } else {
-      para_dir = WriteDirection::kLTR;
-    }
-  }
+  WriteDirection para_dir = paragraph_->GetResolvedWriteDirection();
   if (para_dir == WriteDirection::kRTL) {
     std::vector<std::unique_ptr<DrawerPiece>> drawer_list;
     drawer_list.emplace_back(std::move(drawer_piece));
@@ -277,11 +265,11 @@ void TextLineImpl::ModifyHorizontalAlignment(
 }
 
 void TextLineImpl::ApplyAlignment() {
-  ApplyAlignment(paragraph_->GetParagraphStyle().GetHorizontalAlign());
+  ApplyAlignment(paragraph_->GetResolvedHorizontalAlignment());
 }
 
 void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
-  const auto align = h_align;
+  const auto align = paragraph_->ResolveHorizontalAlignment(h_align);
   auto drawer_iter_begin = drawer_list_.begin();
   while (drawer_iter_begin != drawer_list_.end()) {
     const auto* line_range = (*drawer_iter_begin)->GetParent();
@@ -392,7 +380,7 @@ void TextLineImpl::StripByEllipsis(const char32_t* ellipsis) {
   auto ellipsis_len = base::U32Strlen(ellipsis);
   if ((ellipsis != nullptr && ellipsis_len > 0) ||
       para_style.GetEllipsisDelegate() != nullptr) {
-    if (para_style.GetHorizontalAlign() !=
+    if (paragraph_->GetResolvedHorizontalAlignment() !=
         ParagraphHorizontalAlignment::kLeft) {
       // re-generate drawer piece
       CreateDrawerPiece();

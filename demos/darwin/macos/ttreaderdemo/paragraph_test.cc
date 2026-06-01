@@ -15,6 +15,8 @@
 #include <textra/text_layout.h>
 #include <textra/tttext_context.h>
 
+#include <cmath>
+
 ParagraphTest::ParagraphTest(ShaperType type,
                              FontmgrCollection* font_collection)
     : shaper_type_(type),
@@ -113,6 +115,8 @@ ParagraphTest::GetTestCases() {
           {"TestIntrinsicWidth", &ParagraphTest::TestIntrinsicWidth},
           {"TestLongestLine", &ParagraphTest::TestLongestLine},
           {"TestAlignment", &ParagraphTest::TestAlignment},
+          {"TestStartEndAlignmentWithWriteDirection",
+           &ParagraphTest::TestStartEndAlignmentWithWriteDirection},
           {"TestBaselineOffset", &ParagraphTest::TestBaselineOffset},
           {"TestPieceDraw", &ParagraphTest::TestPieceDraw},
           {"TestWordBoundary", &ParagraphTest::TestWordBoundary},
@@ -1096,6 +1100,87 @@ The following is a relatively long English text, and it will wrap in the middle 
       ParagraphHorizontalAlignment::kJustify);
   DrawParagraph(canvas, *para, width);
 }
+
+void ParagraphTest::TestStartEndAlignmentWithWriteDirection(
+    ICanvasHelper* canvas, float width) const {
+  struct AlignmentCase {
+    const char* text;
+    WriteDirection write_direction;
+    ParagraphHorizontalAlignment alignment;
+    bool expect_left;
+    uint32_t background_color;
+  };
+
+  const AlignmentCase kCases[] = {
+      {"LTR start", WriteDirection::kLTR, ParagraphHorizontalAlignment::kStart,
+       true, 0x2200AA66},
+      {"LTR end", WriteDirection::kLTR, ParagraphHorizontalAlignment::kEnd,
+       false, 0x22DD6633},
+      {"RTL start", WriteDirection::kRTL, ParagraphHorizontalAlignment::kStart,
+       false, 0x2200AA66},
+      {"RTL end", WriteDirection::kRTL, ParagraphHorizontalAlignment::kEnd,
+       true, 0x22DD6633},
+      {"abc \xD7\x90\xD7\x91\xD7\x92", WriteDirection::kAuto,
+       ParagraphHorizontalAlignment::kStart, true, 0x2200AA66},
+      {"abc \xD7\x90\xD7\x91\xD7\x92", WriteDirection::kAuto,
+       ParagraphHorizontalAlignment::kEnd, false, 0x22DD6633},
+      {"\xD7\x90\xD7\x91\xD7\x92 abc", WriteDirection::kAuto,
+       ParagraphHorizontalAlignment::kStart, false, 0x2200AA66},
+      {"\xD7\x90\xD7\x91\xD7\x92 abc", WriteDirection::kAuto,
+       ParagraphHorizontalAlignment::kEnd, true, 0x22DD6633},
+  };
+
+  const float page_width = width > 220.f ? width : 220.f;
+  const float page_height = 35.f;
+  const float page_gap = 6.f;
+  const float position_tolerance = 0.5f;
+
+  canvas->Save();
+  for (const auto& test_case : kCases) {
+    Style style;
+    style.SetTextSize(24);
+    style.SetBackgroundColor(TTColor(test_case.background_color));
+
+    auto paragraph = Paragraph::Create();
+    auto& paragraph_style = paragraph->GetParagraphStyle();
+    paragraph_style.SetWriteDirection(test_case.write_direction);
+    paragraph_style.SetHorizontalAlign(test_case.alignment);
+    paragraph->AddTextRun(&style, test_case.text);
+
+    TextLayout layout(font_collection_, shaper_type_);
+    TTTextContext context;
+    context.SetSkipSpacingBeforeFirstLine(false);
+    context.SetLastLineCanOverflow(false);
+    auto page = std::make_unique<LayoutRegion>(
+        page_width, page_height, LayoutMode::kDefinite, LayoutMode::kAtMost);
+    layout.Layout(paragraph.get(), page.get(), context);
+
+    TTASSERT(page->GetLineCount() == 1u);
+    auto* line = page->GetLine(0);
+    TTASSERT(line != nullptr);
+    if (test_case.expect_left) {
+      TTASSERT(std::fabs(line->GetLineLeft()) < position_tolerance);
+    } else {
+      TTASSERT(std::fabs(line->GetLineRight() - page_width) <
+               position_tolerance);
+    }
+
+    LayoutDrawer drawer(canvas);
+    drawer.DrawLayoutPage(page.get());
+
+    auto paint = canvas->CreatePainter();
+    paint->SetStrokeColor(TTColor::BLACK);
+    canvas->DrawRect(0, 0, page_width, page_height, paint.get());
+    paint->SetStrokeColor(TTColor(0xFF1E88E5));
+    canvas->DrawLine(0, 0, 0, page_height, paint.get());
+    paint->SetStrokeColor(TTColor(0xFFD81B60));
+    canvas->DrawLine(page_width, 0, page_width, page_height, paint.get());
+
+    canvas->Translate(0, page_height + page_gap);
+  }
+  canvas->Restore();
+}
+
 void ParagraphTest::TestBaselineOffset(ICanvasHelper* canvas,
                                        float width) const {
   Style style;

@@ -55,14 +55,13 @@ float LayoutMeasurer::CalcRunHeightByLinePitch(const Spacing& spacing,
 void LayoutMeasurer::ApplyLineHAlignment(TextLine* line) {
   auto* line_impl = TTDYNAMIC_CAST<TextLineImpl*>(line);
   auto& paragraph = *(line_impl->GetParagraph());
-  const auto* paragraph_style = &paragraph.GetParagraphStyle();
+  auto h_align = paragraph.GetResolvedHorizontalAlignment();
   auto last_line =
       // !paragraph_style->IsLastLineFollowHorizontalAlignment() &&
       !line->IsLastLineOfParagraph();
   for (auto idx = 0u; idx < line_impl->GetRangeCount(); idx++) {
     auto* range = line_impl->GetLineRange(idx);
-    ApplyHorizontalAlignment(paragraph_style->GetHorizontalAlign(), range,
-                             last_line);
+    ApplyHorizontalAlignment(h_align, range, last_line);
   }
 }
 void LayoutMeasurer::ApplyLineVAlignment(TextLine* line) {
@@ -99,6 +98,9 @@ void LayoutMeasurer::ApplyHorizontalAlignment(
   }
   switch (h_align) {
     case ParagraphHorizontalAlignment::kLeft:
+      break;
+    case ParagraphHorizontalAlignment::kStart:
+    case ParagraphHorizontalAlignment::kEnd:
       break;
     case ParagraphHorizontalAlignment::kCenter:
       // for (int k = 0; k < range->GetLogicWordCount(); k++) {
