@@ -48,7 +48,7 @@ class BaseRun {
 
  public:
   static constexpr const char* ObjectReplacementCharacter() {
-    return u8"\ufffc";
+    return "\xEF\xBF\xBC";
   }
 
   static std::pair<RunType, const char*>* ControlRunList();

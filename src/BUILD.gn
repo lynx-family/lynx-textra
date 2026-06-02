@@ -12,10 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if (target_cpu == "wasm") {
-  import("//config.gni")
-} else {
+declare_args() {
+  textlayout_use_local_config = true
+  textlayout_use_lru_cache = true
+  textlayout_boundary_analyst = "simple"
+  textlayout_dynamic_load_harfbuzz = is_android
+  textlayout_is_lvgl = false
+}
+
+if (textlayout_use_local_config) {
   import("../config.gni")
+}
+
+if (!defined(use_lru_cache)) {
+  use_lru_cache = textlayout_use_lru_cache
+}
+if (!defined(boundary_analyst)) {
+  boundary_analyst = textlayout_boundary_analyst
+}
+if (!defined(dynamic_load_harfbuzz)) {
+  dynamic_load_harfbuzz = textlayout_dynamic_load_harfbuzz
+}
+if (!defined(is_lvgl)) {
+  is_lvgl = textlayout_is_lvgl
 }
 
 declare_args() {
