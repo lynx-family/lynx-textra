@@ -164,7 +164,7 @@ class JavaCanvasHelper : public ICanvasHelper {
   void ClearBuffer() { stream_.Clear(); }
   BufferOutputStream& GetBuffer() { return stream_; }
 
- private:
+ protected:
   void WritePaint(Painter* painter) {
     stream_.WriteFloat(painter->GetStrokeWidth());
     stream_.WriteInt32(painter->GetFillColor());
@@ -184,7 +184,7 @@ class JavaCanvasHelper : public ICanvasHelper {
     stream_.WriteInt8(flag);
   }
 
- private:
+ protected:
   BufferOutputStream stream_;
 };
 }  // namespace tttext
