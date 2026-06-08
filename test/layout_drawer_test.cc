@@ -102,7 +102,10 @@ TEST(LayoutDrawer, DrawLayoutPage_TextWithUnderline) {
   EXPECT_CALL(canvas_helper, CreatePainter()).WillRepeatedly(Invoke([]() {
     return std::make_unique<Painter>();
   }));
-  EXPECT_CALL(canvas_helper, DrawLine(0, _, text_length, _, _)).Times(1);
+  EXPECT_CALL(canvas_helper, DrawLine(0, _, text_length, _, _))
+      .WillOnce(Invoke([](float, float, float, float, Painter* painter) {
+        EXPECT_EQ(painter->GetCap(), Cap::kRound_Cap);
+      }));
   // Act
   drawer.DrawLayoutPage(page.get());
 }

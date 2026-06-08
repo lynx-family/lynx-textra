@@ -104,7 +104,6 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     CGContextBeginPath(context_);
     CGContextMoveToPoint(context_, x1, y1);
     CGContextAddLineToPoint(context_, x2, y2);
-    CGContextClosePath(context_);
     CGContextSetLineWidth(context_, painter->GetStrokeWidth());
     CGContextDrawPath(context_, ApplyPainterStyle(painter));
   }
@@ -337,8 +336,8 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
       CGContextMoveToPoint(context_, ox + cg_position[0].x, oy + underline_y);
       CGContextAddLineToPoint(context_, ox + cg_position[glyph_count].x,
                               oy + underline_y);
-      CGContextClosePath(context_);
       CGContextSetLineWidth(context_, thickness);
+      CGContextSetLineCap(context_, ToCGLineCap(painter->GetCap()));
       CGContextSetRGBStrokeColor(
           context_, fill_color.GetRedRatio(), fill_color.GetGreenRatio(),
           fill_color.GetBlueRatio(), fill_color.GetAlphaRatio());
@@ -384,6 +383,18 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
 
  protected:
   BOOL CheckValide() { return context_ != NULL; }
+  static CGLineCap ToCGLineCap(tttext::Cap cap) {
+    switch (cap) {
+      case tttext::Cap::kRound_Cap:
+        return kCGLineCapRound;
+      case tttext::Cap::kSquare_Cap:
+        return kCGLineCapSquare;
+      case tttext::Cap::kButt_Cap:
+      default:
+        return kCGLineCapButt;
+    }
+  }
+
   CGPathDrawingMode ApplyPainterStyle(tttext::Painter* painter) {
     CGPathDrawingMode mode = kCGPathFillStroke;
     auto fill_color = painter->GetFillColor();
@@ -409,6 +420,7 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
         context_, stroke_color.GetRedRatio(), stroke_color.GetGreenRatio(),
         stroke_color.GetBlueRatio(), stroke_color.GetAlphaRatio());
     CGContextSetLineWidth(context_, painter->GetStrokeWidth());
+    CGContextSetLineCap(context_, ToCGLineCap(painter->GetCap()));
     return mode;
   }
 

@@ -166,6 +166,7 @@ void LayoutDrawer::DrawLineDecoration(TextLine* i_line,
       auto painter = canvas_->CreatePainter();
       painter->SetFillColor(decorate_style.GetDecorationColor());
       painter->SetStrokeColor(decorate_style.GetDecorationColor());
+      painter->SetCap(Cap::kRound_Cap);
       auto stroke_width = painter->GetStrokeWidth();
       switch (decorate_style.GetDecorationStyle()) {
         case LineType::kSolid: {

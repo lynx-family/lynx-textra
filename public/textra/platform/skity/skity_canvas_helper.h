@@ -138,10 +138,14 @@ class SkityCanvasHelper : public ICanvasHelper {
     auto* p = reinterpret_cast<SkityPainter*>(painter);
     if (p && p->platform_painter_) {
       p->platform_painter_->SetTextSize(painter->GetTextSize());
+      if (painter->GetCap() != tttext::Cap::kDefault_Cap) {
+        p->platform_painter_->SetStrokeCap(ToSkityPaintCap(painter->GetCap()));
+      }
       return p->platform_painter_.get();
     }
     paint_.Reset();
     paint_.SetTextSize(painter->GetTextSize());
+    paint_.SetStrokeCap(ToSkityPaintCap(painter->GetCap()));
     bool need_fill = false;
     if (painter->GetFillColor() != TTColor::UNDEFINED) {
       paint_.SetFillColor(painter->GetFillColor());
@@ -156,6 +160,18 @@ class SkityCanvasHelper : public ICanvasHelper {
                                 : skity::Paint::kStroke_Style);
     }
     return &paint_;
+  }
+
+  static skity::Paint::Cap ToSkityPaintCap(tttext::Cap cap) {
+    switch (cap) {
+      case tttext::Cap::kRound_Cap:
+        return skity::Paint::kRound_Cap;
+      case tttext::Cap::kSquare_Cap:
+        return skity::Paint::kSquare_Cap;
+      case tttext::Cap::kButt_Cap:
+      default:
+        return skity::Paint::kButt_Cap;
+    }
   }
 
  private:

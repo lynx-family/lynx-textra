@@ -231,9 +231,13 @@ class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
   SkPaint& ToSkPaint(tttext::Painter* painter) {
     auto* skia_painter = TTDYNAMIC_CAST<tttext::SkiaPainter*>(painter);
     if (skia_painter != nullptr && skia_painter->sk_paint_ != nullptr) {
+      if (painter->GetCap() != tttext::Cap::kDefault_Cap) {
+        skia_painter->sk_paint_->setStrokeCap(ToSkPaintCap(painter->GetCap()));
+      }
       return *skia_painter->sk_paint_;
     }
     painter_.setAntiAlias(true);
+    painter_.setStrokeCap(ToSkPaintCap(painter->GetCap()));
     bool need_fill = false;
     if (painter->GetFillColor() != tttext::TTColor::UNDEFINED) {
       painter_.setStyle(SkPaint::kFill_Style);
@@ -256,6 +260,18 @@ class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
       painter_.setStrokeWidth(painter->GetStrokeWidth());
     }
     return painter_;
+  }
+
+  static SkPaint::Cap ToSkPaintCap(tttext::Cap cap) {
+    switch (cap) {
+      case tttext::Cap::kRound_Cap:
+        return SkPaint::kRound_Cap;
+      case tttext::Cap::kSquare_Cap:
+        return SkPaint::kSquare_Cap;
+      case tttext::Cap::kButt_Cap:
+      default:
+        return SkPaint::kButt_Cap;
+    }
   }
 
  private:

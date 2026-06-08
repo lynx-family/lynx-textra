@@ -181,6 +181,7 @@ class JavaCanvasHelper : public ICanvasHelper {
     if (painter->IsUnderLine()) {
       flag = flag | (1 << 4);
     }
+    flag = flag | (static_cast<int8_t>(painter->GetCap()) & 0x3);
     stream_.WriteInt8(flag);
   }
 
