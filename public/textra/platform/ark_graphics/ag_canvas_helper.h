@@ -73,6 +73,7 @@ class AGCanvasHelper : public ICanvasHelper {
     auto* pen = OH_Drawing_PenCreate();
     OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
     OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
+    OH_Drawing_PenSetCap(pen, ToAGPenLineCap(painter->GetCap()));
     OH_Drawing_CanvasAttachPen(canvas_, pen);
     OH_Drawing_CanvasDrawLine(canvas_, x1, y1, x2, y2);
     OH_Drawing_CanvasDetachPen(canvas_);
@@ -213,6 +214,7 @@ class AGCanvasHelper : public ICanvasHelper {
     if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
       OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
       OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
+      OH_Drawing_PenSetCap(pen, ToAGPenLineCap(painter->GetCap()));
       OH_Drawing_CanvasAttachPen(canvas_, pen);
     }
 
@@ -220,6 +222,7 @@ class AGCanvasHelper : public ICanvasHelper {
       pen = OH_Drawing_PenCreate();
       OH_Drawing_PenSetColor(pen, painter->GetFillColor());
       OH_Drawing_PenSetWidth(pen, painter->GetTextSize() / 40);
+      OH_Drawing_PenSetCap(pen, ToAGPenLineCap(painter->GetCap()));
       OH_Drawing_CanvasAttachPen(canvas_, pen);
     }
     OH_Drawing_CanvasTranslate(canvas_, origin_x, origin_y);
@@ -290,8 +293,21 @@ class AGCanvasHelper : public ICanvasHelper {
     OH_Drawing_CanvasAttachBrush(canvas_, brush);
     OH_Drawing_PenSetColor(pen, painter->GetStrokeColor());
     OH_Drawing_PenSetWidth(pen, painter->GetStrokeWidth());
+    OH_Drawing_PenSetCap(pen, ToAGPenLineCap(painter->GetCap()));
     OH_Drawing_CanvasAttachPen(canvas_, pen);
     return {brush, pen};
+  }
+
+  static OH_Drawing_PenLineCapStyle ToAGPenLineCap(tttext::Cap cap) {
+    switch (cap) {
+      case tttext::Cap::kRound_Cap:
+        return LINE_ROUND_CAP;
+      case tttext::Cap::kSquare_Cap:
+        return LINE_SQUARE_CAP;
+      case tttext::Cap::kButt_Cap:
+      default:
+        return LINE_FLAT_CAP;
+    }
   }
 
   void DetachShapePainter(const ShapePainter& painter) {

@@ -455,6 +455,18 @@ public class JavaCanvasHelper {
     painter.setTextSize(text_size_);
     text_skew_ = stream.readFloat();
     int flag = stream.readByte();
+    switch (flag & 0x3) {
+      case 1:
+        painter.setStrokeCap(Paint.Cap.ROUND);
+        break;
+      case 2:
+        painter.setStrokeCap(Paint.Cap.SQUARE);
+        break;
+      case 0:
+      default:
+        painter.setStrokeCap(Paint.Cap.BUTT);
+        break;
+    }
     is_bold_ = (flag & (1 << 2)) > 0;
     is_italic_ = (flag & (1 << 3)) > 0;
     is_underline_ = (flag & (1 << 4)) > 0;
