@@ -38,30 +38,35 @@ deps = {
         "commit": "705ceef0ec7ab825358e747c76bba6f964424023",
         "deps_file": "hab/DEPS",
         "ignore_in_git": True,
+        "condition": False,
     },
     "third_party/skity/third_party/libjpeg-turbo": {
         "type": "git",
         "url": "https://github.com/libjpeg-turbo/libjpeg-turbo.git",
         "ignore_in_git": True,
         "commit": "f29eda648547b36aa594c4116c7764a6c8a079b9",
+        "condition": False,
     },
     "third_party/skity/third_party/wuffs": {
         "type": "git",
         "url": "https://github.com/google/wuffs-mirror-release-c.git",
         "ignore_in_git": True,
         "commit": "a29749ebe0be57d2b19d8406475bd2326d0f1a85",
+        "condition": False,
     },
     "third_party/skity/third_party/libwebp": {
         "type": "git",
         "url": "https://github.com/webmproject/libwebp.git",
         "ignore_in_git": True,
-        "commit": "4fa21912338357f89e4fd51cf2368325b59e9bd9"
+        "commit": "4fa21912338357f89e4fd51cf2368325b59e9bd9",
+        "condition": False,
     },
     "third_party/skity/third_party/pugixml": {
         "type": "git",
         "url": "https://github.com/zeux/pugixml.git",
         "ignore_in_git": True,
         "commit": "ee86beb30e4973f5feffe3ce63bfa4fbadf72f38",
+        "condition": False,
     },
     'third_party/rapidjson': {
         'type': 'git',
