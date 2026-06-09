@@ -342,6 +342,12 @@ Style ParseStyle(const Value& style_data) {
     style.SetDecorationSideMargin(side_margin);
   }
 
+  // Parse DecorationOffset
+  if (HasOptionalField(style_data, "decoration_offset")) {
+    auto offset = GetRequiredField<float>(style_data, "decoration_offset");
+    style.SetDecorationOffset(offset);
+  }
+
   // Parse Bold
   if (HasOptionalField(style_data, "bold")) {
     auto bold = GetRequiredField<bool>(style_data, "bold");

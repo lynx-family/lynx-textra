@@ -110,6 +110,44 @@ TEST(LayoutDrawer, DrawLayoutPage_TextWithUnderline) {
   drawer.DrawLayoutPage(page.get());
 }
 
+TEST(LayoutDrawer, DrawLayoutPage_TextWithUnderlineUsesDecorationOffset) {
+  // Arrange
+  const float width = 100.f;
+  const float height = 100.f;
+  const char* text = "Hello World!";
+  const float decoration_offset = -4.f;
+  ParagraphImpl para;
+  Style style;
+  style.SetTextSize(1.f);
+  style.SetDecorationType(DecorationType::kUnderLine);
+  style.SetDecorationStyle(LineType::kSolid);
+  style.SetDecorationColor(TTColor::BLACK);
+  style.SetAttribute(kDecorationOffset, StyleValue(decoration_offset));
+  para.AddTextRun(&style, text);
+  TTTextContext context;
+  std::unique_ptr<LayoutRegion> page =
+      std::make_unique<LayoutRegion>(width, height);
+  TextLayout layout(TestUtils::getTestShaper());
+  layout.Layout(&para, page.get(), context);
+  ASSERT_GT(page->GetLineCount(), 0u);
+  TextLine* text_line = page->GetLine(0);
+  ASSERT_NE(text_line, nullptr);
+
+  // Assert
+  NiceMock<MockCanvasHelper> canvas_helper;
+  LayoutDrawer drawer(&canvas_helper);
+  EXPECT_CALL(canvas_helper, CreatePainter()).WillRepeatedly(Invoke([]() {
+    return std::make_unique<Painter>();
+  }));
+  const float expected_y = text_line->GetLineBottom() + decoration_offset;
+  EXPECT_CALL(canvas_helper,
+              DrawLine(_, FloatEq(expected_y), _, FloatEq(expected_y), _))
+      .Times(1);
+
+  // Act
+  drawer.DrawLayoutPage(page.get());
+}
+
 TEST(LayoutDrawer,
      DrawLayoutPage_TextWithDashedUnderlineUsesDecorationLengths) {
   // Arrange
