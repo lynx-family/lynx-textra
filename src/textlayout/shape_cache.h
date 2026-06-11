@@ -30,7 +30,7 @@ class ShapeResultPiece {
   bool Valid() const { return CharCount() > 0; }
   uint32_t CharCount() const { return end_char_pos_ - start_char_pos_; }
   uint32_t GlyphCount() const {
-    return result_->CharToGlyph(end_char_pos_) -
+    return result_->CharToGlyph(end_char_pos_ - 1) + 1 -
            result_->CharToGlyph(start_char_pos_);
   }
   const GlyphID& Glyphs(const uint32_t& glyph_idx) const {

@@ -12,6 +12,18 @@
 
 using namespace ttoffice::tttext;
 
+namespace {
+class TwoCharsOneGlyphReader final : public PlatformShapingResultReader {
+ public:
+  uint32_t GlyphCount() const override { return 1; }
+  uint32_t TextCount() const override { return 2; }
+  GlyphID ReadGlyphID(uint32_t idx) const override { return 10; }
+  float ReadAdvanceX(uint32_t idx) const override { return 1.f; }
+  uint32_t ReadIndices(uint32_t idx) const override { return 0; }
+  TypefaceRef ReadFontId(uint32_t idx) const override { return nullptr; }
+};
+}  // namespace
+
 TEST(ShapeCache, AddToCacheAndFind) {
   FontDescriptor font1;
   FontDescriptor font2;
@@ -55,6 +67,19 @@ TEST(ShapeCache, AddToCacheAndFind) {
   EXPECT_EQ(cache.Find(key5), result5);
   EXPECT_EQ(cache.Find(key6), result6);
   EXPECT_EQ(cache.Find(key7), result7);
+}
+
+TEST(ShapeResultPiece, GlyphCountIncludesGlyphSharedByEndChar) {
+  TwoCharsOneGlyphReader reader;
+  auto result = std::make_shared<ShapeResult>(reader.TextCount(), false);
+  result->AppendPlatformShapingResult(reader);
+  EXPECT_EQ(result->CharToGlyph(0), 0u);
+  EXPECT_EQ(result->CharToGlyph(1), 0u);
+
+  ShapeResultPiece piece;
+  piece.InitWithShapeResult(result, 0, 1);
+
+  EXPECT_EQ(piece.GlyphCount(), 1u);
 }
 
 TEST(ShapeCache, Singleton) {
