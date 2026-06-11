@@ -28,13 +28,20 @@ JavaShaper::JavaShaper(const FontmgrCollection& font_collection)
       font_collection.GetDefaultFontManager());
   auto& proxy = TTTextJNIProxy::GetInstance();
   auto* env = proxy.GetCurrentJNIEnv();
+  if (env == nullptr) {
+    return;
+  }
   auto inst =
       env->NewObject(reinterpret_cast<jclass>(proxy.JavaShaper_class_->get()),
                      proxy.JavaShaper_method_init_, font_mgr->GetInstance());
   if (ClearException(env)) {
+    if (inst != nullptr) {
+      env->DeleteLocalRef(inst);
+    }
     return;
   }
   java_instance_ = std::make_unique<ScopedGlobalRef>(env, inst);
+  env->DeleteLocalRef(inst);
 }
 
 void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {

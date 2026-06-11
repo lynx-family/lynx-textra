@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree.
 
 #include <jni.h>
+#include <sys/prctl.h>
 #include <sys/system_properties.h>
 #include <textra/icu_wrapper.h>
 #include <textra/platform/java/java_typeface.h>
@@ -44,6 +45,53 @@ std::unique_ptr<ScopedGlobalRef> TTTextJNIProxy::tttext_utils_class_ = nullptr;
 jmethodID TTTextJNIProxy::TTTextUtils_method_SystemFontStyleAdjust_ = nullptr;
 jmethodID TTTextJNIProxy::TTTextUtils_method_SystemDefaultFamilyName_ = nullptr;
 
+namespace {
+void DetachFromVM() {
+  if (TTTextJNIProxy::java_vm_ != nullptr) {
+    TTTextJNIProxy::java_vm_->DetachCurrentThread();
+  }
+}
+
+struct JNIDetach {
+  ~JNIDetach() { DetachFromVM(); }
+};
+
+thread_local std::unique_ptr<JNIDetach> tls_jni_detach;
+
+JNIEnv* AttachCurrentThread() {
+  auto* java_vm = TTTextJNIProxy::java_vm_;
+  if (java_vm == nullptr) {
+    return nullptr;
+  }
+
+  JNIEnv* env = nullptr;
+  jint ret = java_vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
+  if (ret == JNI_OK && env != nullptr) {
+    return env;
+  }
+
+  if (ret == JNI_EDETACHED || env == nullptr) {
+    JavaVMAttachArgs args;
+    args.version = JNI_VERSION_1_6;
+    args.group = nullptr;
+
+    char thread_name[16];
+    args.name = prctl(PR_GET_NAME, thread_name) < 0 ? nullptr : thread_name;
+
+    ret = java_vm->AttachCurrentThread(&env, &args);
+  }
+
+  if (ret != JNI_OK || env == nullptr) {
+    return nullptr;
+  }
+
+  if (tls_jni_detach == nullptr) {
+    tls_jni_detach = std::make_unique<JNIDetach>();
+  }
+  return env;
+}
+}  // namespace
+
 TTTextJNIProxy::TTTextJNIProxy() = default;
 TTTextJNIProxy::~TTTextJNIProxy() = default;
 void TTTextJNIProxy::Initial() {
@@ -57,13 +105,7 @@ TTTextJNIProxy& TTTextJNIProxy::GetInstance() {
   return instance;
 }
 JavaVM* TTTextJNIProxy::GetJavaVm() { return java_vm_; }
-JNIEnv* TTTextJNIProxy::GetCurrentJNIEnv() {
-  thread_local JNIEnv* env = nullptr;
-  if (env == nullptr) {
-    java_vm_->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
-  }
-  return env;
-}
+JNIEnv* TTTextJNIProxy::GetCurrentJNIEnv() { return AttachCurrentThread(); }
 void TTTextJNIProxy::InitialJNI(JNIEnv* env) {
   env->GetJavaVM(&java_vm_);
   auto clzz_java_shape_result = GetClass(env, CLASS_JAVA_SHAPERESULT);
@@ -177,6 +219,9 @@ void ScopedGlobalRef::reset() {
   if (mGlobalRef != NULL) {
     auto& proxy = ttoffice::tttext::TTTextJNIProxy::GetInstance();
     auto* env = proxy.GetCurrentJNIEnv();
+    if (env == nullptr) {
+      return;
+    }
     env->DeleteGlobalRef(mGlobalRef);
     mGlobalRef = NULL;
   }
