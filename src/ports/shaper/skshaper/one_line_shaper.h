@@ -113,6 +113,9 @@ class OneLineShaper : public SkShaper::RunHandler {
   ClusterIndex clusterIndex(GlyphIndex glyph);
   void addFullyResolved();
   TextRange normalizeTextRange(GlyphRange glyphRange);
+  void buildProtectedTextRanges();
+  TextRange expandTextRangeToProtected(TextRange textRange) const;
+  GlyphRange glyphRangeForTextRange(TextRange textRange);
   void addUnresolvedWithRun(GlyphRange glyphRange);
   void sortOutGlyphs(std::function<void(GlyphRange)>&& sortOutUnresolvedBLock);
   void fillGaps(size_t);
@@ -129,6 +132,7 @@ class OneLineShaper : public SkShaper::RunHandler {
   std::shared_ptr<Run> fCurrentRun;
   std::deque<RunBlock> fUnresolvedBlocks;
   std::vector<RunBlock> fResolvedBlocks;
+  std::vector<TextRange> fProtectedTextRanges;
 
   std::unique_ptr<SkShaper> shaper_;
 

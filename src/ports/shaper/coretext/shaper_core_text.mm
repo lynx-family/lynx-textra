@@ -29,6 +29,7 @@
 
 #include <algorithm>
 
+#include "src/textlayout/utils/grapheme_utils.h"
 #include "src/textlayout/utils/u_8_string.h"
 
 namespace ttoffice {
@@ -489,6 +490,12 @@ void ShaperCoreText::OnShapeText(const ShapeKey& key,
     }
     for (auto k = 0; k < glyph_count; k++) {
       ct_indices[k] = u16_char_map[ct_indices[k]];
+      if (ct_indices[k] >= 0 &&
+          static_cast<size_t>(ct_indices[k]) < key.text_.length() &&
+          IsZeroWidthJoiner(key.text_[static_cast<size_t>(ct_indices[k])])) {
+        ct_advances[k].width = 0;
+        ct_advances[k].height = 0;
+      }
     }
     /* Copy From hb-coretext.cc */
     if (glyph_count > 1 && (run_status & kCTRunStatusNonMonotonic)) {

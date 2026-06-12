@@ -174,6 +174,30 @@ TEST(ShapeResult, MeasureWidth) {
   }
 }
 
+TEST(ShapeResult, MeasureWidthIncludesMultiGlyphClusterAdvances) {
+  TestShapingResultReader shaping_result(4);
+  shaping_result.glyphs_ = {1, 2, 3, 4};
+  shaping_result.indices_ = {0, 0, 0, 1};
+  shaping_result.text_count_ = 2;
+  shaping_result.advances_ = {
+      {5.f, 0.f}, {10.f, 0.f}, {15.f, 0.f}, {20.f, 0.f}};
+  TypefaceRef typeface = nullptr;
+  shaping_result.font_ = typeface;
+
+  ShapeResult result(shaping_result.text_count_, false);
+  result.AppendPlatformShapingResult(shaping_result);
+
+  EXPECT_EQ(result.CharToGlyph(0), 0u);
+  EXPECT_EQ(result.CharToGlyph(1), 3u);
+  EXPECT_EQ(result.CharToGlyph(2), 4u);
+  EXPECT_FLOAT_EQ(result.MeasureWidth(0, 1, 0.f), 30.f);
+  EXPECT_FLOAT_EQ(result.MeasureWidth(0, 2, 0.f), 50.f);
+
+  const float letter_spacing = 2.f;
+  EXPECT_FLOAT_EQ(result.MeasureWidth(0, 1, letter_spacing), 32.f);
+  EXPECT_FLOAT_EQ(result.MeasureWidth(0, 2, letter_spacing), 54.f);
+}
+
 TEST(TTShaper, Constructor) {
   FontmgrCollection expected = TestUtils::getFontmgrCollection();
   TestShaper shaper(expected);

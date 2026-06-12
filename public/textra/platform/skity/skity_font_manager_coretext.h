@@ -37,9 +37,6 @@ class SkityFontManagerCoreText : public SkityFontManager {
         skity_typeface_helper->GetTypeface());
     return (void*)(ct_font);  // NOLINT
   }
-
- private:
-  std::shared_ptr<skity::FontManager> font_manager_;
 };
 }  // namespace tttext
 }  // namespace ttoffice

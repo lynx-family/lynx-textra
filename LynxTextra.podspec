@@ -50,6 +50,7 @@ Pod::Spec.new do |s|
                                 "public/textra/platform/skity/skity_font_data.h",
                                 "public/textra/platform/skity/skity_font_manager.h",
                                 "public/textra/platform/skity/skity_font_manager_coretext.h",
+                                "public/textra/platform/skity/skity_font_manager_coretext_webkit.h",
                                 "public/textra/platform/skity/skity_typeface_helper.h",
                                 "public/textra/platform_helper.h",
                                 "public/textra/run_delegate.h",
@@ -97,6 +98,7 @@ Pod::Spec.new do |s|
                                 "public/textra/platform/skity/skity_font_data.h",
                                 "public/textra/platform/skity/skity_font_manager.h",
                                 "public/textra/platform/skity/skity_font_manager_coretext.h",
+                                "public/textra/platform/skity/skity_font_manager_coretext_webkit.h",
                                 "public/textra/platform/skity/skity_typeface_helper.h",
                                 "public/textra/platform_helper.h",
                                 "public/textra/run_delegate.h",
@@ -109,10 +111,10 @@ Pod::Spec.new do |s|
                                 "src/ports/platform_helper.cc",
                                 "src/ports/shaper/coretext/shaper_core_text.h",
                                 "src/ports/shaper/coretext/shaper_core_text.mm",
-                                "src/textlayout/font_info.cc",
-                                "src/textlayout/fontmgr_collection.cc",
                                 "src/textlayout/dominate_baseline.cc",
                                 "src/textlayout/dominate_baseline.h",
+                                "src/textlayout/font_info.cc",
+                                "src/textlayout/fontmgr_collection.cc",
                                 "src/textlayout/internal/boundary_analyst.cc",
                                 "src/textlayout/internal/boundary_analyst.h",
                                 "src/textlayout/internal/justify_analyst.cc",
@@ -148,6 +150,7 @@ Pod::Spec.new do |s|
                                 "src/textlayout/tttext_context_impl.cc",
                                 "src/textlayout/tttext_context_impl.h",
                                 "src/textlayout/utils/float_comparison.h",
+                                "src/textlayout/utils/grapheme_utils.h",
                                 "src/textlayout/utils/log_util.h",
                                 "src/textlayout/utils/tt_point.cc",
                                 "src/textlayout/utils/tt_point.h",
@@ -178,3 +181,4 @@ Pod::Spec.new do |s|
 
   end
 end
+
