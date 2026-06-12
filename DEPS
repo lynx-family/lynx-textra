@@ -5,8 +5,6 @@ system = platform.system().lower()
 machine = platform.machine().lower()
 machine = "x86_64" if machine == "amd64" else machine
 
-root_dir = os.getcwd()
-
 deps = {
     "tools_shared": {
         "type": "solution",
@@ -19,9 +17,7 @@ deps = {
         'type': 'git',
         'url': 'https://github.com/harfbuzz/harfbuzz',
         'commit': 'a070f9ebbe88dc71b248af9731dd49ec93f4e6e6',
-        'patches': [
-            os.path.join(root_dir, 'patches', 'harfbuzz', '*.patch')
-        ],
+        'patches': os.path.join(root_dir, 'patches', 'harfbuzz', '*.patch'),
         "ignore_in_git": True,
     },
     'third_party/icu': {
@@ -128,7 +124,7 @@ deps = {
         "url": "https://github.com/lynx-family/buildroot.git",
         "commit": "79446975604356f28b44c4e67851b3c9aafa372f",
         "ignore_in_git": True,
-        "condition": system in ['linux', 'darwin', 'windows']
+        "condition": False
     },
     'third_party/libcxx': {
         "type": "git",
