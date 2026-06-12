@@ -41,11 +41,56 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "src/ports/shaper/skshaper/run.h"
 #include "src/textlayout/tt_shaper.h"
+#include "src/textlayout/utils/grapheme_utils.h"
 #include "src/textlayout/utils/hasher.h"
 #include "src/textlayout/utils/log_util.h"
 
 namespace ttoffice {
 namespace tttext {
+namespace {
+
+void AddProtectedRange(std::vector<TextRange>* ranges, TextIndex start,
+                       TextIndex end) {
+  if (ranges == nullptr || start >= end) {
+    return;
+  }
+
+  TextRange range(start, end);
+  if (!ranges->empty() &&
+      (ranges->back().IsIntersect(range) || ranges->back().IsAdjacent(range))) {
+    ranges->back().Merge(range);
+    return;
+  }
+
+  ranges->emplace_back(range);
+}
+
+bool NextFallbackCodepoint(const char32_t* text, TextRange range,
+                           TextIndex* index,
+                           std::unordered_set<Unichar>* alreadyTried,
+                           Unichar* codepoint) {
+  if (text == nullptr || index == nullptr || alreadyTried == nullptr ||
+      codepoint == nullptr) {
+    return false;
+  }
+
+  while (*index < range.GetEnd()) {
+    Unichar candidate = text[(*index)++];
+    if (IsEmojiFallbackIgnorable(candidate)) {
+      continue;
+    }
+    auto inserted = alreadyTried->emplace(candidate).second;
+    if (inserted) {
+      *codepoint = candidate;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+}  // namespace
+
 OneLineShaper::OneLineShaper(FontmgrCollection& font_collections)
     : fFontCollection_(font_collections), fUnresolvedGlyphs(0) {
   shaper_ = SkShaper::MakeShapeDontWrapOrReorder();
@@ -302,8 +347,114 @@ TextRange OneLineShaper::normalizeTextRange(GlyphRange glyphRange) {
   }
 }
 
+void OneLineShaper::buildProtectedTextRanges() {
+  fProtectedTextRanges.clear();
+  for (TextIndex i = 0; i < len_;) {
+    const Unichar codepoint = content_[i];
+    if (IsEmojiRegionalIndicator(codepoint) && i + 1 < len_ &&
+        IsEmojiRegionalIndicator(content_[i + 1])) {
+      AddProtectedRange(&fProtectedTextRanges, i, i + 2);
+      i += 2;
+      continue;
+    }
+
+    if (IsEmojiBaseForFallback(codepoint)) {
+      TextIndex end = i + 1;
+      while (end < len_) {
+        const Unichar next = content_[end];
+        if (IsVariationSelector(next) || IsEmojiModifier(next) ||
+            IsEmojiTagCharacter(next)) {
+          ++end;
+          continue;
+        }
+        if (IsZeroWidthJoiner(next) && end + 1 < len_ &&
+            IsEmojiBaseForFallback(content_[end + 1])) {
+          end += 2;
+          continue;
+        }
+        break;
+      }
+      if (end > i + 1) {
+        AddProtectedRange(&fProtectedTextRanges, i, end);
+      }
+      i = end;
+      continue;
+    }
+
+    if (IsDevanagari(codepoint)) {
+      TextIndex end = i + 1;
+      bool has_cluster_link = false;
+      while (end < len_) {
+        const Unichar next = content_[end];
+        if (IsDevanagariMarkOrJoiner(next)) {
+          has_cluster_link = true;
+          ++end;
+          if (IsDevanagariVirama(next)) {
+            while (end < len_ && (IsZeroWidthNonJoiner(content_[end]) ||
+                                  IsZeroWidthJoiner(content_[end]))) {
+              ++end;
+            }
+            if (end < len_ && IsDevanagariConsonant(content_[end])) {
+              ++end;
+            }
+          }
+          continue;
+        }
+        if (IsDevanagariTrailingSign(next)) {
+          ++end;
+          continue;
+        }
+        break;
+      }
+      if (has_cluster_link || end > i + 1) {
+        AddProtectedRange(&fProtectedTextRanges, i, end);
+      }
+      i = end;
+      continue;
+    }
+
+    ++i;
+  }
+}
+
+TextRange OneLineShaper::expandTextRangeToProtected(TextRange textRange) const {
+  bool expanded = true;
+  while (expanded) {
+    expanded = false;
+    for (const auto& protectedRange : fProtectedTextRanges) {
+      if (textRange.IsIntersect(protectedRange) &&
+          !textRange.Contain(protectedRange)) {
+        textRange.SetStart(
+            std::min(textRange.GetStart(), protectedRange.GetStart()));
+        textRange.SetEnd(std::max(textRange.GetEnd(), protectedRange.GetEnd()));
+        expanded = true;
+      }
+    }
+  }
+  return textRange;
+}
+
+GlyphRange OneLineShaper::glyphRangeForTextRange(TextRange textRange) {
+  GlyphIndex start = static_cast<GlyphIndex>(fCurrentRun->size());
+  GlyphIndex end = 0;
+  for (GlyphIndex i = 0; i < fCurrentRun->size(); ++i) {
+    const TextRange glyphText = normalizeTextRange(GlyphRange(i, i + 1));
+    if (!glyphText.IsIntersect(textRange)) {
+      continue;
+    }
+    start = std::min(start, i);
+    end = std::max(end, static_cast<GlyphIndex>(i + 1));
+  }
+
+  if (start >= end) {
+    return GlyphRange(0, static_cast<unsigned int>(fCurrentRun->size()));
+  }
+  return GlyphRange(start, end);
+}
+
 void OneLineShaper::addUnresolvedWithRun(GlyphRange glyphRange) {
-  auto text_range = normalizeTextRange(glyphRange);
+  auto text_range = expandTextRangeToProtected(normalizeTextRange(glyphRange));
+  glyphRange = glyphRangeForTextRange(text_range);
   RunBlock unresolved(fCurrentRun, text_range, glyphRange);
   if (unresolved.fGlyphs.GetLength() == fCurrentRun->size()) {
     TTASSERT(unresolved.fText.GetLength() ==
@@ -332,7 +483,10 @@ void OneLineShaper::addUnresolvedWithRun(GlyphRange glyphRange) {
             std::min(lastUnresolved.fGlyphs.GetStart(), glyphRange.GetStart()));
         lastUnresolved.fGlyphs.SetEnd(
             std::max(lastUnresolved.fGlyphs.GetEnd(), glyphRange.GetEnd()));
-        lastUnresolved.fText = lastUnresolved.fGlyphs;
+        lastUnresolved.fText.SetStart(std::min(lastUnresolved.fText.GetStart(),
+                                               unresolved.fText.GetStart()));
+        lastUnresolved.fText.SetEnd(
+            std::max(lastUnresolved.fText.GetEnd(), unresolved.fText.GetEnd()));
         return;
       }
     }
@@ -510,7 +664,11 @@ void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
       // unresolved block
       auto idx = unresolvedRange.GetStart();
       std::unordered_set<Unichar> alreadyTried;
-      Unichar unicode = content_[idx++];
+      Unichar unicode = EmojiFallbackKey(content_, unresolvedRange.GetStart(),
+                                         unresolvedRange.GetEnd());
+      if (unicode != 0) {
+        alreadyTried.emplace(unicode);
+      }
       while (true) {
         std::shared_ptr<ITypefaceHelper> typeface;
 
@@ -556,13 +714,11 @@ void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
         }
 
         // We can stop here or we can switch to another DIFFERENT codepoint
-        while (idx != unresolvedRange.GetEnd()) {
-          unicode = content_[idx++];
-          auto found = alreadyTried.find(unicode);
-          if (found == alreadyTried.end()) {
-            alreadyTried.emplace(unicode);
-            break;
-          }
+        if (!NextFallbackCodepoint(content_, unresolvedRange, &idx,
+                                   &alreadyTried, &unicode)) {
+          hopelessBlocks.push_back(fUnresolvedBlocks.front());
+          fUnresolvedBlocks.pop_front();
+          break;
         }
       }
     }
@@ -580,6 +736,7 @@ bool OneLineShaper::shape(const char32_t* content, uint32_t len,
   len_ = len;
   fUnresolvedBlocks.clear();
   fResolvedBlocks.clear();
+  buildProtectedTextRanges();
   fCurrentRun = nullptr;
   // The text can be broken into many shaping sequences
   // (by placeholders, possibly, by hard line breaks or tabs, too)

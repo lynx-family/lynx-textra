@@ -154,22 +154,30 @@ void ShapeResult::AppendPlatformShapingResult(
 }
 float ShapeResult::MeasureWidth(uint32_t start_char, uint32_t char_count,
                                 float letter_spacing) const {
-  uint32_t k = 0;
+  if (char_count == 0) {
+    return 0;
+  }
+
+  TTASSERT(start_char < CharCount());
+  TTASSERT(start_char + char_count <= CharCount());
+
+  const uint32_t glyph_start = CharToGlyph(start_char);
+  const uint32_t glyph_end = CharToGlyph(start_char + char_count);
+  TTASSERT(glyph_start <= glyph_end);
+  TTASSERT(glyph_end <= GlyphCount());
+
   float width = 0;
-  uint32_t prev_glyph_id = -1;
-  while (k < char_count) {
-    TTASSERT(k + start_char < CharCount());
-    auto glyph_id = CharToGlyph(k + start_char);
-    TTASSERT(glyph_id < GlyphCount());
-    k++;
-    if (glyph_id == prev_glyph_id) {
-      continue;
-    }
-    auto adv = Advances(glyph_id);
+  uint32_t prev_char_idx = static_cast<uint32_t>(-1);
+  for (uint32_t glyph_id = glyph_start; glyph_id < glyph_end; ++glyph_id) {
+    const auto adv = Advances(glyph_id);
     if (FloatsLarger(adv[0], 0)) {
-      width += adv[0] + letter_spacing;
+      width += adv[0];
+      const uint32_t char_idx = GlyphToChar(glyph_id);
+      if (char_idx != prev_char_idx) {
+        width += letter_spacing;
+      }
     }
-    prev_glyph_id = glyph_id;
+    prev_char_idx = GlyphToChar(glyph_id);
   }
   return width;
 }

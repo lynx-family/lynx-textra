@@ -260,6 +260,7 @@ source_set("textlayout") {
     "$prj_root/src/textlayout/tttext_context_impl.cc",
     "$prj_root/src/textlayout/tttext_context_impl.h",
     "$prj_root/src/textlayout/utils/float_comparison.h",
+    "$prj_root/src/textlayout/utils/grapheme_utils.h",
     "$prj_root/src/textlayout/utils/log_util.h",
     "$prj_root/src/textlayout/utils/tt_point.cc",
     "$prj_root/src/textlayout/utils/tt_point.h",
