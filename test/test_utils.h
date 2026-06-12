@@ -35,9 +35,14 @@ class TestShapingResultReader final
     glyphs_.resize(glyph_count);
     advances_.resize(glyph_count);
     positions_.resize(glyph_count);
+    indices_.resize(glyph_count);
+    for (uint32_t i = 0; i < glyph_count; ++i) {
+      indices_[i] = i;
+    }
+    text_count_ = glyph_count;
   }
   uint32_t GlyphCount() const override { return glyphs_.size(); }
-  uint32_t TextCount() const override { return glyphs_.size(); }
+  uint32_t TextCount() const override { return text_count_; }
   GlyphID ReadGlyphID(uint32_t idx) const override { return glyphs_.at(idx); }
   float ReadAdvanceX(uint32_t idx) const override {
     return advances_.at(idx)[0];
@@ -51,11 +56,13 @@ class TestShapingResultReader final
   float ReadPositionY(uint32_t idx) const override {
     return positions_.at(idx)[1];
   }
-  uint32_t ReadIndices(uint32_t idx) const override { return idx; }
+  uint32_t ReadIndices(uint32_t idx) const override { return indices_.at(idx); }
   TypefaceRef ReadFontId(uint32_t idx) const override { return font_; }
   std::vector<std::array<float, 2>> advances_;
   std::vector<std::array<float, 2>> positions_;
   std::vector<GlyphID> glyphs_;
+  std::vector<uint32_t> indices_;
+  uint32_t text_count_;
   TypefaceRef font_;
 };
 

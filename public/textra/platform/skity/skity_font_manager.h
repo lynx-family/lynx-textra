@@ -65,7 +65,7 @@ class SkityFontManager : public IFontManager {
                     : nullptr;
   }
 
- private:
+ protected:
   std::shared_ptr<skity::FontManager> font_manager_;
 };
 }  // namespace tttext
