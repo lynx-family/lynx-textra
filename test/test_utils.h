@@ -13,6 +13,15 @@
 #include <textra/text_line.h>
 #include <textra/tt_color.h>
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "demos/darwin/macos/glfw/skity_adaptor.h"
 #include "demos/darwin/macos/ttreaderdemo/paragraph_test.h"
 #include "skity/codec/codec.hpp"
@@ -87,6 +96,113 @@ class TestShaper : public TTShaper {
   }
 };
 
+class FixedMetricsTypefaceHelper : public ITypefaceHelper {
+ public:
+  explicit FixedMetricsTypefaceHelper(uint32_t unique_id = 1)
+      : ITypefaceHelper(unique_id) {}
+
+  float GetHorizontalAdvance(GlyphID glyph_id, float font_size) const override {
+    return font_size;
+  }
+
+  void GetHorizontalAdvances(GlyphID glyph_ids[], uint32_t count,
+                             float widths[], float font_size) const override {
+    for (uint32_t i = 0; i < count; ++i) {
+      widths[i] = GetHorizontalAdvance(glyph_ids[i], font_size);
+    }
+  }
+
+  void GetWidthBound(float* rect_ltwh, GlyphID glyph_id,
+                     float font_size) const override {
+    rect_ltwh[0] = 0.f;
+    rect_ltwh[1] = -0.75f * font_size;
+    rect_ltwh[2] = font_size;
+    rect_ltwh[3] = font_size;
+  }
+
+  void GetWidthBounds(float* rect_ltrb, GlyphID glyphs[], uint32_t glyph_count,
+                      float font_size) override {
+    if (glyph_count == 0) {
+      rect_ltrb[0] = 0.f;
+      rect_ltrb[1] = 0.f;
+      rect_ltrb[2] = 0.f;
+      rect_ltrb[3] = 0.f;
+      return;
+    }
+    rect_ltrb[0] = 0.f;
+    rect_ltrb[1] = -0.75f * font_size;
+    rect_ltrb[2] = font_size * static_cast<float>(glyph_count);
+    rect_ltrb[3] = 0.25f * font_size;
+  }
+
+  const void* GetFontData() const override { return nullptr; }
+  size_t GetFontDataSize() const override { return 0; }
+  int GetFontIndex() const override { return 0; }
+
+  uint16_t UnicharToGlyph(Unichar codepoint,
+                          uint32_t variationSelector = 0) const override {
+    return static_cast<uint16_t>(codepoint == 0 ? 0 : 1);
+  }
+
+  void UnicharsToGlyphs(const Unichar* unichars, uint32_t count,
+                        GlyphID* glyphs) const override {
+    for (uint32_t i = 0; i < count; ++i) {
+      glyphs[i] = UnicharToGlyph(unichars[i]);
+    }
+  }
+
+  uint32_t GetUnitsPerEm() const override { return 1000; }
+
+ protected:
+  void OnCreateFontInfo(FontInfo* info, float font_size) const override {
+    *info = FontInfo(-0.75f * font_size, 0.25f * font_size, font_size);
+  }
+};
+
+class FixedBidiTestShaper : public TTShaper {
+ public:
+  FixedBidiTestShaper(TypefaceRef typeface, std::vector<uint32_t> visual_map,
+                      std::vector<uint8_t> bidi_level) noexcept
+      : TTShaper(FontmgrCollection(
+            std::make_shared<TestFontMgr>(std::vector<TypefaceRef>{typeface}))),
+        typeface_(std::move(typeface)),
+        visual_map_(std::move(visual_map)),
+        bidi_level_(std::move(bidi_level)) {}
+
+  void ProcessBidirection(const char32_t* text, uint32_t length,
+                          WriteDirection write_direction, uint32_t* visual_map,
+                          uint32_t* logical_map, uint8_t* dir_vec) override {
+    std::vector<uint32_t> inverse(length, 0);
+    for (uint32_t i = 0; i < length; ++i) {
+      visual_map[i] = i < visual_map_.size() ? visual_map_[i] : i;
+      dir_vec[i] = i < bidi_level_.size() ? bidi_level_[i] : 0;
+      if (visual_map[i] < length) {
+        inverse[visual_map[i]] = i;
+      }
+    }
+    for (uint32_t i = 0; i < length; ++i) {
+      logical_map[i] = inverse[i];
+    }
+  }
+
+  void OnShapeText(const ShapeKey& key, ShapeResult* result) const override {
+    const size_t char_count = key.text_.size();
+    TestShapingResultReader reader(static_cast<uint32_t>(char_count));
+    for (size_t i = 0; i < char_count; ++i) {
+      reader.glyphs_[i] = static_cast<GlyphID>(i + 1);
+      const float font_size = key.style_.GetFontSize();
+      reader.advances_[i] = {font_size, 0.f};
+    }
+    reader.font_ = typeface_;
+    result->AppendPlatformShapingResult(reader);
+  }
+
+ private:
+  TypefaceRef typeface_;
+  std::vector<uint32_t> visual_map_;
+  std::vector<uint8_t> bidi_level_;
+};
+
 class TestUtils {
  private:
   TestUtils() = default;
@@ -103,6 +219,15 @@ class TestUtils {
   // doesn't depend on shaper results.
   static std::unique_ptr<TTShaper> getTestShaper() {
     return std::make_unique<TestShaper>(getFontmgrCollection());
+  }
+  static TypefaceRef CreateFixedMetricsTypeface(uint32_t unique_id = 1) {
+    return std::make_shared<FixedMetricsTypefaceHelper>(unique_id);
+  }
+  static std::unique_ptr<TTShaper> CreateFixedBidiTestShaper(
+      std::vector<uint32_t> visual_map, std::vector<uint8_t> bidi_level,
+      TypefaceRef typeface = CreateFixedMetricsTypeface()) {
+    return std::make_unique<FixedBidiTestShaper>(
+        std::move(typeface), std::move(visual_map), std::move(bidi_level));
   }
   // Get a working shaper, usually used in image comparison tests.
   static std::unique_ptr<ShaperSkShaper> getRealShaper() {

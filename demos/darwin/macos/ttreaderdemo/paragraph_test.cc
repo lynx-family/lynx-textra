@@ -91,6 +91,7 @@ ParagraphTest::GetTestCases() {
           {"ParagraphBlockTest", &ParagraphTest::ParagraphBlockTest},
           {"TestMultiParagraph", &ParagraphTest::TestMultiParagraph},
           {"TestDecoration", &ParagraphTest::TestDecoration},
+          {"TestRTLDecorationBounds", &ParagraphTest::TestRTLDecorationBounds},
           {"TestOneString", &ParagraphTest::TestOneString},
           {"TestLineSpacing", &ParagraphTest::TestLineSpacing},
           {"TestMaxLine", &ParagraphTest::TestMaxLine},
@@ -518,6 +519,62 @@ void ParagraphTest::TestDecoration(ICanvasHelper* canvas, float width) const {
   canvas->DrawRect(0, 0, page.GetPageWidth(), page.GetPageHeight(),
                    paint.get());
 }
+
+void ParagraphTest::TestRTLDecorationBounds(ICanvasHelper* canvas,
+                                            float width) const {
+  canvas->Save();
+  {
+    auto paragraph = Paragraph::Create();
+    auto& paragraph_style = paragraph->GetParagraphStyle();
+    paragraph_style.SetWriteDirection(WriteDirection::kRTL);
+    paragraph_style.SetHorizontalAlign(ParagraphHorizontalAlignment::kRight);
+
+    Style decorated_style;
+    decorated_style.SetTextSize(32);
+    decorated_style.SetBackgroundColor(TTColor(0x332196F3));
+    decorated_style.SetDecorationType(DecorationType::kUnderLine);
+    decorated_style.SetDecorationStyle(LineType::kSolid);
+    decorated_style.SetDecorationColor(TTColor(0xFFCC3300));
+    paragraph->AddTextRun(&decorated_style, "abc שלום");
+
+    Style normal_style;
+    normal_style.SetTextSize(32);
+    paragraph->AddTextRun(&normal_style, " def");
+
+    DrawParagraph(canvas, *paragraph, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+  }
+
+  canvas->Translate(0, 120);
+  {
+    draw_page_bound_ = false;
+    draw_tight_bound_ = true;
+    auto paragraph = Paragraph::Create();
+    paragraph->GetParagraphStyle().SetHorizontalAlign(
+        ParagraphHorizontalAlignment::kLeft);
+
+    Style label_style;
+    label_style.SetTextSize(32);
+    paragraph->AddTextRun(&label_style, "Italic tight bounds: ");
+
+    Style italic_style;
+    italic_style.SetTextSize(32);
+    italic_style.SetItalic(true);
+    italic_style.SetBackgroundColor(TTColor(0x33FF9800));
+    italic_style.SetDecorationType(DecorationType::kUnderLine);
+    italic_style.SetDecorationStyle(LineType::kDashed);
+    italic_style.SetDecorationColor(TTColor(0xFF1B5E20));
+    italic_style.SetDecorationElementLength(8.f);
+    italic_style.SetDecorationGapLength(4.f);
+    italic_style.SetDecorationSideMargin(2.f);
+    paragraph->AddTextRun(&italic_style, "abcdef");
+
+    DrawParagraph(canvas, *paragraph, width, LayoutMode::kAtMost,
+                  LayoutMode::kIndefinite);
+  }
+  canvas->Restore();
+}
+
 void ParagraphTest::TestMaxLine(ICanvasHelper* canvas, float width) const {
   auto paragraph_ptr = Paragraph::Create();
   auto& paragraph = *paragraph_ptr;

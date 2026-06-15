@@ -902,6 +902,31 @@ TEST_F(TextLayoutTest, TextLine_GetTightBoundingRectByCharRange_GlyphBounds) {
 }
 
 TEST_F(TextLayoutTest,
+       TextLine_GetTightBoundingRectByCharRange_ItalicMiddleCharBounds) {
+  constexpr float text_size = 10.f;
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  auto para = std::make_unique<ParagraphImpl>();
+  Style style;
+  style.SetTextSize(text_size);
+  style.SetItalic(true);
+  para->AddTextRun(&style, "ab");
+  auto region = std::make_unique<LayoutRegion>(100.f, 50.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  ASSERT_NE(line, nullptr);
+
+  float rect[4]{};
+  line->GetTightBoundingRectByCharRange(rect, 1, 2);
+  EXPECT_FLOAT_EQ(rect[0], text_size * (1.f + 0.1875f));
+  EXPECT_FLOAT_EQ(rect[1], -0.75f * text_size);
+  EXPECT_FLOAT_EQ(rect[2], text_size * (2.f + 0.1875f));
+  EXPECT_FLOAT_EQ(rect[3], 0.25f * text_size);
+}
+
+TEST_F(TextLayoutTest,
        TextLine_GetTightBoundingRectByCharRange_LineHeightModes_Consistent) {
   enum class Mode {
     kDefault,

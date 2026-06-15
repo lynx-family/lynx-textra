@@ -15,6 +15,19 @@
 using namespace ttoffice::tttext;
 using namespace ::testing;
 
+namespace {
+
+std::unique_ptr<LayoutRegion> LayoutVisualSplitLine(ParagraphImpl* paragraph) {
+  TextLayout layout(TestUtils::CreateFixedBidiTestShaper({0, 1, 4, 5, 2, 3},
+                                                         {0, 0, 1, 1, 0, 0}));
+  TTTextContext context;
+  auto page = std::make_unique<LayoutRegion>(100.f, 100.f);
+  layout.Layout(paragraph, page.get(), context);
+  return page;
+}
+
+}  // namespace
+
 TEST(LayoutDrawer, DrawTextLine) {
   // Arrange
   const char* text = "Hello World!";
@@ -143,6 +156,66 @@ TEST(LayoutDrawer,
       .Times(1);
   // Act
   drawer.DrawLayoutPage(page.get());
+}
+
+TEST(LayoutDrawer, DrawLineBackgroundSplitsVisuallyDiscontinuousRange) {
+  ParagraphImpl para;
+  Style style;
+  style.SetTextSize(1.f);
+  para.AddTextRun(&style, "abcdef");
+
+  Style background_style;
+  background_style.SetBackgroundColor(TTColor(0xFF00FF00));
+  para.ApplyStyleInRange(background_style, 0, 4);
+
+  auto page = LayoutVisualSplitLine(&para);
+  ASSERT_EQ(page->GetLineCount(), 1u);
+  TextLine* text_line = page->GetLine(0);
+  ASSERT_NE(text_line, nullptr);
+
+  NiceMock<MockCanvasHelper> canvas_helper;
+  LayoutDrawer drawer(&canvas_helper);
+  ON_CALL(canvas_helper, CreatePainter()).WillByDefault(Invoke([]() {
+    return std::make_unique<Painter>();
+  }));
+
+  EXPECT_CALL(canvas_helper, DrawRect(FloatEq(0.f), _, FloatEq(2.f), _, _))
+      .Times(1);
+  EXPECT_CALL(canvas_helper, DrawRect(FloatEq(4.f), _, FloatEq(6.f), _, _))
+      .Times(1);
+
+  drawer.DrawTextLine(text_line, 0, text_line->GetCharCount());
+}
+
+TEST(LayoutDrawer, DrawLineDecorationSplitsVisuallyDiscontinuousRange) {
+  ParagraphImpl para;
+  Style style;
+  style.SetTextSize(1.f);
+  para.AddTextRun(&style, "abcdef");
+
+  Style underline_style;
+  underline_style.SetDecorationType(DecorationType::kUnderLine);
+  underline_style.SetDecorationStyle(LineType::kSolid);
+  underline_style.SetDecorationColor(TTColor::BLACK);
+  para.ApplyStyleInRange(underline_style, 0, 4);
+
+  auto page = LayoutVisualSplitLine(&para);
+  ASSERT_EQ(page->GetLineCount(), 1u);
+  TextLine* text_line = page->GetLine(0);
+  ASSERT_NE(text_line, nullptr);
+
+  NiceMock<MockCanvasHelper> canvas_helper;
+  LayoutDrawer drawer(&canvas_helper);
+  ON_CALL(canvas_helper, CreatePainter()).WillByDefault(Invoke([]() {
+    return std::make_unique<Painter>();
+  }));
+
+  EXPECT_CALL(canvas_helper, DrawLine(FloatEq(0.f), _, FloatEq(2.f), _, _))
+      .Times(1);
+  EXPECT_CALL(canvas_helper, DrawLine(FloatEq(4.f), _, FloatEq(6.f), _, _))
+      .Times(1);
+
+  drawer.DrawTextLine(text_line, 0, text_line->GetCharCount());
 }
 
 TEST(LayoutDrawer, DrawTextRunPassesTextSkewToPainter) {

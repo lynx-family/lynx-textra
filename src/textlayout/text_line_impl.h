@@ -38,20 +38,17 @@ class TextLineImpl : public TextLine {
   void CreateDrawerPiece();
   void TrimTailSpace();
   void InsertDrawerPiece(std::unique_ptr<DrawerPiece> drawer_piece);
-  void GetCharRangeBounds(CharPos start_char_pos, CharPos end_char_pos,
-                          bool tight, float* left, float* top, float* right,
-                          float* bottom) const;
-  /**
-   *
-   * @param piece drawer piece
-   * @param start char start in para
-   * @param end char end in para
-   * @param bounds [first glyph bounding left, max ascent, last glyph bounding
-   * right, max descent]
-   */
-  static void GetDrawerPieceCharTightBoundRect(DrawerPiece* piece,
-                                               CharPos start, CharPos end,
-                                               float bounds[4]);
+  std::vector<RectF> GetCharRangeBounds(CharPos start_char_pos,
+                                        CharPos end_char_pos, bool tight) const;
+  static RectF MergeRectsToBounds(const std::vector<RectF>& rects);
+  static void GetDrawerPieceCharTightLeftAndRight(DrawerPiece* piece,
+                                                  CharPos index, float* left,
+                                                  float* right);
+  static void GetDrawerPieceCharRangeTightAscentAndDescent(DrawerPiece* piece,
+                                                           CharPos start,
+                                                           CharPos end,
+                                                           float* ascent,
+                                                           float* descent);
 
  public:
   LayoutPosition UpdateLine(LayoutPosition pos, float max_ascent,

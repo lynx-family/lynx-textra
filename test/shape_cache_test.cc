@@ -12,6 +12,34 @@
 
 using namespace ttoffice::tttext;
 
+namespace {
+
+class LigatureShapeResultReader final : public PlatformShapingResultReader {
+ public:
+  uint32_t GlyphCount() const override { return 2; }
+  uint32_t TextCount() const override { return 3; }
+  GlyphID ReadGlyphID(uint32_t idx) const override { return glyphs_.at(idx); }
+  float ReadAdvanceX(uint32_t idx) const override {
+    return advances_.at(idx)[0];
+  }
+  float ReadAdvanceY(uint32_t idx) const override {
+    return advances_.at(idx)[1];
+  }
+  float ReadPositionX(uint32_t idx) const override { return 0.f; }
+  float ReadPositionY(uint32_t idx) const override { return 0.f; }
+  uint32_t ReadIndices(uint32_t idx) const override {
+    return char_indices_.at(idx);
+  }
+  TypefaceRef ReadFontId(uint32_t idx) const override { return nullptr; }
+
+ private:
+  std::vector<GlyphID> glyphs_{10, 20};
+  std::vector<std::array<float, 2>> advances_{{5.f, 0.f}, {6.f, 0.f}};
+  std::vector<uint32_t> char_indices_{0, 2};
+};
+
+}  // namespace
+
 TEST(ShapeCache, AddToCacheAndFind) {
   FontDescriptor font1;
   FontDescriptor font2;
@@ -61,6 +89,31 @@ TEST(ShapeCache, Singleton) {
   ShapeCache& cache1 = ShapeCache::GetInstance();
   ShapeCache& cache2 = ShapeCache::GetInstance();
   EXPECT_EQ(&cache1, &cache2);
+}
+
+TEST(ShapeResultPiece, GlyphCountIncludesLigatureGlyphs) {
+  auto result = std::make_shared<ShapeResult>(3, false);
+  LigatureShapeResultReader reader;
+  result->AppendPlatformShapingResult(reader);
+
+  ShapeResultPiece empty_piece;
+  EXPECT_EQ(empty_piece.GlyphCount(), 0u);
+
+  ShapeResultPiece first_char;
+  first_char.InitWithShapeResult(result, 0, 1);
+  EXPECT_EQ(first_char.GlyphCount(), 1u);
+
+  ShapeResultPiece second_char;
+  second_char.InitWithShapeResult(result, 1, 2);
+  EXPECT_EQ(second_char.GlyphCount(), 1u);
+
+  ShapeResultPiece ligature_chars;
+  ligature_chars.InitWithShapeResult(result, 0, 2);
+  EXPECT_EQ(ligature_chars.GlyphCount(), 1u);
+
+  ShapeResultPiece full_range;
+  full_range.InitWithShapeResult(result, 0, 3);
+  EXPECT_EQ(full_range.GlyphCount(), 2u);
 }
 
 #ifdef USE_LRU_CACHE
