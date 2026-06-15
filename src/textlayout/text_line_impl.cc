@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <limits>
 #include <utility>
 
 #include "src/textlayout/dominate_baseline.h"
@@ -477,120 +478,136 @@ void TextLineImpl::GetBoundingRectByCharRange(float bounding_rect[4],
   start_char_pos = std::max(start_char_pos, GetStartCharPos());
   end_char_pos = std::min(end_char_pos, GetEndCharPos());
   TTASSERT(start_char_pos <= end_char_pos);
-  float left = 0;
-  float top = 0;
-  float right = 0;
-  float bottom = 0;
-  GetCharRangeBounds(start_char_pos, end_char_pos, false, &left, &top, &right,
-                     &bottom);
-  *left_p = left;
-  *top_p = top;
-  *width_p = std::max(0.f, right - left);
-  *height_p = std::max(0.f, bottom - top);
+  auto bounds = MergeRectsToBounds(
+      GetCharRangeBounds(start_char_pos, end_char_pos, false));
+  *left_p = bounds.GetLeft();
+  *top_p = bounds.GetTop();
+  *width_p = std::max(0.f, bounds.GetWidth());
+  *height_p = std::max(0.f, bounds.GetHeight());
 }
 
-void TextLineImpl::GetCharRangeBounds(CharPos start_char_pos,
-                                      CharPos end_char_pos, bool tight,
-                                      float* left, float* top, float* right,
-                                      float* bottom) const {
+RectF TextLineImpl::MergeRectsToBounds(const std::vector<RectF>& rects) {
+  if (rects.empty()) {
+    return RectF::MakeEmpty();
+  }
+  float top = rects.front().GetTop();
+  float bottom = rects.front().GetBottom();
+  for (const auto& rect : rects) {
+    top = std::min(top, rect.GetTop());
+    bottom = std::max(bottom, rect.GetBottom());
+  }
+  return RectF::MakeLTRB(rects.front().GetLeft(), top, rects.back().GetRight(),
+                         bottom);
+}
+
+std::vector<RectF> TextLineImpl::GetCharRangeBounds(CharPos start_char_pos,
+                                                    CharPos end_char_pos,
+                                                    bool tight) const {
   float y_base = tight ? 0.f : line_top_;
-  float local_left = drawer_list_[0]->GetXOffset();
-  float local_top = y_base + GetLineHeight();
-  float local_right = local_left;
-  float local_bottom = y_base;
-  enum SearchStatus : uint8_t { kNotStart, kInProgress, kEnd };
-  SearchStatus status = kNotStart;
-  auto iter = drawer_list_.begin();
-  float tight_bound[4];
-  while (iter != drawer_list_.end()) {
-    auto& drawer = *iter++;
+  std::vector<RectF> bounding_rects;
+  float current_left{0}, current_top{0}, current_right{0}, current_bottom{0};
+  bool bounds_available{false};
+  float tight_left{0}, tight_right{0}, tight_ascent{0}, tight_descent{0};
+  for (auto& drawer : drawer_list_) {
     if (drawer->GetRun()->IsGhostRun()) {
+      if (bounds_available) {
+        auto metrics = drawer->GetRun()->GetMetrics();
+        current_right = drawer->GetRight();
+        float local_baseline = drawer->GetYOffsetInLine() + y_base;
+        current_top =
+            std::min(current_top, local_baseline + metrics.GetMaxAscent());
+        current_bottom =
+            std::max(current_bottom, local_baseline + metrics.GetMaxDescent());
+      }
       continue;
     }
-    if (status == kNotStart) {
-      if (drawer->GetStartCharPosInParagraph() <= start_char_pos &&
-          start_char_pos < drawer->GetEndCharPosInParagraph()) {
-        status = kInProgress;
-        local_left = drawer->GetXOffset();
-        local_left +=
-            start_char_pos == drawer->GetStartCharPosInParagraph()
-                ? 0
-                : drawer->GetWidthInRange(
-                      0, start_char_pos - drawer->GetStartCharPosInParagraph());
-        if (tight) {
-          GetDrawerPieceCharTightBoundRect(drawer.get(), start_char_pos,
-                                           start_char_pos + 1, tight_bound);
-          local_left += tight_bound[0];
-        }
+    auto drawer_start = drawer->GetStartCharPosInParagraph();
+    auto drawer_end = drawer->GetEndCharPosInParagraph();
+    auto range = Range::Intersect(Range::MakeLR(start_char_pos, end_char_pos),
+                                  Range::MakeLR(drawer_start, drawer_end));
+    if (range.Empty()) {
+      if (bounds_available) {
+        bounding_rects.emplace_back(RectF::MakeLTRB(
+            current_left, current_top, current_right, current_bottom));
       }
+      bounds_available = false;
+      continue;
     }
-    if (status == kInProgress) {
-      if (tight) {
-        GetDrawerPieceCharTightBoundRect(drawer.get(), start_char_pos,
-                                         end_char_pos, tight_bound);
-        local_top = std::min(
-            local_top, y_base + drawer->GetYOffsetInLine() + tight_bound[1]);
-        local_bottom = std::max(
-            local_bottom, y_base + drawer->GetYOffsetInLine() + tight_bound[3]);
-      } else {
-        auto metrics = drawer->GetRun()->GetMetrics();
-        local_top = std::min(local_top, y_base + drawer->GetYOffsetInLine() +
-                                            metrics.GetMaxAscent());
-        local_bottom =
-            std::max(local_bottom, y_base + drawer->GetYOffsetInLine() +
-                                       metrics.GetMaxDescent());
-      }
-      if (drawer->GetStartCharPosInParagraph() < end_char_pos &&
-          end_char_pos <= drawer->GetEndCharPosInParagraph()) {
-        if (tight) {
-          local_right =
-              drawer->GetXOffset() +
-              drawer->GetWidthInRange(
-                  0, std::min(drawer->GetCharCount(),
-                              end_char_pos -
-                                  drawer->GetStartCharPosInParagraph() - 1));
-          GetDrawerPieceCharTightBoundRect(drawer.get(), end_char_pos - 1,
-                                           end_char_pos, tight_bound);
-          local_right += tight_bound[2];
-        } else {
-          local_right =
-              drawer->GetXOffset() +
-              drawer->GetWidthInRange(
-                  0, std::min(
-                         drawer->GetCharCount(),
-                         end_char_pos - drawer->GetStartCharPosInParagraph()));
-        }
-        status = kEnd;
-      }
-    }
-    if (status == kEnd) {
-      break;
-    }
-  }
-  if (status != kEnd && !drawer_list_.empty()) {
-    auto* drawer = drawer_list_.back().get();
+    bool rtl = drawer->GetRun()->IsRtl();
+    float drawer_top, drawer_bottom;
+
     if (tight) {
-      local_right =
-          drawer->GetXOffset() +
-          drawer->GetWidthInRange(
-              0, std::min(
-                     drawer->GetCharCount(),
-                     end_char_pos - drawer->GetStartCharPosInParagraph() - 1));
-      GetDrawerPieceCharTightBoundRect(drawer, end_char_pos - 1, end_char_pos,
-                                       tight_bound);
-      local_right += tight_bound[2];
+      GetDrawerPieceCharRangeTightAscentAndDescent(drawer.get(), start_char_pos,
+                                                   end_char_pos, &tight_ascent,
+                                                   &tight_descent);
+      drawer_top = y_base + drawer->GetYOffsetInLine() + tight_ascent;
+      drawer_bottom = y_base + drawer->GetYOffsetInLine() + tight_descent;
     } else {
-      local_right =
-          drawer->GetXOffset() +
-          drawer->GetWidthInRange(
-              0, std::min(drawer->GetCharCount(),
-                          end_char_pos - drawer->GetStartCharPosInParagraph()));
+      auto metrics = drawer->GetRun()->GetMetrics();
+      drawer_top = y_base + drawer->GetYOffsetInLine() + metrics.GetMaxAscent();
+      drawer_bottom =
+          y_base + drawer->GetYOffsetInLine() + metrics.GetMaxDescent();
     }
+
+    bool drawer_start_included = drawer_start == range.GetStart();
+    bool drawer_end_included = drawer_end == range.GetEnd();
+    bool left_reached = rtl ? drawer_end_included : drawer_start_included;
+    bool right_reached = rtl ? drawer_start_included : drawer_end_included;
+
+    uint32_t left_char_index = rtl ? range.GetEnd() : range.GetStart();
+    uint32_t right_char_index = rtl ? range.GetStart() : range.GetEnd();
+
+    if (!left_reached || !bounds_available) {
+      if (bounds_available) {
+        bounding_rects.emplace_back(RectF::MakeLTRB(
+            current_left, current_top, current_right, current_bottom));
+      }
+      float left_width =
+          (left_char_index == drawer_start)
+              ? 0
+              : drawer->GetWidthInRange(0, left_char_index - drawer_start);
+      current_left = drawer->GetXOffset() +
+                     (rtl ? (drawer->GetWidth() - left_width) : left_width);
+      if (tight) {
+        int char_offset = rtl ? -1 : 0;
+        GetDrawerPieceCharTightLeftAndRight(drawer.get(),
+                                            left_char_index + char_offset,
+                                            &tight_left, &tight_right);
+        current_left += tight_left;
+      }
+      current_top = drawer_top;
+      current_bottom = drawer_bottom;
+    } else if (bounds_available) {
+      current_top = std::min(current_top, drawer_top);
+      current_bottom = std::max(current_bottom, drawer_bottom);
+    }
+    float right_width =
+        (right_char_index == drawer_start)
+            ? 0
+            : drawer->GetWidthInRange(0, right_char_index - drawer_start);
+    current_right = drawer->GetXOffset() +
+                    (rtl ? (drawer->GetWidth() - right_width) : right_width);
+    if (tight) {
+      int char_offset = rtl ? 0 : -1;
+      GetDrawerPieceCharTightLeftAndRight(drawer.get(),
+                                          right_char_index + char_offset,
+                                          &tight_left, &tight_right);
+
+      float right_char_width = drawer->GetWidthInRange(
+          right_char_index - drawer_start + char_offset, 1);
+      current_right += tight_right - right_char_width;
+    }
+    if (!right_reached) {
+      bounding_rects.emplace_back(RectF::MakeLTRB(
+          current_left, current_top, current_right, current_bottom));
+    }
+    bounds_available = right_reached;
   }
-  *left = local_left;
-  *top = local_top;
-  *right = local_right;
-  *bottom = local_bottom;
+  if (bounds_available) {
+    bounding_rects.emplace_back(RectF::MakeLTRB(current_left, current_top,
+                                                current_right, current_bottom));
+  }
+  return bounding_rects;
 }
 
 void TextLineImpl::GetTightBoundingRectByCharRange(float bounding_rect[4],
@@ -607,21 +624,42 @@ void TextLineImpl::GetTightBoundingRectByCharRange(float bounding_rect[4],
   start_char_pos = std::max(start_char_pos, GetStartCharPos());
   end_char_pos = std::min(end_char_pos, GetEndCharPos());
   TTASSERT(start_char_pos <= end_char_pos);
-  float left = 0;
-  float top = 0;
-  float right = 0;
-  float bottom = 0;
-  GetCharRangeBounds(start_char_pos, end_char_pos, true, &left, &top, &right,
-                     &bottom);
-  bounding_rect[0] = left;
-  bounding_rect[1] = top - max_ascent_ - top_extra_;
-  bounding_rect[2] = right;
-  bounding_rect[3] = bottom - max_ascent_ - top_extra_;
+  auto bounds = MergeRectsToBounds(
+      GetCharRangeBounds(start_char_pos, end_char_pos, true));
+  bounding_rect[0] = bounds.GetLeft();
+  bounding_rect[1] = bounds.GetTop() - max_ascent_ - top_extra_;
+  bounding_rect[2] = bounds.GetRight();
+  bounding_rect[3] = bounds.GetBottom() - max_ascent_ - top_extra_;
 }
 
-void TextLineImpl::GetDrawerPieceCharTightBoundRect(DrawerPiece* piece,
-                                                    CharPos start, CharPos end,
-                                                    float bounds[4]) {
+void TextLineImpl::GetDrawerPieceCharTightLeftAndRight(DrawerPiece* piece,
+                                                       CharPos index,
+                                                       float* left,
+                                                       float* right) {
+  auto* piece_run = piece->GetRun();
+  index -= piece_run->GetStartCharPos();
+  if (index >= piece_run->GetCharCount()) {
+    *left = 0;
+    *right = 0;
+    return;
+  }
+  auto& shape_result = piece_run->shape_result_;
+  auto glyph_index = shape_result.CharToGlyph(index);
+  float font_size = piece_run->GetLayoutStyle().GetScaledTextSize();
+  GlyphID glyph = shape_result.Glyphs(glyph_index);
+  TypefaceRef font = shape_result.Font(glyph_index);
+  float ltwh[4];
+  font->GetWidthBound(ltwh, glyph, font_size);
+  auto info = font->GetFontInfo(font_size);
+  float skew_extra =
+      piece_run->GetSkewExtraWidth() * ltwh[1] / info.GetAscent();
+  *left = ltwh[0] - std::max(0.f, skew_extra);
+  *right = ltwh[0] + ltwh[2] + std::max(0.f, -skew_extra);
+}
+
+void TextLineImpl::GetDrawerPieceCharRangeTightAscentAndDescent(
+    DrawerPiece* piece, CharPos start, CharPos end, float* ascent,
+    float* descent) {
   auto* piece_run = piece->GetRun();
   auto piece_char_start = std::max(piece->GetStartCharPosInParagraph(), start) -
                           piece_run->GetStartCharPos();
@@ -632,43 +670,22 @@ void TextLineImpl::GetDrawerPieceCharTightBoundRect(DrawerPiece* piece,
   auto glyph_count = shape_result.GlyphCount();
   piece_char_start = std::min(piece_char_start, char_count);
   piece_char_end = std::min(piece_char_end, char_count);
-  if (piece_char_start >= piece_char_end || glyph_count == 0) {
-    bounds[0] = 0;
-    bounds[1] = 0;
-    bounds[2] = 0;
-    bounds[3] = 0;
-    return;
-  }
-
   auto glyph_start = shape_result.CharToGlyph(piece_char_start);
-  auto glyph_end = shape_result.CharToGlyph(piece_char_end - 1) + 1;
+  auto glyph_end = std::max(shape_result.CharToGlyph(piece_char_end - 1) + 1,
+                            shape_result.CharToGlyph(piece_char_end));
   glyph_start = std::min(glyph_start, glyph_count);
   glyph_end = std::min(glyph_end, glyph_count);
   if (glyph_start >= glyph_end) {
-    bounds[0] = 0;
-    bounds[1] = 0;
-    bounds[2] = 0;
-    bounds[3] = 0;
+    *ascent = 0;
+    *descent = 0;
     return;
   }
   float font_size = piece_run->GetLayoutStyle().GetScaledTextSize();
-  bool started = false;
   TypefaceRef last_font = shape_result.Font(glyph_start);
   std::vector<GlyphID> glyphs;
   glyphs.emplace_back(shape_result.Glyphs(glyph_start));
-  auto MergeBounds = [](bool started, float result_bound[4],
-                        float content_bound[4]) {
-    if (!started) {
-      result_bound[0] = content_bound[0];
-      result_bound[1] = content_bound[1];
-      result_bound[2] = content_bound[2];
-      result_bound[3] = content_bound[3];
-    } else {
-      result_bound[1] = std::min(result_bound[1], content_bound[1]);
-      result_bound[2] = content_bound[2];
-      result_bound[3] = std::max(result_bound[3], content_bound[3]);
-    }
-  };
+  float current_ascent = std::numeric_limits<float>::max();
+  float current_descent = -std::numeric_limits<float>::max();
   float content_bound[4];
   for (auto index = glyph_start + 1; index < glyph_end; index++) {
     auto& current_font = shape_result.Font(index);
@@ -676,8 +693,8 @@ void TextLineImpl::GetDrawerPieceCharTightBoundRect(DrawerPiece* piece,
       last_font->GetWidthBounds(content_bound, glyphs.data(),
                                 static_cast<uint32_t>(glyphs.size()),
                                 font_size);
-      MergeBounds(started, bounds, content_bound);
-      started = true;
+      current_ascent = std::min(current_ascent, content_bound[1]);
+      current_descent = std::max(current_descent, content_bound[3]);
       last_font = current_font;
       glyphs.clear();
     }
@@ -686,8 +703,11 @@ void TextLineImpl::GetDrawerPieceCharTightBoundRect(DrawerPiece* piece,
   if (!glyphs.empty()) {
     last_font->GetWidthBounds(content_bound, glyphs.data(),
                               static_cast<uint32_t>(glyphs.size()), font_size);
-    MergeBounds(started, bounds, content_bound);
+    current_ascent = std::min(current_ascent, content_bound[1]);
+    current_descent = std::max(current_descent, content_bound[3]);
   }
+  *ascent = current_ascent;
+  *descent = current_descent;
 }
 
 uint32_t TextLineImpl::GetCharPosByCoordinateX(float x) const {

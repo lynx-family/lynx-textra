@@ -106,7 +106,6 @@ void LayoutDrawer::DrawLineBackground(TextLine* i_line,
   auto& style_manager = paragraph.style_manager_;
   auto start_char = char_start_in_para;
   StyleRange range;
-  std::array<float, 4> rect{};
   while (start_char < char_end_in_para) {
     style_manager->GetStyleRange(
         &range, start_char,
@@ -114,7 +113,7 @@ void LayoutDrawer::DrawLineBackground(TextLine* i_line,
     if ((range.GetStyle().GetBackgroundColor() & 0xFF000000) != 0 ||
         range.GetStyle().GetBackgroundPainter() != nullptr) {
       auto end_char = std::min(range.GetRange().GetEnd(), char_end_in_para);
-      line->GetBoundingRectByCharRange(rect.data(), start_char, end_char);
+      auto rects = line->GetCharRangeBounds(start_char, end_char, false);
       auto& style = range.GetStyle();
       auto default_painter = canvas_->CreatePainter();
       auto painter = style.GetBackgroundPainter();
@@ -122,8 +121,10 @@ void LayoutDrawer::DrawLineBackground(TextLine* i_line,
         painter = default_painter.get();
         painter->SetFillColor(style.GetBackgroundColor());
       }
-      canvas_->DrawRect(rect[0], line->GetLineTop(), rect[0] + rect[2],
-                        line->GetLineBottom(), painter);
+      for (auto& rect : rects) {
+        canvas_->DrawRect(rect.GetLeft(), line->GetLineTop(), rect.GetRight(),
+                          line->GetLineBottom(), painter);
+      }
     }
     start_char = range.GetRange().GetEnd();
   }
@@ -136,15 +137,15 @@ void LayoutDrawer::DrawLineDecoration(TextLine* i_line,
   auto& style_manager = paragraph.style_manager_;
   auto start_char = char_start_in_para;
   StyleRange range;
-  std::array<float, 4> rect{};
   float line_y = 0;
+  std::vector<RectF> rects;
   while (start_char < char_end_in_para) {
     style_manager->GetStyleRange(&range, start_char, Style::DecorationFlag);
     auto end_char = std::min(range.GetRange().GetEnd(), char_end_in_para);
     auto& decorate_style = range.GetStyle();
     auto& default_text_style = line->GetParagraph()->GetDefaultStyle();
     if (decorate_style.GetDecorationType() != DecorationType::kNone) {
-      line->GetBoundingRectByCharRange(rect.data(), start_char, end_char);
+      rects = line->GetCharRangeBounds(start_char, end_char, false);
       switch (decorate_style.GetDecorationType()) {
         case DecorationType::kNone:
           TTASSERT(false);
@@ -170,51 +171,67 @@ void LayoutDrawer::DrawLineDecoration(TextLine* i_line,
       auto stroke_width = painter->GetStrokeWidth();
       switch (decorate_style.GetDecorationStyle()) {
         case LineType::kSolid: {
-          painter->SetStrokeWidth(
+          float draw_stroke_width =
               default_text_style.GetTextSize() *
               default_text_style.GetTextScale() / 14.f *
-              decorate_style.GetDecorationThicknessMultiplier());
-          canvas_->DrawLine(rect[0], line_y, rect[0] + rect[2], line_y,
-                            painter.get());
+              decorate_style.GetDecorationThicknessMultiplier();
+          painter->SetStrokeWidth(draw_stroke_width);
+          line_y -= draw_stroke_width / 2;
           break;
         }
         case LineType::kDashed: {
-          painter->SetStrokeWidth(
+          float draw_stroke_width =
               kUnderlineDefaultStrokeWidth *
-              decorate_style.GetDecorationThicknessMultiplier());
-          const float dash_len = decorate_style.GetDecorationElementLength();
-          if (!std::isfinite(dash_len) || dash_len <= 0.f) {
-            break;
-          }
-          float side_margin_limit = decorate_style.GetDecorationSideMargin();
-          if (!std::isfinite(side_margin_limit) || side_margin_limit < 0.f) {
-            side_margin_limit = 0.f;
-          }
-          const float side_margin =
-              std::clamp(((rect[2] - dash_len) / 2), 0.f, side_margin_limit);
-          const float total_len = rect[2] - 2 * side_margin;
-          float gap_len = decorate_style.GetDecorationGapLength();
-          if (!std::isfinite(gap_len) || gap_len < 0.f) {
-            gap_len = 0.f;
-          }
-          int num_full_dashes = static_cast<int>(
-              std::floor((total_len + gap_len) / (dash_len + gap_len)));
-          const int num_dashes = std::max(num_full_dashes, 1);
-          if (num_dashes > 1) {
-            const int num_gaps = num_dashes - 1;
-            gap_len = (total_len - dash_len * num_full_dashes) / num_gaps;
-          }
-          for (int i = 0; i < num_dashes; i++) {
-            const float x_start =
-                rect[0] + side_margin + i * (dash_len + gap_len);
-            const float x_end =
-                std::min(x_start + dash_len, rect[0] + rect[2] - side_margin);
-            canvas_->DrawLine(x_start, line_y, x_end, line_y, painter.get());
-          }
+              decorate_style.GetDecorationThicknessMultiplier();
+          painter->SetStrokeWidth(draw_stroke_width);
+          line_y -= draw_stroke_width / 2;
           break;
         }
         default:
           break;
+      }
+      for (auto& rect : rects) {
+        switch (decorate_style.GetDecorationStyle()) {
+          case LineType::kSolid: {
+            canvas_->DrawLine(rect.GetLeft(), line_y, rect.GetRight(), line_y,
+                              painter.get());
+            break;
+          }
+          case LineType::kDashed: {
+            const float dash_len = decorate_style.GetDecorationElementLength();
+            if (!std::isfinite(dash_len) || dash_len <= 0.f) {
+              break;
+            }
+            float side_margin_limit = decorate_style.GetDecorationSideMargin();
+            if (!std::isfinite(side_margin_limit) || side_margin_limit < 0.f) {
+              side_margin_limit = 0.f;
+            }
+            const float side_margin = std::clamp(
+                ((rect.GetWidth() - dash_len) / 2), 0.f, side_margin_limit);
+            const float total_len = rect.GetWidth() - 2 * side_margin;
+            float gap_len = decorate_style.GetDecorationGapLength();
+            if (!std::isfinite(gap_len) || gap_len < 0.f) {
+              gap_len = 0.f;
+            }
+            int num_full_dashes = static_cast<int>(
+                std::floor((total_len + gap_len) / (dash_len + gap_len)));
+            const int num_dashes = std::max(num_full_dashes, 1);
+            if (num_dashes > 1) {
+              const int num_gaps = num_dashes - 1;
+              gap_len = (total_len - dash_len * num_full_dashes) / num_gaps;
+            }
+            for (int i = 0; i < num_dashes; i++) {
+              const float x_start =
+                  rect.GetLeft() + side_margin + i * (dash_len + gap_len);
+              const float x_end =
+                  std::min(x_start + dash_len, rect.GetRight() - side_margin);
+              canvas_->DrawLine(x_start, line_y, x_end, line_y, painter.get());
+            }
+            break;
+          }
+          default:
+            break;
+        }
       }
       painter->SetStrokeWidth(stroke_width);
     }

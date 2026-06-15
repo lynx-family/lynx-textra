@@ -119,6 +119,7 @@ class ParagraphTest {
   void TestOneString(ICanvasHelper* canvas, float width) const;
   void TestLineSpacing(ICanvasHelper* canvas, float width) const;
   void TestDecoration(ICanvasHelper* canvas, float width) const;
+  void TestRTLDecorationBounds(ICanvasHelper* canvas, float width) const;
   void TestMaxLine(ICanvasHelper* canvas, float width) const;
   void TestPageHeight(ICanvasHelper* canvas, float width) const;
   void TestGhostContent(ICanvasHelper* canvas, float width) const;

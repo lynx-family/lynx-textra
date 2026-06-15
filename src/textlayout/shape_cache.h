@@ -7,6 +7,7 @@
 
 #include <textra/font_info.h>
 
+#include <algorithm>
 #include <memory>
 #include <shared_mutex>
 #include <unordered_map>
@@ -30,8 +31,15 @@ class ShapeResultPiece {
   bool Valid() const { return CharCount() > 0; }
   uint32_t CharCount() const { return end_char_pos_ - start_char_pos_; }
   uint32_t GlyphCount() const {
-    return result_->CharToGlyph(end_char_pos_) -
-           result_->CharToGlyph(start_char_pos_);
+    if (CharCount() == 0 || result_ == nullptr) {
+      return 0;
+    }
+    // Account for non-1:1 char/glyph mappings. The two end-position
+    // calculations can each be biased for one-to-many or many-to-one
+    // mappings, so use the larger value to cover the full glyph range.
+    auto end_glyph_pos = std::max(result_->CharToGlyph(end_char_pos_ - 1) + 1,
+                                  result_->CharToGlyph(end_char_pos_));
+    return end_glyph_pos - result_->CharToGlyph(start_char_pos_);
   }
   const GlyphID& Glyphs(const uint32_t& glyph_idx) const {
     return result_->Glyphs(result_->CharToGlyph(start_char_pos_) + glyph_idx);
