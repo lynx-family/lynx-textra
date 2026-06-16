@@ -26,16 +26,8 @@ class SkityFontManagerCoreTextWebkit : public SkityFontManagerCoreText {
     skity::FontStyle skity_style(
         style.GetWeight(), style.GetWidth(),
         static_cast<skity::FontStyle::Slant>(style.GetSlant()));
-    std::shared_ptr<skity::Typeface> typeface = nullptr;
-
-    auto len = strlen("sans-serif");
-    if (strlen(familyName) == len &&
-        strncmp(familyName, "sans-serif", len) == 0) {
-      typeface = font_manager_->GetDefaultTypeface(skity_style);
-    } else {
-      typeface =
-          font_manager_->MatchFamily(familyName)->MatchStyle(skity_style);
-    }
+    std::shared_ptr<skity::Typeface> typeface =
+        font_manager_->MatchFamily(familyName)->MatchStyle(skity_style);
 
     return typeface ? std::make_shared<skity::textlayout::SkityTypefaceHelper>(
                           typeface)
