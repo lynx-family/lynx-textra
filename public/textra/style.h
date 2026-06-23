@@ -11,8 +11,7 @@
 #include <textra/painter.h>
 #include <textra/tt_color.h>
 
-#include <cmath>
-#include <limits>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -21,19 +20,10 @@ namespace tttext {
 class BaseRun;
 class GhostRun;
 class ShapeStyle;
+class StyleImpl;
 class StyleManager;
 class ParagraphImpl;
 class ShaperSkShaper;
-
-union DecorationStyle {
-  uint64_t value = 0;
-  struct {
-    uint32_t color_ : 32;
-    uint16_t fixed_10x_thickness_ : 16;
-    LineType line_type_ : 8;
-    uint8_t padding_ : 8;
-  } style_;
-};
 
 /**
  * @brief A data structure encapsulating character-level text formatting
@@ -62,10 +52,15 @@ class L_EXPORT Style {
   Style();
   Style(const Style& style);
   Style& operator=(const Style& other);
+  L_HIDDEN explicit Style(const StyleImpl& style);
+  L_HIDDEN Style& operator=(const StyleImpl& other);
   ~Style();
 
+  L_HIDDEN StyleImpl& GetImpl();
+  L_HIDDEN const StyleImpl& GetImpl() const;
+
  public:
-  void Reset() { flag_ = 0; }
+  void Reset();
   void ClearShapeStyle() const;
 
   /**
@@ -85,12 +80,8 @@ class L_EXPORT Style {
    * the native font directly.
    */
  public:
-  const FontDescriptor& GetFontDescriptor() const { return font_descriptor_; }
-  void SetFontDescriptor(const FontDescriptor& val) {
-    font_descriptor_ = val;
-    flag_ |= FontDescriptorFlag;
-    ClearShapeStyle();
-  }
+  const FontDescriptor& GetFontDescriptor() const;
+  void SetFontDescriptor(const FontDescriptor& val);
 
   /**
    * @brief Sets the font size in pixels.
@@ -104,12 +95,8 @@ class L_EXPORT Style {
    * The final rendered size is calculated as TextSize × TextScale.
    */
  public:
-  float GetTextSize() const { return text_size_; }
-  void SetTextSize(const float& val) {
-    text_size_ = val;
-    flag_ |= TextSizeFlag;
-    ClearShapeStyle();
-  }
+  float GetTextSize() const;
+  void SetTextSize(const float& val);
 
   /**
    * @brief Scaling factor applied to the base font size.
@@ -120,12 +107,8 @@ class L_EXPORT Style {
    * Value: Positive float (typically 0.1f to 10.0f), default 1.0f.
    */
  public:
-  float GetTextScale() const { return text_scale_; }
-  void SetTextScale(const float& val) {
-    text_scale_ = val;
-    flag_ |= TextScaleFlag;
-    ClearShapeStyle();
-  }
+  float GetTextScale() const;
+  void SetTextScale(const float& val);
 
   /**
    * @brief Color used for text rendering.
@@ -138,11 +121,8 @@ class L_EXPORT Style {
    * Ignored when ForegroundPainter is set.
    */
  public:
-  TTColor GetForegroundColor() const { return fg_color_; }
-  void SetForegroundColor(const TTColor& val) {
-    fg_color_ = val;
-    flag_ |= ForegroundColorFlag;
-  }
+  TTColor GetForegroundColor() const;
+  void SetForegroundColor(const TTColor& val);
 
   /**
    * @brief Background color behind text.
@@ -156,11 +136,8 @@ class L_EXPORT Style {
    * Ignored when BackgroundPainter is set.
    */
  public:
-  TTColor GetBackgroundColor() const { return bg_color_; }
-  void SetBackgroundColor(const TTColor& val) {
-    bg_color_ = val;
-    flag_ |= BackgroundColorFlag;
-  }
+  TTColor GetBackgroundColor() const;
+  void SetBackgroundColor(const TTColor& val);
 
   /**
    * @brief Color for text decorations (underline, strikethrough, overline).
@@ -171,11 +148,8 @@ class L_EXPORT Style {
    * (transparent).
    */
  public:
-  TTColor GetDecorationColor() const { return decoration_color_; }
-  void SetDecorationColor(const TTColor& val) {
-    decoration_color_ = val;
-    flag_ |= DecorationColorFlag;
-  }
+  TTColor GetDecorationColor() const;
+  void SetDecorationColor(const TTColor& val);
 
   /**
    * @brief Type of text decoration to apply.
@@ -189,11 +163,8 @@ class L_EXPORT Style {
    * only single decoration types are supported.
    */
  public:
-  DecorationType GetDecorationType() const { return decoration_type_; }
-  void SetDecorationType(const DecorationType& val) {
-    decoration_type_ = val;
-    flag_ |= DecorationTypeFlag;
-  }
+  DecorationType GetDecorationType() const;
+  void SetDecorationType(const DecorationType& val);
 
   /**
    * @brief Controls the visual appearance of text decoration lines (solid,
@@ -205,11 +176,8 @@ class L_EXPORT Style {
    * decorations. Other styles are ignored and no decoration is drawn.
    */
  public:
-  LineType GetDecorationStyle() const { return decoration_style_; }
-  void SetDecorationStyle(const LineType& val) {
-    decoration_style_ = val;
-    flag_ |= DecorationStyleFlag;
-  }
+  LineType GetDecorationStyle() const;
+  void SetDecorationStyle(const LineType& val);
 
   /**
    * @brief Multiplier for decoration line thickness.
@@ -220,14 +188,8 @@ class L_EXPORT Style {
    * Value: Positive float (typically 0.1f to 5.0f), default 1.0f.
    */
  public:
-  float GetDecorationThicknessMultiplier() const {
-    return decoration_thickness_multiplier_;
-  }
-
-  void SetDecorationThicknessMultiplier(const float& val) {
-    decoration_thickness_multiplier_ = val;
-    flag_ |= DecorationThicknessMultiplierFlag;
-  }
+  float GetDecorationThicknessMultiplier() const;
+  void SetDecorationThicknessMultiplier(const float& val);
 
   /**
    * @brief Length of each dashed decoration element.
@@ -237,14 +199,8 @@ class L_EXPORT Style {
    * Value: Positive float in pixels, default 2.5f.
    */
  public:
-  float GetDecorationElementLength() const {
-    return decoration_element_length_;
-  }
-
-  void SetDecorationElementLength(const float& val) {
-    decoration_element_length_ = val;
-    flag_ |= DecorationElementLengthFlag;
-  }
+  float GetDecorationElementLength() const;
+  void SetDecorationElementLength(const float& val);
 
   /**
    * @brief Gap length between dashed decoration elements.
@@ -255,12 +211,8 @@ class L_EXPORT Style {
    * Value: Non-negative float in pixels, default 1.5f.
    */
  public:
-  float GetDecorationGapLength() const { return decoration_gap_length_; }
-
-  void SetDecorationGapLength(const float& val) {
-    decoration_gap_length_ = val;
-    flag_ |= DecorationGapLengthFlag;
-  }
+  float GetDecorationGapLength() const;
+  void SetDecorationGapLength(const float& val);
 
   /**
    * @brief Side margin for dashed decoration lines.
@@ -271,12 +223,8 @@ class L_EXPORT Style {
    * Value: Non-negative float in pixels, default 2.5f.
    */
  public:
-  float GetDecorationSideMargin() const { return decoration_side_margin_; }
-
-  void SetDecorationSideMargin(const float& val) {
-    decoration_side_margin_ = val;
-    flag_ |= DecorationSideMarginFlag;
-  }
+  float GetDecorationSideMargin() const;
+  void SetDecorationSideMargin(const float& val);
 
   /**
    * @brief Text Stroke Style.
@@ -287,24 +235,11 @@ class L_EXPORT Style {
    * (typically 0.1f to 5.0f), default 1.0f.
    */
  public:
-  void SetTextStrokeStyle(const TTColor& color, float thickness) {
-    text_stroke_.style_.color_ = color;
-    if (std::isinf(thickness)) thickness = 0.0f;
-    auto clamped_thickness =
-        std::fmin(std::fmax(thickness * 10, 0.0f),
-                  static_cast<float>(std::numeric_limits<uint16_t>::max()));
-    text_stroke_.style_.fixed_10x_thickness_ = std::round(clamped_thickness);
-    flag_ |= TextStrokeStyleFlag;
-  }
-  TTColor GetTextStrokeColor() const { return text_stroke_.style_.color_; }
-  float GetTextStrokeWidth() const {
-    return text_stroke_.style_.fixed_10x_thickness_ / 10.f;
-  }
-  uint64_t GetTextStrokeValue() const { return text_stroke_.value; }
-  void SetTextStrokeValue(uint64_t val) {
-    text_stroke_.value = val;
-    flag_ |= TextStrokeStyleFlag;
-  }
+  void SetTextStrokeStyle(const TTColor& color, float thickness);
+  TTColor GetTextStrokeColor() const;
+  float GetTextStrokeWidth() const;
+  uint64_t GetTextStrokeValue() const;
+  void SetTextStrokeValue(uint64_t val);
 
   /**
    * @brief Enables bold text rendering.
@@ -316,11 +251,8 @@ class L_EXPORT Style {
    * FontStyle::Bold() for proper font selection.
    */
  public:
-  bool GetBold() const { return bold_; }
-  void SetBold(const bool& val) {
-    bold_ = val;
-    flag_ |= BoldFlag;
-  }
+  bool GetBold() const;
+  void SetBold(const bool& val);
 
   /**
    * @brief Enables italic text rendering.
@@ -332,11 +264,8 @@ class L_EXPORT Style {
    * FontStyle::Italic() for proper font selection.
    */
  public:
-  bool GetItalic() const { return italic_; }
-  void SetItalic(const bool& val) {
-    italic_ = val;
-    flag_ |= ItalicFlag;
-  }
+  bool GetItalic() const;
+  void SetItalic(const bool& val);
 
   /**
    * @brief Vertical alignment of text relative to the baseline.
@@ -347,14 +276,8 @@ class L_EXPORT Style {
    * Value: See CharacterVerticalAlignment enum, default kBaseLine.
    */
  public:
-  CharacterVerticalAlignment GetVerticalAlignment() const {
-    return vertical_alignment_;
-  }
-  void SetVerticalAlignment(const CharacterVerticalAlignment& val) {
-    vertical_alignment_ = val;
-    flag_ |= VerticalAlignmentFlag;
-    ClearShapeStyle();
-  }
+  CharacterVerticalAlignment GetVerticalAlignment() const;
+  void SetVerticalAlignment(const CharacterVerticalAlignment& val);
 
   /**
    * @brief Additional spacing between words.
@@ -367,11 +290,8 @@ class L_EXPORT Style {
    * @warning This feature is not yet implemented.
    */
  public:
-  float GetWordSpacing() const { return word_spacing_; }
-  void SetWordSpacing(const float& val) {
-    word_spacing_ = val;
-    flag_ |= WordSpacingFlag;
-  }
+  float GetWordSpacing() const;
+  void SetWordSpacing(const float& val);
 
   /**
    * @brief Additional spacing between individual characters.
@@ -385,12 +305,8 @@ class L_EXPORT Style {
    * layout width.
    */
  public:
-  float GetLetterSpacing() const { return letter_spacing_; }
-  void SetLetterSpacing(const float& val) {
-    letter_spacing_ = val;
-    flag_ |= LetterSpacingFlag;
-    ClearShapeStyle();
-  }
+  float GetLetterSpacing() const;
+  void SetLetterSpacing(const float& val);
 
   /**
    * @brief Custom painter for text foreground rendering.
@@ -405,11 +321,8 @@ class L_EXPORT Style {
    * object, including foreground color, font size, bold, italic, and shadows.
    */
  public:
-  Painter* GetForegroundPainter() const { return fg_painter_; }
-  void SetForegroundPainter(Painter* val) {
-    fg_painter_ = val;
-    flag_ |= ForegroundPainterFlag;
-  }
+  Painter* GetForegroundPainter() const;
+  void SetForegroundPainter(Painter* val);
 
   /**
    * @brief Custom painter for text background rendering.
@@ -424,11 +337,8 @@ class L_EXPORT Style {
    * object, including background color.
    */
  public:
-  Painter* GetBackgroundPainter() const { return bg_painter_; }
-  void SetBackgroundPainter(Painter* val) {
-    bg_painter_ = val;
-    flag_ |= BackgroundPainterFlag;
-  }
+  Painter* GetBackgroundPainter() const;
+  void SetBackgroundPainter(Painter* val);
 
   /**
    * @brief Controls word breaking behavior for line wrapping.
@@ -444,11 +354,8 @@ class L_EXPORT Style {
    * Interacts with ParagraphStyle::OverflowWrap settings for complete control.
    */
  public:
-  WordBreakType GetWordBreak() const { return word_break_; }
-  void SetWordBreak(const WordBreakType& val) {
-    word_break_ = val;
-    flag_ |= WordBreakFlag;
-  }
+  WordBreakType GetWordBreak() const;
+  void SetWordBreak(const WordBreakType& val);
 
   /**
    * @brief Vertical offset from the normal baseline position.
@@ -459,11 +366,8 @@ class L_EXPORT Style {
    * Value: Float value in pixels, default 0.0f.
    */
  public:
-  float GetBaselineOffset() const { return baseline_offset_; }
-  void SetBaselineOffset(const float& val) {
-    baseline_offset_ = val;
-    flag_ |= BaselineOffsetFlag;
-  }
+  float GetBaselineOffset() const;
+  void SetBaselineOffset(const float& val);
 
   /**
    * @brief Horizontal skew applied during text rendering.
@@ -471,11 +375,8 @@ class L_EXPORT Style {
    * Value: Float skew factor, default 0.0f.
    */
  public:
-  float GetTextSkew() const { return text_skew_; }
-  void SetTextSkew(const float& val) {
-    text_skew_ = val;
-    flag_ |= TextSkewFlag;
-  }
+  float GetTextSkew() const;
+  void SetTextSkew(const float& val);
 
   /**
    * @brief Text shadow effects.
@@ -489,22 +390,14 @@ class L_EXPORT Style {
    * @see TextShadow struct for individual shadow properties.
    */
  public:
-  const TextShadowList& GetTextShadowList() const { return text_shadow_list_; }
-  void SetTextShadowList(const TextShadowList& val) {
-    if (val.empty()) return;
-    text_shadow_list_ = val;
-    flag_ |= TextShadowListFlag;
-  }
+  const TextShadowList& GetTextShadowList() const;
+  void SetTextShadowList(const TextShadowList& val);
 
  public:
-  float GetScaledTextSize() const { return GetTextSize() * GetTextScale(); }
+  float GetScaledTextSize() const;
   const ShapeStyle& GetShapeStyle() const;
-  bool HasAttribute(const AttributeType type) const {
-    return flag_ & (1u << type);
-  }
-  bool HasStyleAttribute(const AttrType style_flag) const {
-    return flag_ & style_flag;
-  }
+  bool HasAttribute(const AttributeType type) const;
+  bool HasStyleAttribute(const AttrType style_flag) const;
 
  public:
   static constexpr AttrType FontDescriptorFlag = 1u << (kFontDescriptor);
@@ -550,34 +443,7 @@ class L_EXPORT Style {
       DecorationGapLengthFlag | DecorationSideMarginFlag;
 
  private:
-  FontDescriptor font_descriptor_{{}, FontStyle::Normal(), 0};
-  float text_size_ = 10.f * 96 / 72;
-  float text_scale_ = 1.0f;
-  TTColor fg_color_ = TTColor::BLACK;
-  TTColor bg_color_ = TTColor::UNDEFINED;
-  TTColor decoration_color_ = TTColor::UNDEFINED;
-  DecorationType decoration_type_ = DecorationType::kNone;
-  LineType decoration_style_ = LineType::kSolid;
-  float decoration_thickness_multiplier_ = 1.0f;
-  float decoration_element_length_ = 2.5f;
-  float decoration_gap_length_ = 1.5f;
-  float decoration_side_margin_ = 2.5f;
-  DecorationStyle text_stroke_ = {
-      .style_ = {TTColor::UNDEFINED, 10, LineType::kSolid}};
-  bool bold_ = false;
-  bool italic_ = false;
-  CharacterVerticalAlignment vertical_alignment_ =
-      CharacterVerticalAlignment::kBaseLine;
-  float word_spacing_ = 0;
-  float letter_spacing_ = 0;
-  Painter* fg_painter_ = nullptr;
-  Painter* bg_painter_ = nullptr;
-  WordBreakType word_break_ = WordBreakType::kNormal;
-  float baseline_offset_ = 0.f;
-  float text_skew_ = 0.f;
-  TextShadowList text_shadow_list_{};
-  FlagType flag_ = 0;
-  mutable std::unique_ptr<ShapeStyle> shape_style_{};
+  std::unique_ptr<StyleImpl> impl_;
 
  public:
   static const Style& DefaultStyle();

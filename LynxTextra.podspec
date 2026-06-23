@@ -134,8 +134,10 @@ Pod::Spec.new do |s|
                                 "src/textlayout/run/layout_metrics.h",
                                 "src/textlayout/run/object_run.h",
                                 "src/textlayout/shape_cache.h",
-                                "src/textlayout/style/paragraph_style.cc",
-                                "src/textlayout/style/style.cc",
+                                "src/textlayout/style/paragraph_style_impl.cc",
+                                "src/textlayout/style/paragraph_style_impl.h",
+                                "src/textlayout/style/style_impl.cc",
+                                "src/textlayout/style/style_impl.h",
                                 "src/textlayout/style/style_manager.cc",
                                 "src/textlayout/style/style_manager.h",
                                 "src/textlayout/style/tt_color.cc",
@@ -181,4 +183,3 @@ Pod::Spec.new do |s|
 
   end
 end
-

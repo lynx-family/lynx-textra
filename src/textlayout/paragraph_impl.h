@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "src/textlayout/layout_position.h"
+#include "src/textlayout/style/paragraph_style_impl.h"
 #include "src/textlayout/utils/tt_string.h"
 #include "src/textlayout/utils/tt_string_piece.h"
 
@@ -36,6 +37,7 @@ class LayoutDrawer;
 class TextLayoutImpl;
 class AttachmentManager;
 class StyleManager;
+class StyleImpl;
 class LayoutMetrics;
 class TextLine;
 class LayoutRegion;
@@ -68,29 +70,31 @@ class ParagraphImpl : public Paragraph {
   ~ParagraphImpl() override;
 
  public:
-  ParagraphStyle& GetParagraphStyle() override { return paragraph_style_; }
+  ParagraphStyle& GetParagraphStyle() override {
+    return paragraph_style_wrapper_;
+  }
   uint32_t GetCharCount() const override { return content_.GetCharCount(); }
   std::string GetContentString(uint32_t start_char,
                                uint32_t char_count) const override {
     return GetContent(start_char, char_count).ToString();
   }
   void SetParagraphStyle(const ParagraphStyle* paragraph_style) override {
-    paragraph_style_ = *paragraph_style;
+    paragraph_style_ = paragraph_style->GetImpl();
   }
   using Paragraph::AddTextRun;
   void AddTextRun(const Style* style, const char* content,
                   uint32_t length) override {
-    AddTextRun(style == nullptr ? paragraph_style_.GetDefaultStyle() : *style,
+    AddTextRun(style == nullptr ? GetDefaultStyleImpl() : style->GetImpl(),
                content, length, false);
   }
   void AddShapeRun(const Style* style, std::shared_ptr<RunDelegate> shape,
                    bool is_float) override {
-    AddShapeRun(style == nullptr ? paragraph_style_.GetDefaultStyle() : *style,
+    AddShapeRun(style == nullptr ? GetDefaultStyleImpl() : style->GetImpl(),
                 std::move(shape), true, is_float, 0);
   }
   void AddGhostShapeRun(const Style* style,
                         std::shared_ptr<RunDelegate> shape) override {
-    AddShapeRun(style == nullptr ? paragraph_style_.GetDefaultStyle() : *style,
+    AddShapeRun(style == nullptr ? GetDefaultStyleImpl() : style->GetImpl(),
                 std::move(shape), false, false, 0);
   }
   uint32_t GetRunCount() const override {
@@ -117,13 +121,16 @@ class ParagraphImpl : public Paragraph {
       char_count = GetCharCount() - start_char;
     return content_.SubStr(start_char, char_count);
   }
-  const ParagraphStyle& GetParagraphStyle() const { return paragraph_style_; }
-  const Style& GetDefaultStyle() const {
-    return paragraph_style_.GetDefaultStyle();
+  ParagraphStyleImpl& GetParagraphStyleImpl() { return paragraph_style_; }
+  const ParagraphStyleImpl& GetParagraphStyleImpl() const {
+    return paragraph_style_;
   }
-  void AddTextRun(const Style& style, const char* content, uint32_t length,
+  const StyleImpl& GetDefaultStyleImpl() const {
+    return paragraph_style_.GetDefaultStyleImpl();
+  }
+  void AddTextRun(const StyleImpl& style, const char* content, uint32_t length,
                   bool ghost_text = false);
-  void AddShapeRun(const Style& style, std::shared_ptr<RunDelegate> shape,
+  void AddShapeRun(const StyleImpl& style, std::shared_ptr<RunDelegate> shape,
                    bool need_placeholder = true, bool is_float = false,
                    float offset_y = 0);
   void FormatRunList();
@@ -175,7 +182,8 @@ class ParagraphImpl : public Paragraph {
 #endif
 
  protected:
-  ParagraphStyle paragraph_style_;
+  ParagraphStyleImpl paragraph_style_;
+  ParagraphStyle paragraph_style_wrapper_;
   bool style_transformed_;
   bool formated_;
   TTString content_;

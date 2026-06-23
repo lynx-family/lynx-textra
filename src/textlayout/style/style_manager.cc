@@ -96,8 +96,8 @@ AttributesRangeList::AttributeRange AttributesRangeList::GetAttributeRange(
   }
   return {Range{miss_start, miss_end}, Undefined()};
 }
-void StyleManager::ApplyStyleInRange(const Style& style, const uint32_t start,
-                                     const uint32_t len) {
+void StyleManager::ApplyStyleInRange(const StyleImpl& style,
+                                     const uint32_t start, const uint32_t len) {
   for (auto id = kStyleManagerAttrStart; id < kStyleManagerAttrEnd;
        id = static_cast<AttributeType>(id + 1)) {
     if (!style.HasStyleAttribute(1u << id)) continue;
@@ -130,8 +130,8 @@ void StyleManager::RestoreStyle() {
   }
   style_state_stack_.pop_back();
 }
-Style StyleManager::GetStyle(const uint32_t index) const {
-  Style ret(default_style_);
+StyleImpl StyleManager::GetStyle(const uint32_t index) const {
+  StyleImpl ret(default_style_);
   for (auto idk = kStyleManagerAttrStart; idk < kStyleManagerAttrEnd;
        idk = static_cast<AttributeType>(idk + 1)) {
     if (const auto var = GetTypeValue(idk, index);
@@ -198,7 +198,7 @@ float StyleManager::GetExtraFloatAttributes(const AttributeType extra_attr,
   }
   return ret;
 }
-void StyleManager::SetStyle(Style* style, uint64_t value,
+void StyleManager::SetStyle(StyleImpl* style, uint64_t value,
                             const AttributeType type) const {
   switch (type) {
     case AttributeType::kForegroundColor:
@@ -243,7 +243,7 @@ void StyleManager::SetStyle(Style* style, uint64_t value,
   }
 }
 AttributesRangeList::ValueType StyleManager::GetStyleValue(
-    const Style* style, const AttributeType type) {
+    const StyleImpl* style, const AttributeType type) {
   switch (type) {
     case AttributeType::kForegroundColor:
       return style->GetForegroundColor();

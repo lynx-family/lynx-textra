@@ -7,7 +7,6 @@
 #ifdef GTEST
 #include <gtest/gtest.h>
 #endif
-#include <textra/style.h>
 #include <textra/tt_color.h>
 
 #include <list>
@@ -15,10 +14,15 @@
 #include <utility>
 #include <vector>
 
+#include "src/textlayout/style/style_impl.h"
 #include "src/textlayout/utils/log_util.h"
 #include "src/textlayout/utils/tt_range.h"
 namespace ttoffice {
 namespace tttext {
+class BaseRun;
+class GhostRun;
+class StyleManager;
+
 class StyleRange {
   friend StyleManager;
   friend BaseRun;
@@ -26,16 +30,16 @@ class StyleRange {
 
  public:
   StyleRange() : range_(0, 0), style_() {}
-  StyleRange(const Range& range, const Style& style)
+  StyleRange(const Range& range, const StyleImpl& style)
       : range_(range), style_(style) {}
 
  public:
   const Range& GetRange() const { return range_; }
-  const Style& GetStyle() const { return style_; }
+  const StyleImpl& GetStyle() const { return style_; }
 
  private:
   Range range_;
-  Style style_;
+  StyleImpl style_;
 };
 /**
  * Value range list for a single attribute, merges ranges with the same value
@@ -116,7 +120,7 @@ class StyleManager {
   }
 
  public:
-  void SetParagraphStyle(const Style& default_style) {
+  void SetParagraphStyle(const StyleImpl& default_style) {
     default_style_ = default_style;
   }
 
@@ -341,7 +345,7 @@ class StyleManager {
                : UnPackValue<LineType>(value);
   }
 
-  void ApplyStyleInRange(const Style& style, const uint32_t start,
+  void ApplyStyleInRange(const StyleImpl& style, const uint32_t start,
                          const uint32_t len);
   AttributesRangeList::ValueType GetTypeValue(const AttributeType type,
                                               const uint32_t idx) const {
@@ -353,7 +357,7 @@ class StyleManager {
   void SaveStyle();
   void RestoreStyle();
 
-  Style GetStyle(const uint32_t index) const;
+  StyleImpl GetStyle(const uint32_t index) const;
   void GetStyleRange(StyleRange* style_range, uint32_t start_char,
                      AttrType flag = Style::FullFlag,
                      Range::RangeType end_char = Range::MaxIndex()) const;
@@ -370,14 +374,14 @@ class StyleManager {
                                 float default_value = 0);
 
  private:
-  void SetStyle(Style* style, uint64_t value, AttributeType type) const;
-  static AttributesRangeList::ValueType GetStyleValue(const Style* style,
+  void SetStyle(StyleImpl* style, uint64_t value, AttributeType type) const;
+  static AttributesRangeList::ValueType GetStyleValue(const StyleImpl* style,
                                                       AttributeType type);
 
  private:
   AttributesRangeList style_list_[kMaxAttrType];
   std::map<AttrType, AttributesRangeList> extra_style_list_;
-  Style default_style_;
+  StyleImpl default_style_;
   std::list<TextShadowList> text_shadow_list_;
   std::vector<StyleState> style_state_stack_;
 };

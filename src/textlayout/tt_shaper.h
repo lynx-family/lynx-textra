@@ -26,6 +26,7 @@ class ShapeResult;
 class ShapeKey;
 class ShapeCache;
 class ShapeStyle;
+class StyleImpl;
 class TTShaper {
  public:
   TTShaper() noexcept = delete;
@@ -42,7 +43,7 @@ class TTShaper {
     return font_collection_;
   }
   virtual void SetContext(TTTextContext& context) { context_ = &context; }
-  virtual void ProcessShapeStyleTransform(Style& style) {}
+  virtual void ProcessShapeStyleTransform(StyleImpl& style) {}
   virtual void ProcessBidirection(const char32_t* text, uint32_t length,
                                   WriteDirection write_direction,
                                   uint32_t* visual_map, uint32_t* logical_map,

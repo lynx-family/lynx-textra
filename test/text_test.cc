@@ -65,7 +65,7 @@ TEST(InternalExternalTest, ParaTest1) {
       para->AddGhostShapeRun(&r_pr, std::make_shared<TestShape>());
     } else {
       auto text = text_list[i];
-      para->AddTextRun(r_pr, text.c_str(), text.length());
+      para->AddTextRun(&r_pr, text.c_str(), text.length());
     }
   }
   auto total_content = para->GetContent();
@@ -107,7 +107,7 @@ TEST(InternalExternalTest, ParaTest2) {
       para->AddGhostShapeRun(&r_pr, std::make_shared<TestShape>());
     } else {
       auto text = text_list[i];
-      para->AddTextRun(r_pr, text.c_str(), text.length());
+      para->AddTextRun(&r_pr, text.c_str(), text.length());
     }
   }
   auto total_content = para->GetContent();
@@ -145,7 +145,7 @@ TEST(InternalExternalTest, ParaTest3) {
       para->AddGhostShapeRun(&r_pr, std::make_shared<TestShape>());
     } else {
       auto text = text_list[i];
-      para->AddTextRun(r_pr, text.c_str(), text.length());
+      para->AddTextRun(&r_pr, text.c_str(), text.length());
     }
   }
   auto total_content = para->GetContent();
@@ -188,7 +188,7 @@ TEST(InternalExternalTest, ParaTest4) {
       para->AddGhostShapeRun(&r_pr, std::make_shared<TestShape>());
     } else {
       auto text = text_list[i];
-      para->AddTextRun(r_pr, text.c_str(), text.length());
+      para->AddTextRun(&r_pr, text.c_str(), text.length());
     }
   }
   auto total_content = para->GetContent();

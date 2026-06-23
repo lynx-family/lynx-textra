@@ -19,7 +19,6 @@ class FontInfo;
 class RunRange;
 class TextLine;
 class LineRange;
-class ParagraphStyle;
 class LayoutDrawer;
 enum class ParagraphHorizontalAlignment : uint8_t;
 enum class ParagraphVerticalAlignment : uint8_t;

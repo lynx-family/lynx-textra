@@ -67,12 +67,13 @@ float TextLayoutImpl::ProcessLineGap(LayoutRegion* page, TextLine* line,
   if (page->IsEmpty() && context.IsSkipSpacingBeforeFirstLine()) return 0;
   float last_line_spacing = 0;
   if (!page->IsEmpty()) {
-    last_line_spacing = page->GetLine(page->GetLineCount() - 1)
-                            ->GetParagraph()
-                            ->GetParagraphStyle()
-                            .GetLineSpaceAfterPx();
+    auto* last_paragraph = TTDYNAMIC_CAST<ParagraphImpl*>(
+        page->GetLine(page->GetLineCount() - 1)->GetParagraph());
+    last_line_spacing =
+        last_paragraph->GetParagraphStyleImpl().GetLineSpaceAfterPx();
   }
-  return line->GetParagraph()->GetParagraphStyle().GetLineSpaceBeforePx() +
+  auto* paragraph = TTDYNAMIC_CAST<ParagraphImpl*>(line->GetParagraph());
+  return paragraph->GetParagraphStyleImpl().GetLineSpaceBeforePx() +
          last_line_spacing;
 }
 void TextLayoutImpl::FinishLineLayout(LayoutRegion* page,
@@ -94,7 +95,7 @@ void TextLayoutImpl::FinishLineLayout(LayoutRegion* page,
   bool break_page = true;
   bool keep_line = true;
   if (page->GetLineCount() + 1 >=
-      line->GetParagraph()->GetParagraphStyle().GetMaxLines()) {
+      line->GetParagraph()->GetParagraphStyleImpl().GetMaxLines()) {
     page->SetExceededMaxLines(line->GetEndLayoutPosition().GetRunIdx() <
                               line->GetParagraph()->GetRunCount());
   } else if (FloatsLargerOrEqual(page->GetPageHeight(), layouted_height)) {
@@ -198,8 +199,8 @@ LayoutPosition TextLayoutImpl::AddBreakableRunsToLine(
     // break at default breakable position if not the last line, otherwise
     // break at any position.
     bool is_last_line = region->GetLineCount() + 1 >=
-                        line->GetParagraph()->GetParagraphStyle().GetMaxLines();
-    auto& style = paragraph.GetParagraphStyle();
+                        paragraph.GetParagraphStyleImpl().GetMaxLines();
+    auto& style = paragraph.GetParagraphStyleImpl();
     bool has_ellipsis =
         !style.GetEllipsis().empty() || style.GetEllipsisDelegate() != nullptr;
     auto line_break_pos =
@@ -254,8 +255,9 @@ LayoutPosition TextLayoutImpl::AddBreakableRunsToLine(
       return position;
     }
     // Force Layout
-    break_pos = ForceBreakWord(paragraph, pos, greedy_break_pos,
-                               paragraph.GetParagraphStyle().GetOverflowWrap());
+    break_pos =
+        ForceBreakWord(paragraph, pos, greedy_break_pos,
+                       paragraph.GetParagraphStyleImpl().GetOverflowWrap());
     TTASSERT(break_pos > pos);
   }
 
@@ -275,7 +277,7 @@ LayoutPosition TextLayoutImpl::AddBreakableRunsToLine(
 float TextLayoutImpl::TryAddRun(LayoutMetrics line_metrics,
                                 const BaseRun* run) {
   auto paragraph = run->GetParagraph();
-  auto& para_style = paragraph->GetParagraphStyle();
+  auto& para_style = paragraph->GetParagraphStyleImpl();
   if (para_style.GetLineHeightRule() == RulerType::kExact) {
     return para_style.GetLineHeightInPx();
   }

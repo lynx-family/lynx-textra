@@ -7,6 +7,7 @@
 #include "src/textlayout/style/style_manager.h"
 
 #include <gtest/gtest.h>
+#include <textra/style.h>
 
 #include <tuple>
 
@@ -17,7 +18,7 @@ TEST(StyleRange, BasicTest) {
   Range range(5, 10);
   Style style;
   style.SetTextScale(2.f);
-  StyleRange style_range(range, style);
+  StyleRange style_range(range, style.GetImpl());
 
   EXPECT_EQ(style_range.GetRange(), range);
   EXPECT_EQ(style_range.GetStyle().GetTextScale(), 2.f);
@@ -223,14 +224,14 @@ TEST(StyleManager, SetParagraphStyle) {
   TTColor fg_color(TTColor::RED);
   Style style;
   style.SetForegroundColor(fg_color);
-  manager.SetParagraphStyle(style);
+  manager.SetParagraphStyle(style.GetImpl());
   EXPECT_EQ(manager.GetForegroundColor(0), fg_color);
 }
 
 TEST(StyleManager, AttributeGettersAndSetters) {
   Style default_style = Style::DefaultStyle();
   StyleManager manager;
-  manager.SetParagraphStyle(default_style);
+  manager.SetParagraphStyle(default_style.GetImpl());
   // Test ForegroundColor
   const TTColor fg_color(TTColor::RED);
   manager.SetForegroundColor(fg_color, 1, 5);
@@ -362,7 +363,7 @@ TEST(StyleManager, GetStyle) {
   manager.SetDecorationGapLength(gap_length, 1, 5);
   manager.SetDecorationSideMargin(side_margin, 1, 5);
 
-  Style style = manager.GetStyle(3);
+  Style style(manager.GetStyle(3));
   EXPECT_EQ(style.GetForegroundColor(), fg_color);
   EXPECT_EQ(style.GetBackgroundColor(), bg_color);
   EXPECT_EQ(style.GetDecorationStyle(), line_type);
@@ -378,7 +379,7 @@ TEST(StyleManager, ApplyStyleInRange) {
   {
     // Test normal valid range
     StyleManager manager;
-    manager.ApplyStyleInRange(style, 5, 5);
+    manager.ApplyStyleInRange(style.GetImpl(), 5, 5);
     EXPECT_EQ(manager.GetForegroundColor(4), Style().GetForegroundColor());
     EXPECT_EQ(manager.GetForegroundColor(5), color);
     EXPECT_EQ(manager.GetForegroundColor(9), color);
@@ -387,7 +388,7 @@ TEST(StyleManager, ApplyStyleInRange) {
   {
     // Test boundary conditions
     StyleManager manager;
-    manager.ApplyStyleInRange(style, 0, 3);
+    manager.ApplyStyleInRange(style.GetImpl(), 0, 3);
     EXPECT_EQ(manager.GetForegroundColor(0), color);
     EXPECT_EQ(manager.GetForegroundColor(2), color);
     EXPECT_EQ(manager.GetForegroundColor(3), Style().GetForegroundColor());
@@ -396,7 +397,7 @@ TEST(StyleManager, ApplyStyleInRange) {
     // Apply at a very large index (should handle gracefully)
     StyleManager manager;
     const uint32_t large_index = Range::MaxIndex() - 10;
-    manager.ApplyStyleInRange(style, large_index, 20);
+    manager.ApplyStyleInRange(style.GetImpl(), large_index, 20);
     EXPECT_EQ(manager.GetForegroundColor(large_index), color);
     EXPECT_EQ(manager.GetForegroundColor(Range::MaxIndex() - 1), color);
     EXPECT_EQ(manager.GetForegroundColor(Range::MaxIndex()),
@@ -409,8 +410,8 @@ TEST(StyleManager, ApplyStyleInRange) {
     const TTColor color2(TTColor::GREEN);
     Style style2;
     style2.SetForegroundColor(color2);
-    manager.ApplyStyleInRange(style, 5, 7);
-    manager.ApplyStyleInRange(style2, 7, 5);
+    manager.ApplyStyleInRange(style.GetImpl(), 5, 7);
+    manager.ApplyStyleInRange(style2.GetImpl(), 7, 5);
 
     // Verify the overlapped region has the new style
     EXPECT_EQ(manager.GetForegroundColor(5), color);
@@ -431,13 +432,13 @@ TEST(StyleManager, ApplyStyleInRange) {
     const DecorationType dec_type = DecorationType::kUnderLine;
     Style style1;
     style1.SetBackgroundColor(bg_color);
-    manager.ApplyStyleInRange(style1, 1, 3);
+    manager.ApplyStyleInRange(style1.GetImpl(), 1, 3);
     Style style2;
     style2.SetDecorationThicknessMultiplier(thickness);
-    manager.ApplyStyleInRange(style2, 2, 3);
+    manager.ApplyStyleInRange(style2.GetImpl(), 2, 3);
     Style style3;
     style3.SetDecorationType(dec_type);
-    manager.ApplyStyleInRange(style3, 0, 6);
+    manager.ApplyStyleInRange(style3.GetImpl(), 0, 6);
 
     const std::vector<std::tuple<TTColor, float, DecorationType>>
         expected_attributes = {
