@@ -62,7 +62,7 @@ std::pair<float, float> DominateBaselineHelper::CalcRunEmHeight(
 
 void DominateBaselineHelper::ApplyDominateBaseline(TextLineImpl* line) {
   auto dominate_baseline =
-      line->paragraph_->GetParagraphStyle().GetDominantBaseline();
+      line->paragraph_->GetParagraphStyleImpl().GetDominantBaseline();
   if (dominate_baseline == DominantBaseline::kAlphabetic) {
     return;
   }

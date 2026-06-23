@@ -1191,7 +1191,7 @@ TEST_F(TextLayoutTest, InlineObjectWithBaselineOffset) {
 
     auto inline_obj =
         std::make_shared<MockInlineObject>(width, ascent, descent);
-    para->AddShapeRun(style, inline_obj, true, false, 0);
+    para->AddShapeRun(style.GetImpl(), inline_obj, true, false, 0);
 
     TTTextContext context;
     TextLayout layout(GetFixedSizeMockShaper());

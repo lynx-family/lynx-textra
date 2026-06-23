@@ -10,13 +10,13 @@
 #include <textra/style.h>
 
 #include <cstdint>
-#include <limits>
 #include <memory>
+#include <string>
 
 namespace ttoffice {
 namespace tttext {
 class RunDelegate;
-struct Indent;
+class ParagraphStyleImpl;
 struct Spacing;
 /**
  * @brief Defines formatting and layout properties for a paragraph of text.
@@ -53,10 +53,8 @@ class L_EXPORT ParagraphStyle {
    *
    * @see Style class for complete character-level formatting options
    */
-  const Style& GetDefaultStyle() const { return default_style_; }
-  void SetDefaultStyle(const Style& default_style) {
-    default_style_ = default_style;
-  }
+  const Style& GetDefaultStyle() const;
+  void SetDefaultStyle(const Style& default_style);
 
   /**
    * @brief Horizontal text alignment within the paragraph.
@@ -70,12 +68,8 @@ class L_EXPORT ParagraphStyle {
    * @warning kDistributed alignment is defined but not implemented.
    *
    */
-  ParagraphHorizontalAlignment GetHorizontalAlign() const {
-    return horizontal_alignment_;
-  }
-  void SetHorizontalAlign(ParagraphHorizontalAlignment align) {
-    horizontal_alignment_ = align;
-  }
+  ParagraphHorizontalAlignment GetHorizontalAlign() const;
+  void SetHorizontalAlign(ParagraphHorizontalAlignment align);
 
   /**
    * @brief Vertical alignment of the paragraph within its container.
@@ -93,12 +87,8 @@ class L_EXPORT ParagraphStyle {
    * @note Different from Style::VerticalAlignment which affects character
    * positioning within a line (e.g. for superscript/subscript)
    */
-  ParagraphVerticalAlignment GetVerticalAlign() const {
-    return vertical_alignment_;
-  }
-  void SetVerticalAlign(ParagraphVerticalAlignment vertical_align) {
-    vertical_alignment_ = vertical_align;
-  }
+  ParagraphVerticalAlignment GetVerticalAlign() const;
+  void SetVerticalAlign(ParagraphVerticalAlignment vertical_align);
 
   /**
    * @brief Dominant baseline used to align runs within each line.
@@ -116,10 +106,8 @@ class L_EXPORT ParagraphStyle {
    *
    * @see DominantBaseline enum for available values.
    */
-  DominantBaseline GetDominantBaseline() const { return dominant_baseline_; }
-  void SetDominantBaseline(DominantBaseline dominant_baseline) {
-    dominant_baseline_ = dominant_baseline;
-  }
+  DominantBaseline GetDominantBaseline() const;
+  void SetDominantBaseline(DominantBaseline dominant_baseline);
 
   /**
    * @brief Start indentation in pixels.
@@ -278,8 +266,8 @@ class L_EXPORT ParagraphStyle {
    * Auto-detection works well for most content. Manual setting is useful for
    * empty paragraphs or mixed-script documents.
    */
-  void SetWriteDirection(WriteDirection dir) { write_direction_ = dir; }
-  WriteDirection GetWriteDirection() const { return write_direction_; }
+  void SetWriteDirection(WriteDirection dir);
+  WriteDirection GetWriteDirection() const;
 
   /**
    * @brief Spacing after the paragraph in pixels.
@@ -467,16 +455,14 @@ class L_EXPORT ParagraphStyle {
    *
    * @return UTF-32 string currently used for text truncation
    */
-  const std::u32string& GetEllipsis() const { return ellipsis_; }
+  const std::u32string& GetEllipsis() const;
 
   /**
    * @brief Current custom ellipsis delegate.
    *
    * @return RunDelegate object for custom ellipsis, or nullptr if using text
    */
-  const std::shared_ptr<RunDelegate>& GetEllipsisDelegate() const {
-    return ellipsis_delegate_;
-  }
+  const std::shared_ptr<RunDelegate>& GetEllipsisDelegate() const;
 
   /**
    * @brief Maximum number of lines before truncation.
@@ -493,11 +479,8 @@ class L_EXPORT ParagraphStyle {
    * interacts with ellipsis settings for truncation appearance. Line counting
    * includes wrapped lines, not just paragraph breaks.
    */
-  uint32_t GetMaxLines() const { return max_lines_; }
-  void SetMaxLines(uint32_t max_line) {
-    max_lines_ =
-        max_line == 0 ? std::numeric_limits<uint32_t>::max() : max_line;
-  }
+  uint32_t GetMaxLines() const;
+  void SetMaxLines(uint32_t max_line);
 
   /**
    * @brief Controls line height calculation override.
@@ -512,10 +495,8 @@ class L_EXPORT ParagraphStyle {
    * When enabled, this interacts with HalfLeading() to determine the exact
    * adjustment method.
    */
-  bool LineHeightOverride() const { return line_height_override_; }
-  void SetLineHeightOverride(bool override) {
-    line_height_override_ = override;
-  }
+  bool LineHeightOverride() const;
+  void SetLineHeightOverride(bool override);
 
   /**
    * @brief Controls how the line height difference (from LineHeightOverride())
@@ -529,8 +510,8 @@ class L_EXPORT ParagraphStyle {
    *
    * This only takes effect when LineHeightOverride() is true.
    */
-  bool HalfLeading() const { return half_leading_; }
-  void SetHalfLeading(bool half) { half_leading_ = half; }
+  bool HalfLeading() const;
+  void SetHalfLeading(bool half);
 
   /**
    * @brief Controls whether text baseline positioning uses actual glyph
@@ -542,10 +523,8 @@ class L_EXPORT ParagraphStyle {
    * available line height. This is particularly useful for mixed-font text or
    * when precise vertical alignment is required. Default is false.
    */
-  void EnableTextBounds(bool align_with_bbox) {
-    enable_text_bounds_ = align_with_bbox;
-  }
-  bool EnableTextBounds() const { return enable_text_bounds_; }
+  void EnableTextBounds(bool align_with_bbox);
+  bool EnableTextBounds() const;
 
   /**
    * @brief Controls overflow wrapping behavior for line breaking.
@@ -562,10 +541,8 @@ class L_EXPORT ParagraphStyle {
    * @warning kAnywhere and kBreakWord currently have identical behavior in the
    * implementation.
    */
-  OverflowWrap GetOverflowWrap() const { return overflow_wrap_; }
-  void SetOverflowWrap(OverflowWrap overflow_wrap) {
-    overflow_wrap_ = overflow_wrap;
-  }
+  OverflowWrap GetOverflowWrap() const;
+  void SetOverflowWrap(OverflowWrap overflow_wrap);
 
   /**
    * @brief Controls whether line breaks are allowed around punctuation marks.
@@ -577,25 +554,17 @@ class L_EXPORT ParagraphStyle {
    */
   void AllowBreakAroundPunctuation(bool allow);
 
- protected:
-  ParagraphHorizontalAlignment horizontal_alignment_;
-  ParagraphVerticalAlignment vertical_alignment_;
-  DominantBaseline dominant_baseline_;
-  Style default_style_;
-  std::unique_ptr<Indent> indent_;
-  std::unique_ptr<Spacing> spacing_;
+ public:
+  L_HIDDEN ParagraphStyleImpl& GetImpl();
+  L_HIDDEN const ParagraphStyleImpl& GetImpl() const;
 
-  WriteDirection write_direction_;
-  std::u32string ellipsis_;
-  std::shared_ptr<RunDelegate> ellipsis_delegate_;
-  uint32_t max_lines_;
-  bool line_height_override_;
-  bool half_leading_;
-  bool enable_text_bounds_;
-  OverflowWrap overflow_wrap_;
-  LineBreakStrategy line_break_strategy_;
-
+ private:
   friend class ParagraphImpl;
+
+  L_HIDDEN explicit ParagraphStyle(ParagraphStyleImpl* impl);
+
+  std::unique_ptr<ParagraphStyleImpl> owned_impl_;
+  ParagraphStyleImpl* impl_;
 };
 }  // namespace tttext
 }  // namespace ttoffice

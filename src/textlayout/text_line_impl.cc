@@ -154,7 +154,7 @@ void TextLineImpl::SplitToWordDrawer(const LineRange& line_range) {
 }
 void TextLineImpl::CreateDrawerPiece() {
   if (!drawer_list_.empty()) drawer_list_.clear();
-  auto align = paragraph_->GetParagraphStyle().GetHorizontalAlign();
+  auto align = paragraph_->GetParagraphStyleImpl().GetHorizontalAlign();
   for (const auto& line_range : range_lst_) {
     if (align == ParagraphHorizontalAlignment::kJustify) {
       SplitToWordDrawer(*line_range);
@@ -270,7 +270,7 @@ void TextLineImpl::AppendGhostRun(std::unique_ptr<BaseRun> ghost_run) {
 void TextLineImpl::ModifyHorizontalAlignment(
     ParagraphHorizontalAlignment h_align) {
   if (h_align == ParagraphHorizontalAlignment::kJustify &&
-      paragraph_->GetParagraphStyle().GetHorizontalAlign() !=
+      paragraph_->GetParagraphStyleImpl().GetHorizontalAlign() !=
           ParagraphHorizontalAlignment::kJustify) {
     CreateDrawerPiece();
   }
@@ -324,9 +324,9 @@ void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
       if (run->GetLayoutStyle().HasStyleAttribute(
               Style::VerticalAlignmentFlag)) {
         cva = run->GetLayoutStyle().GetVerticalAlignment();
-      } else if (paragraph_->GetDefaultStyle().HasStyleAttribute(
+      } else if (paragraph_->GetDefaultStyleImpl().HasStyleAttribute(
                      Style::VerticalAlignmentFlag)) {
-        cva = paragraph_->GetDefaultStyle().GetVerticalAlignment();
+        cva = paragraph_->GetDefaultStyleImpl().GetVerticalAlignment();
       }
       auto y_offset = GetContentBaseline();
       auto element_ascent = metrics.GetMaxAscent();
@@ -386,7 +386,7 @@ bool TextLineImpl::IsLastLineOfParagraph() const {
 }
 
 void TextLineImpl::StripByEllipsis(const char32_t* ellipsis) {
-  auto& para_style = paragraph_->GetParagraphStyle();
+  auto& para_style = paragraph_->GetParagraphStyleImpl();
   if (ellipsis == nullptr) {
     ellipsis = para_style.GetEllipsis().c_str();
   }

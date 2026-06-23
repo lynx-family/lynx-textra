@@ -23,6 +23,7 @@
 
 #include "src/ports/shaper/skshaper/one_line_shaper.h"
 #include "src/ports/shaper/skshaper/run.h"
+#include "src/textlayout/style/style_impl.h"
 #include "src/textlayout/utils/log_util.h"
 
 namespace ttoffice {
@@ -135,7 +136,7 @@ void ShaperSkShaper::SetContext(TTTextContext& context) {
 #endif
   }
 }
-void ShaperSkShaper::ProcessShapeStyleTransform(Style& style) {
+void ShaperSkShaper::ProcessShapeStyleTransform(StyleImpl& style) {
   if (!context_ || !context_->IsEnableSystemFontAdjust()) return;
 #ifdef TTTEXT_OS_ANDROID
   auto font_size = style.text_size_;

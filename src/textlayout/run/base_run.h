@@ -8,7 +8,6 @@
 #include <textra/font_info.h>
 #include <textra/macro.h>
 #include <textra/run_delegate.h>
-#include <textra/style.h>
 
 #include <algorithm>
 #include <memory>
@@ -19,6 +18,7 @@
 #include "src/textlayout/paragraph_impl.h"
 #include "src/textlayout/run/layout_metrics.h"
 #include "src/textlayout/shape_cache.h"
+#include "src/textlayout/style/style_impl.h"
 #include "src/textlayout/utils/tt_range.h"
 #include "src/textlayout/utils/tt_rectf.h"
 #include "src/textlayout/utils/tt_string.h"
@@ -30,7 +30,6 @@ class ICanvasHelper;
 class Painter;
 class FontInfo;
 class ParagraphImpl;
-class Style;
 class TextAttachment;
 class TTStringPiece;
 class ShapeResult;
@@ -56,7 +55,7 @@ class BaseRun {
 
  public:
   BaseRun() = default;
-  explicit BaseRun(ParagraphImpl* paragraph, const Style& style,
+  explicit BaseRun(ParagraphImpl* paragraph, const StyleImpl& style,
                    uint32_t start_char_pos, uint32_t end_char_pos,
                    RunType type) {
     this->Init(paragraph, style, start_char_pos, end_char_pos, type);
@@ -64,7 +63,7 @@ class BaseRun {
   virtual ~BaseRun() = default;
 
  public:
-  void Init(ParagraphImpl* paragraph, const Style& style,
+  void Init(ParagraphImpl* paragraph, const StyleImpl& style,
             uint32_t start_char_pos, uint32_t end_char_pos, RunType type) {
     paragraph_ = paragraph;
     start_char_pos_ = start_char_pos;
@@ -153,7 +152,7 @@ class BaseRun {
    * exceed max_width.
    */
   float MeasureRunByWidth(uint32_t& break_pos_in_run, float max_width) const;
-  const Style& GetLayoutStyle() const { return layout_style_; }
+  const StyleImpl& GetLayoutStyle() const { return layout_style_; }
   const ShapeStyle& GetShapeStyle() const {
     return layout_style_.GetShapeStyle();
   }
@@ -183,7 +182,7 @@ class BaseRun {
   ShapeResultPiece shape_result_{};
   LayoutMetrics metrics_{};
   LayoutMetrics scaled_metrics_{};
-  Style layout_style_;
+  StyleImpl layout_style_;
   TTString ghost_content_;
   std::shared_ptr<RunDelegate> delegate_{nullptr};
   BoundaryType boundary_type_ = BoundaryType::kNone;

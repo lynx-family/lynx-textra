@@ -17,6 +17,8 @@
 #include "src/textlayout/run/ghost_run.h"
 #include "src/textlayout/run/object_run.h"
 #include "src/textlayout/shape_cache.h"
+#include "src/textlayout/style/paragraph_style_impl.h"
+#include "src/textlayout/style/style_impl.h"
 #include "src/textlayout/tt_shaper.h"
 #include "src/textlayout/utils/u_8_string.h"
 #include "style/style_manager.h"
@@ -28,6 +30,7 @@ std::unique_ptr<Paragraph> Paragraph::Create() {
 }
 ParagraphImpl::ParagraphImpl()
     : Paragraph(),
+      paragraph_style_wrapper_(&paragraph_style_),
       style_transformed_(false),
       formated_(false),
       style_manager_(std::make_unique<StyleManager>()),
@@ -80,7 +83,7 @@ ParagraphHorizontalAlignment ParagraphImpl::ResolveHorizontalAlignment(
   return is_rtl ? ParagraphHorizontalAlignment::kLeft
                 : ParagraphHorizontalAlignment::kRight;
 }
-void ParagraphImpl::AddTextRun(const Style& style, const char* content,
+void ParagraphImpl::AddTextRun(const StyleImpl& style, const char* content,
                                uint32_t length, bool ghost_text) {
   if (length == 0) {
     LogUtil::W("textlayout AddTextRun discard content.empty()");
@@ -116,7 +119,7 @@ void ParagraphImpl::AddTextRun(const Style& style, const char* content,
  * @param is_float unused
  * @param offset_y unused
  */
-void ParagraphImpl::AddShapeRun(const Style& style,
+void ParagraphImpl::AddShapeRun(const StyleImpl& style,
                                 std::shared_ptr<RunDelegate> shape,
                                 bool need_placeholder, bool is_float,
                                 float offset_y) {
@@ -146,7 +149,7 @@ void ParagraphImpl::FormatRunList() {
   if (shaper_ == nullptr) return;
   auto u32_content = content_.ToUTF32();
   if (!formated_) {
-    style_manager_->SetParagraphStyle(paragraph_style_.GetDefaultStyle());
+    style_manager_->SetParagraphStyle(paragraph_style_.GetDefaultStyleImpl());
     FormatIndent();
     if (content_.Empty() && run_lst_.empty()) {
       AddTextRun(nullptr, "\n", 1);
@@ -292,7 +295,7 @@ void ParagraphImpl::FormatRunList() {
   formated_ = true;
 }
 void ParagraphImpl::FormatIndent() {
-  const auto one_char_advance = GetDefaultStyle().GetTextSize();
+  const auto one_char_advance = GetDefaultStyleImpl().GetTextSize();
   int start_chars = paragraph_style_.GetStartIndentInCharCnt();
   if (start_chars > 0) {
     paragraph_style_.SetStartIndentInPx(static_cast<float>(start_chars) *
@@ -450,7 +453,7 @@ BoundaryType ParagraphImpl::GetBoundaryType(
 }
 void ParagraphImpl::ApplyStyleInRange(const Style& style, const CharPos start,
                                       const uint32_t len) const {
-  style_manager_->ApplyStyleInRange(style, start, len);
+  style_manager_->ApplyStyleInRange(style.GetImpl(), start, len);
 }
 void ParagraphImpl::SaveStyle() { style_manager_->SaveStyle(); }
 void ParagraphImpl::RestoreStyle() { style_manager_->RestoreStyle(); }

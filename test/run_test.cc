@@ -116,7 +116,7 @@ TEST(BaseRun, Constructor) {
   const uint32_t end_char_pos = 2;
   const RunType type = RunType::kTextRun;
 
-  BaseRun run(&paragraph, style, start_char_pos, end_char_pos, type);
+  BaseRun run(&paragraph, style.GetImpl(), start_char_pos, end_char_pos, type);
   EXPECT_EQ(run.GetParagraph(), &paragraph);
   // EXPECT_EQ(run.GetLayoutStyle(), style); // no operator==
   EXPECT_FLOAT_EQ(run.GetStartCharPos(), start_char_pos);
@@ -130,7 +130,8 @@ TEST(BaseRun, AssignmentOperator) {
   const uint32_t start_char_pos = 0;
   const uint32_t end_char_pos = 2;
   const RunType type = RunType::kTextRun;
-  BaseRun expected_run(&paragraph, style, start_char_pos, end_char_pos, type);
+  BaseRun expected_run(&paragraph, style.GetImpl(), start_char_pos,
+                       end_char_pos, type);
   BaseRun actual_run;
   actual_run = expected_run;
   // EXPECT_EQ(actual_run.GetParagraph(), &paragraph); // Should it copy?
@@ -160,14 +161,14 @@ TEST(BaseRun, GetTypeMethod) {
   };
   for (const auto& pair : map) {
     ParagraphImpl paragraph;
-    BaseRun run(&paragraph, Style(), 0, 2, pair.first);
+    BaseRun run(&paragraph, Style().GetImpl(), 0, 2, pair.first);
     EXPECT_TRUE((run.*pair.second)());
   }
 }
 
 TEST(BaseRun, BoundaryType) {
   ParagraphImpl paragraph;
-  BaseRun run(&paragraph, Style(), 0, 2, RunType::kTextRun);
+  BaseRun run(&paragraph, Style().GetImpl(), 0, 2, RunType::kTextRun);
   run.SetBoundaryType(BoundaryType::kWord);
   EXPECT_EQ(run.GetBoundaryType(), BoundaryType::kWord);
 }
@@ -176,7 +177,8 @@ TEST(TextRun, LastNoneSpaceCharPos) {
   ParagraphImpl paragraph;
   const char content[] = " 1 3 ";
   paragraph.AddTextRun(nullptr, content);
-  BaseRun run(&paragraph, Style(), 0, strlen(content), RunType::kTextRun);
+  BaseRun run(&paragraph, Style().GetImpl(), 0, strlen(content),
+              RunType::kTextRun);
   EXPECT_EQ(run.LastNoneSpaceCharPos(), 4u);
 }
 
@@ -185,14 +187,14 @@ TEST(GhostRun, GhostContent) {
   std::unique_ptr<TTShaper> shaper = TestUtils::getTestShaper();
   paragraph.SetShaper(shaper.get());
   std::u32string ghost_content(U"ghost content");
-  GhostRun run(&paragraph, Style(), 0, ghost_content.c_str(),
+  GhostRun run(&paragraph, Style().GetImpl(), 0, ghost_content.c_str(),
                ghost_content.size());
   EXPECT_EQ(run.GetGhostContent().ToString(), "ghost content");
 }
 
 TEST(ObjectRun, RunDelegate) {
   ParagraphImpl paragraph;
-  BaseRun run(&paragraph, Style(), 0, 2, RunType::kInlineObject);
+  BaseRun run(&paragraph, Style().GetImpl(), 0, 2, RunType::kInlineObject);
   auto delegate = std::make_shared<TestShape>();
   run.SetRunDelegate(delegate);
   EXPECT_EQ(run.GetRunDelegate(), delegate.get());
@@ -202,7 +204,7 @@ TEST(BaseRun, GetWidthAddsTextSkewExtraWidth) {
   ParagraphImpl paragraph;
   Style style;
   style.SetTextSkew(-0.25f);
-  TestableBaseRun run(&paragraph, style, 0, 2, RunType::kTextRun);
+  TestableBaseRun run(&paragraph, style.GetImpl(), 0, 2, RunType::kTextRun);
   auto typeface = std::make_shared<TestTypeface>(-20.f);
   run.SetShapeResult(MakeShapeResult(2, 10.f, typeface), 2);
 
@@ -213,7 +215,7 @@ TEST(BaseRun, GetWidthAddsItalicExtraWidth) {
   ParagraphImpl paragraph;
   Style style;
   style.SetItalic(true);
-  TestableBaseRun run(&paragraph, style, 0, 2, RunType::kTextRun);
+  TestableBaseRun run(&paragraph, style.GetImpl(), 0, 2, RunType::kTextRun);
   auto typeface = std::make_shared<TestTypeface>(-20.f);
   run.SetShapeResult(MakeShapeResult(2, 10.f, typeface), 2);
 
@@ -224,7 +226,7 @@ TEST(BaseRun, GetWidthUsesFirstRunFontForSkewExtraWidth) {
   ParagraphImpl paragraph;
   Style style;
   style.SetTextSkew(-0.25f);
-  TestableBaseRun run(&paragraph, style, 0, 2, RunType::kTextRun);
+  TestableBaseRun run(&paragraph, style.GetImpl(), 0, 2, RunType::kTextRun);
   auto first_typeface = std::make_shared<TestTypeface>(-20.f);
   auto second_typeface = std::make_shared<TestTypeface>(-100.f);
   run.SetShapeResult(
@@ -238,7 +240,7 @@ TEST(BaseRun, MeasureRunByWidthIncludesSkewExtraWidth) {
   ParagraphImpl paragraph;
   Style style;
   style.SetTextSkew(-0.25f);
-  TestableBaseRun run(&paragraph, style, 0, 2, RunType::kTextRun);
+  TestableBaseRun run(&paragraph, style.GetImpl(), 0, 2, RunType::kTextRun);
   auto typeface = std::make_shared<TestTypeface>(-20.f);
   run.SetShapeResult(MakeShapeResult(2, 10.f, typeface), 2);
 

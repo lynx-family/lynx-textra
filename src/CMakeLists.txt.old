@@ -19,9 +19,11 @@ add_library(textlayout STATIC
         ${_ROOT}/src/textlayout/style/indent.cc
         ${_ROOT}/src/textlayout/style/margin.cc
         ${_ROOT}/src/textlayout/style/num_pr.cc
-        ${_ROOT}/src/textlayout/style/paragraph_style.cc
+        ${_ROOT}/src/textlayout/style/paragraph_style_impl.cc
+        ${_ROOT}/src/textlayout/style/paragraph_style_impl.h
         #        ${_ROOT}/src/textlayout/style/spacing.cc
-        ${_ROOT}/src/textlayout/style/style.cc
+        ${_ROOT}/src/textlayout/style/style_impl.cc
+        ${_ROOT}/src/textlayout/style/style_impl.h
         ${_ROOT}/src/textlayout/style/style_manager.cc
         #        ${_ROOT}/src/textlayout/style/tab.cc
         #        ${_ROOT}/src/textlayout/style/tabs.cc
@@ -150,4 +152,3 @@ else ()
 endif ()
 
 target_compile_options(textlayout PRIVATE ${ASAN_COMPILE_OPTION})
-

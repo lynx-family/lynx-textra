@@ -17,6 +17,7 @@
 #include "src/textlayout/layout_measurer.h"
 #include "src/textlayout/run/ghost_run.h"
 #include "src/textlayout/run/object_run.h"
+#include "src/textlayout/style/style_impl.h"
 #include "src/textlayout/style/style_manager.h"
 #include "src/textlayout/text_line_impl.h"
 #include "src/textlayout/utils/tt_rectf.h"
@@ -143,7 +144,7 @@ void LayoutDrawer::DrawLineDecoration(TextLine* i_line,
     style_manager->GetStyleRange(&range, start_char, Style::DecorationFlag);
     auto end_char = std::min(range.GetRange().GetEnd(), char_end_in_para);
     auto& decorate_style = range.GetStyle();
-    auto& default_text_style = line->GetParagraph()->GetDefaultStyle();
+    auto& default_text_style = line->GetParagraph()->GetDefaultStyleImpl();
     if (decorate_style.GetDecorationType() != DecorationType::kNone) {
       rects = line->GetCharRangeBounds(start_char, end_char, false);
       switch (decorate_style.GetDecorationType()) {
@@ -328,7 +329,7 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
     style_manager = paragraph->style_manager_.get();
   }
   while (piece_start < char_end_pos) {
-    const Style* style = nullptr;
+    const StyleImpl* style = nullptr;
     auto default_painter = canvas_->CreatePainter();
     Painter* painter = nullptr;
     auto piece_end = char_end_pos;

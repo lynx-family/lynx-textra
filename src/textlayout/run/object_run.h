@@ -19,7 +19,7 @@ class ObjectRun final : public BaseRun {
  public:
   ObjectRun(ParagraphImpl* paragraph, std::shared_ptr<RunDelegate> delegate,
             uint32_t start_char_pos, uint32_t end_char_pos, RunType type)
-      : BaseRun(paragraph, Style(), start_char_pos, end_char_pos, type) {
+      : BaseRun(paragraph, StyleImpl(), start_char_pos, end_char_pos, type) {
     SetRunDelegate(std::move(delegate));
     boundary_type_ = BoundaryType::kLineBreakable;
   }

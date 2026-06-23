@@ -128,8 +128,8 @@ LayoutMetrics BaseRun::CalculateLayoutMetrics(uint32_t start_char,
     layout_metrics.UpdateMaxAscent(font_info.GetAscent());
     layout_metrics.UpdateMaxDescent(font_info.GetDescent());
 
-    if (paragraph_->GetParagraphStyle().LineHeightOverride()) {
-      if (paragraph_->GetParagraphStyle().HalfLeading()) {
+    if (paragraph_->GetParagraphStyleImpl().LineHeightOverride()) {
+      if (paragraph_->GetParagraphStyleImpl().HalfLeading()) {
         auto diff = (layout_metrics.GetHeight() - font_size) / 2;
         layout_metrics.max_ascent_ += diff;
         layout_metrics.max_descent_ -= diff;
@@ -148,7 +148,8 @@ void BaseRun::Layout() {
     metrics_ = LayoutMetrics{delegate_->GetAscent(), delegate_->GetDescent()};
     scaled_metrics_ = metrics_;
   } else {
-    auto align_with_bbox = paragraph_->GetParagraphStyle().EnableTextBounds();
+    auto align_with_bbox =
+        paragraph_->GetParagraphStyleImpl().EnableTextBounds();
     uint32_t start_char = 0u;
     auto current_char = start_char;
     auto end_char = GetCharCount();
