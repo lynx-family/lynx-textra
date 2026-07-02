@@ -74,6 +74,7 @@ class L_EXPORT Paragraph {
    * @param style A Style object to store the query result
    */
   virtual void QueryStyle(uint32_t char_idx, Style* style) = 0;
+  virtual WriteDirection GetResolvedWriteDirection() const = 0;
 
  public:
   static std::unique_ptr<Paragraph> Create();
