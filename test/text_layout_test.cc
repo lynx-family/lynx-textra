@@ -426,6 +426,35 @@ TEST_F(TextLayoutTest, ParagraphStyle_HorizontalAlignment) {
   // Note: kDistributed currently not implemented
 }
 
+TEST_F(TextLayoutTest, GetCharPosByCoordinateX_RTL) {
+  auto para = std::make_unique<ParagraphImpl>();
+  Style style;
+  style.SetTextSize(1.f);
+  ParagraphStyle para_style;
+  para_style.SetDefaultStyle(style);
+  para_style.SetWriteDirection(WriteDirection::kRTL);
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&style, "abcd");
+
+  TTTextContext context;
+  TextLayout layout(
+      TestUtils::CreateFixedBidiTestShaper({3, 2, 1, 0}, {1, 1, 1, 1}));
+  auto region = std::make_unique<LayoutRegion>(10.f, 10.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  const auto left = line->GetLineLeft();
+  const auto right = line->GetLineRight();
+
+  EXPECT_EQ(line->GetCharPosByCoordinateX(left - 0.5f), 4u);
+  EXPECT_EQ(line->GetCharPosByCoordinateX(left + 0.5f), 3u);
+  EXPECT_EQ(line->GetCharPosByCoordinateX(left + 1.5f), 2u);
+  EXPECT_EQ(line->GetCharPosByCoordinateX(left + 2.5f), 1u);
+  EXPECT_EQ(line->GetCharPosByCoordinateX(left + 3.5f), 0u);
+  EXPECT_EQ(line->GetCharPosByCoordinateX(right + 0.5f), 0u);
+}
+
 TEST_F(TextLayoutTest, ParagraphStyle_VerticalAlignment) {
   // Note: vertical_alignment_ currently not used and always align by baseline.
 }

@@ -140,7 +140,7 @@ class ParagraphImpl : public Paragraph {
                                           : bidi_level_[bidi_level_.size() - 1];
     return level % 2 == 1;
   }
-  WriteDirection GetResolvedWriteDirection() const;
+  WriteDirection GetResolvedWriteDirection() const override;
   ParagraphHorizontalAlignment GetResolvedHorizontalAlignment() const;
   LayoutPosition FindNextBoundary(const LayoutPosition& start,
                                   const BoundaryType& type) const;

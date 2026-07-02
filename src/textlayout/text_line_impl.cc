@@ -24,6 +24,18 @@
 #include "utils/float_comparison.h"
 namespace ttoffice {
 namespace tttext {
+namespace {
+CharPos GetVisualLeftCharPos(const DrawerPiece* drawer) {
+  return drawer->GetRun()->IsRtl() ? drawer->GetEndCharPosInParagraph()
+                                   : drawer->GetStartCharPosInParagraph();
+}
+
+CharPos GetVisualRightCharPos(const DrawerPiece* drawer) {
+  return drawer->GetRun()->IsRtl() ? drawer->GetStartCharPosInParagraph()
+                                   : drawer->GetEndCharPosInParagraph();
+}
+}  // namespace
+
 TextLineImpl::TextLineImpl(ParagraphImpl* paragraph, LayoutRegion* lp,
                            const LayoutPosition& pos)
     : paragraph_(paragraph), layout_page_(lp) {
@@ -718,21 +730,28 @@ uint32_t TextLineImpl::GetCharPosByCoordinateX(float x) const {
       continue;
     }
     const auto drawer_left = drawer->GetXOffset();
-    const auto drawer_right = drawer_left + drawer->GetWidth();
+    const auto drawer_width = drawer->GetWidth();
+    const auto drawer_right = drawer_left + drawer_width;
     if (FloatsLargerOrEqual(x, drawer_left) &&
         FloatsLargerOrEqual(drawer_right, x)) {
-      return drawer->FindCharPosInParagraphByX(x - drawer_left) -
-             GetStartCharPos();
+      auto local_x = x - drawer_left;
+      if (drawer->GetRun()->IsRtl()) {
+        local_x = drawer_width - local_x;
+      }
+      return drawer->FindCharPosInParagraphByX(local_x) - GetStartCharPos();
     }
     if (FloatsLarger(drawer_left, x)) {
       if (prev_drawer == nullptr ||
           FloatsLarger(x - prev_right, drawer->GetXOffset() - x)) {
-        return drawer->GetStartCharPosInParagraph() - GetStartCharPos();
+        return GetVisualLeftCharPos(drawer.get()) - GetStartCharPos();
       }
-      return prev_drawer->GetEndCharPosInParagraph() - GetStartCharPos();
+      return GetVisualRightCharPos(prev_drawer) - GetStartCharPos();
     }
     prev_drawer = drawer.get();
     prev_right = drawer_right;
+  }
+  if (prev_drawer != nullptr) {
+    return GetVisualRightCharPos(prev_drawer) - GetStartCharPos();
   }
   return GetCharCount();
 }
