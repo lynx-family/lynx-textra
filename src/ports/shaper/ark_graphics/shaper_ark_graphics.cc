@@ -18,8 +18,10 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
 
+#include "src/textlayout/utils/tt_string.h"
 #include "src/textlayout/utils/u_8_string.h"
 
 namespace ttoffice {
@@ -51,6 +53,11 @@ using OHOS_DestroyLineTypography = void (*)(OH_Drawing_LineTypography*);
 using OHOS_TypographyHandlerAddEncodedText = void (*)(OH_Drawing_TypographyCreate*, const void*, size_t, OH_Drawing_TextEncoding);
 using OHOS_FontSetThemeFontFollowed = OH_Drawing_ErrorCode (*)(OH_Drawing_Font*, bool);
 using OHOS_GetFontCollectionGlobalInstance = OH_Drawing_FontCollection* (*)();
+using OHOS_TypographyGetTextLines = OH_Drawing_Array* (*)(OH_Drawing_Typography* typography);
+using OHOS_DestroyTextLines = void (*)(OH_Drawing_Array* lines);
+using OHOS_GetTextLineByIndex = OH_Drawing_TextLine* (*)(OH_Drawing_Array* lines, size_t index);
+using OHOS_TypographyGetCharacterRangeForGlyphRangeWithBuffer = OH_Drawing_Range* (*)(OH_Drawing_Typography* typography, size_t glyphRangeStart, size_t glyphRangeEnd, OH_Drawing_Range** actualGlyphRange, OH_Drawing_TextEncoding textEncodingType);
+using OHOS_ReleaseRangeBuffer = void (*)(OH_Drawing_Range* range);
 // clang-format on
 
 struct OHOS_ShapingFuncPtr {
@@ -79,6 +86,12 @@ struct OHOS_ShapingFuncPtr {
   OHOS_TypographyHandlerAddEncodedText TypographyHandlerAddEncodedText_;
   OHOS_FontSetThemeFontFollowed FontSetThemeFontFollowed_;
   OHOS_GetFontCollectionGlobalInstance GetFontCollectionGlobalInstance_;
+  OHOS_TypographyGetTextLines TypographyGetTextLines_;
+  OHOS_DestroyTextLines DestroyTextLines_;
+  OHOS_GetTextLineByIndex GetTextLineByIndex_;
+  OHOS_TypographyGetCharacterRangeForGlyphRangeWithBuffer
+      TypographyGetCharacterRangeForGlyphRangeWithBuffer_;
+  OHOS_ReleaseRangeBuffer ReleaseRangeBuffer_;
 };
 static std::unique_ptr<OHOS_ShapingFuncPtr> ohos_shaping_funcs_ = nullptr;
 class AGShapingResult : public PlatformShapingResultReader {
@@ -153,6 +166,11 @@ ShaperArkGraphics::ShaperArkGraphics(
       ohos_shaping_funcs_->TypographyHandlerAddEncodedText_ = (OHOS_TypographyHandlerAddEncodedText)dlsym(handle, "OH_Drawing_TypographyHandlerAddEncodedText");
       ohos_shaping_funcs_->FontSetThemeFontFollowed_ = (OHOS_FontSetThemeFontFollowed)dlsym(handle, "OH_Drawing_FontSetThemeFontFollowed");
       ohos_shaping_funcs_->GetFontCollectionGlobalInstance_ = (OHOS_GetFontCollectionGlobalInstance)dlsym(handle, "OH_Drawing_GetFontCollectionGlobalInstance");
+      ohos_shaping_funcs_->TypographyGetTextLines_ = (OHOS_TypographyGetTextLines)dlsym(handle, "OH_Drawing_TypographyGetTextLines");
+      ohos_shaping_funcs_->DestroyTextLines_ = (OHOS_DestroyTextLines)dlsym(handle, "OH_Drawing_DestroyTextLines");
+      ohos_shaping_funcs_->GetTextLineByIndex_ = (OHOS_GetTextLineByIndex)dlsym(handle, "OH_Drawing_GetTextLineByIndex");
+      ohos_shaping_funcs_->TypographyGetCharacterRangeForGlyphRangeWithBuffer_ = (OHOS_TypographyGetCharacterRangeForGlyphRangeWithBuffer)dlsym(handle, "OH_Drawing_TypographyGetCharacterRangeForGlyphRangeWithBuffer");
+      ohos_shaping_funcs_->ReleaseRangeBuffer_ = (OHOS_ReleaseRangeBuffer)dlsym(handle, "OH_Drawing_ReleaseRangeBuffer");
       // clang-format on
     }
     if (ohos_shaping_funcs_->GetFontCollectionGlobalInstance_) {
@@ -175,7 +193,10 @@ void ShaperArkGraphics::OnShapeText(const ShapeKey& key,
     }
   }
   if (!context_->IsHarmonyShaperForceLowAPI() &&
-      ohos_shaping_funcs_->GetRunFont_ != NULL && !is_only_space_char) {
+      ohos_shaping_funcs_
+              ->TypographyGetCharacterRangeForGlyphRangeWithBuffer_ !=
+          nullptr &&
+      !is_only_space_char) {
     ShapingTextWithHighAPILevel(key, result);
   } else {
     ShapingTextWithLowAPILevel(key, result);
@@ -213,10 +234,15 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
   ohos_shaping_funcs_->TypographyHandlerAddEncodedText_(
       typography_handler, u32_text.c_str(), u32_text.length() * 4,
       TEXT_ENCODING_UTF32);
-  auto line_typo =
-      ohos_shaping_funcs_->CreateLineTypography_(typography_handler);
-  auto line = ohos_shaping_funcs_->LineTypographyCreateLine_(line_typo, 0,
-                                                             u32_text.length());
+  auto typo = OH_Drawing_CreateTypography(typography_handler);
+  OH_Drawing_TypographyLayout(typo, 1e9);
+  auto line_count = OH_Drawing_TypographyGetLineCount(typo);
+  if (line_count == 0) {
+    return;
+  }
+  auto lines = ohos_shaping_funcs_->TypographyGetTextLines_(typo);
+  auto line = ohos_shaping_funcs_->GetTextLineByIndex_(lines, 0);
+
   uint32_t glyph_count =
       static_cast<uint32_t>(ohos_shaping_funcs_->TextLineGetGlyphCount_(line));
   AGShapingResult shaping_result;
@@ -250,8 +276,6 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
       auto& ppos = shaping_result.ct_position_[glyph_idx + j];
       OH_Drawing_PointGetX(pos, &ppos[0]);
       OH_Drawing_PointGetY(pos, &ppos[1]);
-      shaping_result.ct_indices_[glyph_idx + j] = static_cast<uint32_t>(
-          ohos_shaping_funcs_->GetRunStringIndicesByIndex_(indices_array, j));
       auto adv =
           ohos_shaping_funcs_->GetRunGlyphAdvanceByIndex_(advance_array, j);
       auto& aadv = shaping_result.ct_advances_[glyph_idx + j];
@@ -264,10 +288,26 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
     ohos_shaping_funcs_->DestroyRunGlyphs_(glyph_array);
   }
   delete[] families;
+  const auto text_length = static_cast<uint32_t>(key.text_.length());
+  TTString string(key.text_.c_str(), text_length);
+
+  for (auto i = 0u; i < glyph_count; i++) {
+    auto* char_range =
+        ohos_shaping_funcs_
+            ->TypographyGetCharacterRangeForGlyphRangeWithBuffer_(
+                typo, i, i + 1, nullptr, TEXT_ENCODING_UTF8);
+    if (char_range == nullptr) {
+      continue;
+    }
+    auto u8_start = OH_Drawing_GetStartFromRange(char_range);
+    auto char_start = string.Utf8PosToCharPos(static_cast<uint32_t>(u8_start));
+    shaping_result.ct_indices_[i] = char_start;
+    ohos_shaping_funcs_->ReleaseRangeBuffer_(char_range);
+  }
 
   ohos_shaping_funcs_->DestroyRuns_(glyph_runs);
-  ohos_shaping_funcs_->DestroyTextLine_(line);
-  ohos_shaping_funcs_->DestroyLineTypography_(line_typo);
+  ohos_shaping_funcs_->DestroyTextLines_(lines);
+  OH_Drawing_DestroyTypography(typo);
   OH_Drawing_DestroyTypographyHandler(typography_handler);
 
   shaping_result.text_length_ = static_cast<uint32_t>(key.text_.length());
