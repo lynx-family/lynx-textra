@@ -219,6 +219,10 @@ void StyleManager::SetStyle(Style* style, uint64_t value,
       return style->SetDecorationGapLength(UnPackValue<float>(value));
     case AttributeType::kDecorationSideMargin:
       return style->SetDecorationSideMargin(UnPackValue<float>(value));
+    case AttributeType::kDecorationOffset:
+      style->SetAttribute(kDecorationOffset,
+                          StyleValue(UnPackValue<float>(value)));
+      return;
     case AttributeType::kTextStrokeStyle:
       return style->SetTextStrokeValue(value);
     case AttributeType::kBold:
@@ -263,6 +267,8 @@ AttributesRangeList::ValueType StyleManager::GetStyleValue(
       return PackValue(style->GetDecorationGapLength());
     case AttributeType::kDecorationSideMargin:
       return PackValue(style->GetDecorationSideMargin());
+    case AttributeType::kDecorationOffset:
+      return PackValue(style->GetAttribute(kDecorationOffset).Float());
     case AttributeType::kTextStrokeStyle:
       return style->GetTextStrokeValue();
     case AttributeType::kBold:

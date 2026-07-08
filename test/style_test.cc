@@ -88,3 +88,91 @@ TEST(StyleTest, Reset) {
   style.Reset();
   EXPECT_FALSE(style.HasStyleAttribute(Style::BackgroundColorFlag));
 }
+
+TEST(StyleTest, GenericAttributeSetterGetter) {
+  Style style;
+
+  EXPECT_TRUE(style.SetAttribute(kTextSize, StyleValue(18.f)));
+  StyleValue value;
+  EXPECT_TRUE(style.GetAttribute(kTextSize, &value));
+  EXPECT_EQ(value.type, kStyleValueFloat);
+  EXPECT_TRUE(value.IsNumber());
+  EXPECT_TRUE(ttoffice::FloatsEqual(value.Float(), 18.f));
+  EXPECT_TRUE(style.HasStyleAttribute(Style::TextSizeFlag));
+
+  StyleValue int_value(static_cast<int32_t>(20));
+  EXPECT_TRUE(int_value.IsNumber());
+  EXPECT_EQ(int_value.Int32(), 20);
+  EXPECT_TRUE(ttoffice::FloatsEqual(int_value.Float(), 20.f));
+  EXPECT_TRUE(style.SetAttribute(kTextSize, int_value));
+  EXPECT_TRUE(ttoffice::FloatsEqual(style.GetTextSize(), 20.f));
+
+  EXPECT_TRUE(style.SetAttribute(kForegroundColor, StyleValue(TTColor::RED)));
+  value = style.GetAttribute(kForegroundColor);
+  EXPECT_EQ(value.type, kStyleValueInt64);
+  EXPECT_EQ(value.UInt32(), TTColor::RED);
+  EXPECT_EQ(style.GetForegroundColor(), TTColor::RED);
+
+  EXPECT_TRUE(style.SetAttribute(
+      kDecorationStyle, StyleValue(static_cast<int32_t>(LineType::kDashed))));
+  EXPECT_EQ(style.GetDecorationStyle(), LineType::kDashed);
+
+  Painter painter;
+  EXPECT_TRUE(style.SetAttribute(kForegroundPainter, StyleValue(&painter)));
+  value = style.GetAttribute(kForegroundPainter);
+  EXPECT_TRUE(value.IsPointer());
+  EXPECT_EQ(value.Pointer(), reinterpret_cast<intptr_t>(&painter));
+  EXPECT_EQ(style.GetForegroundPainter(), &painter);
+
+  const uint64_t stroke_value = Style::DefaultStyle().GetTextStrokeValue();
+  EXPECT_TRUE(style.SetAttribute(kTextStrokeStyle, StyleValue(stroke_value)));
+  EXPECT_EQ(style.GetTextStrokeValue(), stroke_value);
+
+  EXPECT_TRUE(style.SetAttribute(kBold, StyleValue(true)));
+  value = style.GetAttribute(kBold);
+  EXPECT_TRUE(value.IsBoolean());
+  EXPECT_TRUE(value.Bool());
+}
+
+TEST(StyleTest, GenericAttributeCopiesObjectValue) {
+  FontDescriptor font_descriptor{{"test"}, FontStyle::Bold(), 1};
+  Style style;
+
+  EXPECT_TRUE(style.SetAttribute(
+      kFontDescriptor, StyleValue(&font_descriptor, sizeof(FontDescriptor))));
+  font_descriptor.platform_font_ = 2;
+
+  EXPECT_EQ(style.GetFontDescriptor().platform_font_, 1u);
+
+  StyleValue value = style.GetAttribute(kFontDescriptor);
+  EXPECT_EQ(value.type, kStyleValuePointer);
+  EXPECT_EQ(value.length, static_cast<int64_t>(sizeof(FontDescriptor)));
+  const auto* stored_font_descriptor =
+      reinterpret_cast<const FontDescriptor*>(value.Pointer());
+  EXPECT_EQ(*stored_font_descriptor, style.GetFontDescriptor());
+}
+
+TEST(StyleTest, GenericAttributeRejectsWrongValueType) {
+  Style style;
+
+  EXPECT_FALSE(style.SetAttribute(kTextSize, StyleValue(true)));
+  EXPECT_FALSE(style.HasStyleAttribute(Style::TextSizeFlag));
+  EXPECT_TRUE(ttoffice::FloatsEqual(style.GetTextSize(),
+                                    Style::DefaultStyle().GetTextSize()));
+
+  StyleValue value;
+  EXPECT_FALSE(style.GetAttribute(kExtraBaselineOffset, &value));
+  EXPECT_FALSE(value.IsValid());
+  EXPECT_FALSE(style.GetAttribute(kTextSize, nullptr));
+}
+
+TEST(StyleTest, CopyKeepsDecorationOffsetFromGenericAttribute) {
+  Style style;
+  style.SetAttribute(kDecorationOffset, StyleValue(-4.f));
+
+  Style copy = style;
+
+  EXPECT_TRUE(copy.HasStyleAttribute(Style::DecorationOffsetFlag));
+  EXPECT_TRUE(ttoffice::FloatsEqual(
+      copy.GetAttribute(kDecorationOffset).Float(), -4.f));
+}

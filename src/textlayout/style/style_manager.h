@@ -238,6 +238,21 @@ class StyleManager {
                : UnPackValue<float>(value);
   }
 
+  void SetDecorationOffset(const float attr, const uint32_t start,
+                           const uint32_t len = 1) {
+    constexpr auto max_end = Range::MaxIndex();
+    const auto end = len > max_end - start ? max_end : start + len;
+    style_list_[kDecorationOffset].SetRangeValue(Range{start, end},
+                                                 PackValue(attr));
+  }
+
+  float GetDecorationOffset(const uint32_t idx) const {
+    const auto value = style_list_[kDecorationOffset].GetAttrValue(idx);
+    return value == AttributesRangeList::Undefined()
+               ? default_style_.GetAttribute(kDecorationOffset).Float()
+               : UnPackValue<float>(value);
+  }
+
   void SetForegroundPainter(const Painter* attr, const uint32_t start,
                             const uint32_t len = 1) {
     constexpr auto max_end = Range::MaxIndex();

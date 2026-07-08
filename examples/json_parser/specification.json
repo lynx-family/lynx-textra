@@ -213,6 +213,10 @@
                         // [Number] Maximum side margin for dashed decoration lines
                         // [Optional] Default: 2.5
                         "decoration_side_margin": 2.5,
+                        // decoration_offset
+                        // [Number] Underline offset from line bottom in pixels
+                        // [Optional] Default: -2.0
+                        "decoration_offset": -2.0,
                         // bold
                         // [Boolean] Whether text is bold
                         // [Optional] Default: false

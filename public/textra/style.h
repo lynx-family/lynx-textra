@@ -12,6 +12,7 @@
 #include <textra/tt_color.h>
 
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <vector>
@@ -33,6 +34,111 @@ union DecorationStyle {
     LineType line_type_ : 8;
     uint8_t padding_ : 8;
   } style_;
+};
+
+enum StyleValueType : uint8_t {
+  kStyleValueInvalid,
+  kStyleValueBool,
+  kStyleValueFloat,
+  kStyleValueInt64,
+  kStyleValuePointer,
+};
+
+struct StyleValue {
+  StyleValueType type;
+  union {
+    int64_t i64;
+    float f32;
+    intptr_t ptr;
+  };
+  int64_t length;
+
+  StyleValue() : type(kStyleValueInvalid), ptr(0), length(0) {}
+  StyleValue(bool value)
+      : type(kStyleValueBool),
+        i64(static_cast<int64_t>(value)),
+        length(sizeof(int64_t)) {}
+  StyleValue(int32_t value)
+      : type(kStyleValueInt64),
+        i64(static_cast<int64_t>(value)),
+        length(sizeof(int64_t)) {}
+  StyleValue(uint32_t value)
+      : type(kStyleValueInt64),
+        i64(static_cast<int64_t>(value)),
+        length(sizeof(int64_t)) {}
+  StyleValue(float value)
+      : type(kStyleValueFloat), f32(value), length(sizeof(float)) {}
+  StyleValue(int64_t value)
+      : type(kStyleValueInt64), i64(value), length(sizeof(int64_t)) {}
+  StyleValue(uint64_t value)
+      : type(kStyleValueInt64),
+        i64(static_cast<int64_t>(value)),
+        length(sizeof(int64_t)) {}
+  StyleValue(double value) = delete;
+  StyleValue(const void* value, int64_t len = 0)
+      : type(kStyleValuePointer),
+        ptr(reinterpret_cast<intptr_t>(value)),
+        length(len) {}
+
+  bool IsValid() const { return type != kStyleValueInvalid; }
+  bool IsBoolean() const { return type == kStyleValueBool; }
+  bool IsPointer() const { return type == kStyleValuePointer; }
+  bool IsNumber() const {
+    return type == kStyleValueFloat || type == kStyleValueInt64;
+  }
+
+  bool Bool() const { return IsBoolean() ? i64 != 0 : false; }
+  int32_t Int32() const {
+    switch (type) {
+      case kStyleValueFloat:
+        return static_cast<int32_t>(f32);
+      case kStyleValueInt64:
+        return static_cast<int32_t>(i64);
+      default:
+        return 0;
+    }
+  }
+  uint32_t UInt32() const {
+    switch (type) {
+      case kStyleValueFloat:
+        return static_cast<uint32_t>(f32);
+      case kStyleValueInt64:
+        return static_cast<uint32_t>(i64);
+      default:
+        return 0;
+    }
+  }
+  float Float() const {
+    switch (type) {
+      case kStyleValueFloat:
+        return f32;
+      case kStyleValueInt64:
+        return static_cast<float>(i64);
+      default:
+        return 0.f;
+    }
+  }
+  int64_t Int64() const {
+    switch (type) {
+      case kStyleValueFloat:
+        return static_cast<int64_t>(f32);
+      case kStyleValueInt64:
+        return i64;
+      default:
+        return 0;
+    }
+  }
+  uint64_t UInt64() const {
+    switch (type) {
+      case kStyleValueFloat:
+        return static_cast<uint64_t>(f32);
+      case kStyleValueInt64:
+        return static_cast<uint64_t>(i64);
+      default:
+        return 0;
+    }
+  }
+  intptr_t Pointer() const { return IsPointer() ? ptr : 0; }
 };
 
 /**
@@ -279,6 +385,17 @@ class L_EXPORT Style {
   }
 
   /**
+   * @brief General style getter/setter.
+   *
+   * This tagged-value API is intended for bindings and dynamic style bridges.
+   * Use the typed accessors above in C++ code when the attribute is known.
+   */
+ public:
+  StyleValue GetAttribute(AttributeType attribute) const;
+  bool GetAttribute(AttributeType attribute, StyleValue* value) const;
+  bool SetAttribute(AttributeType attribute, const StyleValue& value);
+
+  /**
    * @brief Text Stroke Style.
    *
    * Useful for setting text stroke style
@@ -507,6 +624,9 @@ class L_EXPORT Style {
   }
 
  public:
+  static constexpr AttrType GetAttrType(const AttributeType type) {
+    return 1u << type;
+  }
   static constexpr AttrType FontDescriptorFlag = 1u << (kFontDescriptor);
   static constexpr AttrType TextSizeFlag = 1u << (kTextSize);
   static constexpr AttrType TextScaleFlag = 1u << (kTextScale);
@@ -523,6 +643,7 @@ class L_EXPORT Style {
                                                       << (kDecorationGapLength);
   static constexpr AttrType DecorationSideMarginFlag =
       1u << (kDecorationSideMargin);
+  static constexpr AttrType DecorationOffsetFlag = 1u << (kDecorationOffset);
   static constexpr AttrType TextStrokeStyleFlag = 1u << (kTextStrokeStyle);
   static constexpr AttrType BoldFlag = 1u << (kBold);
   static constexpr AttrType ItalicFlag = 1u << (kItalic);
@@ -547,7 +668,7 @@ class L_EXPORT Style {
   static constexpr FlagType DecorationFlag =
       DecorationColorFlag | DecorationStyleFlag | DecorationTypeFlag |
       DecorationThicknessMultiplierFlag | DecorationElementLengthFlag |
-      DecorationGapLengthFlag | DecorationSideMarginFlag;
+      DecorationGapLengthFlag | DecorationSideMarginFlag | DecorationOffsetFlag;
 
  private:
   FontDescriptor font_descriptor_{{}, FontStyle::Normal(), 0};
@@ -562,6 +683,7 @@ class L_EXPORT Style {
   float decoration_element_length_ = 2.5f;
   float decoration_gap_length_ = 1.5f;
   float decoration_side_margin_ = 2.5f;
+  float decoration_offset_ = -2.f;
   DecorationStyle text_stroke_ = {
       .style_ = {TTColor::UNDEFINED, 10, LineType::kSolid}};
   bool bold_ = false;

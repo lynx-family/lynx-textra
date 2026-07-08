@@ -151,11 +151,9 @@ void LayoutDrawer::DrawLineDecoration(TextLine* i_line,
           TTASSERT(false);
           break;
         case DecorationType::kUnderLine: {
-          // TODO(hfuttyh): Improve underline positioning by:
-          // 1. Reading font's suggested position
-          // 2. Allowing client to specify an offset
-          constexpr float kDefaultUnderlineOffset = -2.f;
-          line_y = line->GetLineBottom() + kDefaultUnderlineOffset;
+          // TODO(hfuttyh): Read font's suggested underline position.
+          line_y = line->GetLineBottom() +
+                   decorate_style.GetAttribute(kDecorationOffset).Float();
           break;
         }
         case DecorationType::kOverline:

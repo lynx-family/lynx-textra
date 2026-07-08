@@ -55,6 +55,7 @@ enum AttributeType : AttrType {
   kDecorationElementLength,
   kDecorationGapLength,
   kDecorationSideMargin,
+  kDecorationOffset,
   kStyleManagerAttrEnd,
   kMaxAttrType = kStyleManagerAttrEnd,
   kExtraAttrStart = 128,

@@ -295,6 +295,15 @@ TEST(StyleManager, AttributeGettersAndSetters) {
   EXPECT_EQ(manager.GetDecorationSideMargin(5), side_margin);
   EXPECT_EQ(manager.GetDecorationSideMargin(6),
             default_style.GetDecorationSideMargin());
+  // Test DecorationOffset
+  const float decoration_offset = -4.f;
+  manager.SetDecorationOffset(decoration_offset, 1, 5);
+  EXPECT_EQ(manager.GetDecorationOffset(0),
+            default_style.GetAttribute(kDecorationOffset).Float());
+  EXPECT_EQ(manager.GetDecorationOffset(1), decoration_offset);
+  EXPECT_EQ(manager.GetDecorationOffset(5), decoration_offset);
+  EXPECT_EQ(manager.GetDecorationOffset(6),
+            default_style.GetAttribute(kDecorationOffset).Float());
   // Test ForegroundPainter
   Painter fg_painter;
   manager.SetForegroundPainter(&fg_painter, 1, 5);
@@ -355,12 +364,14 @@ TEST(StyleManager, GetStyle) {
   const float element_length = 4.f;
   const float gap_length = 2.f;
   const float side_margin = 1.f;
+  const float decoration_offset = -4.f;
   manager.SetForegroundColor(fg_color, 1, 5);
   manager.SetBackgroundColor(bg_color, 1, 5);
   manager.SetDecorationStyle(line_type, 1, 5);
   manager.SetDecorationElementLength(element_length, 1, 5);
   manager.SetDecorationGapLength(gap_length, 1, 5);
   manager.SetDecorationSideMargin(side_margin, 1, 5);
+  manager.SetDecorationOffset(decoration_offset, 1, 5);
 
   Style style = manager.GetStyle(3);
   EXPECT_EQ(style.GetForegroundColor(), fg_color);
@@ -369,6 +380,7 @@ TEST(StyleManager, GetStyle) {
   EXPECT_EQ(style.GetDecorationElementLength(), element_length);
   EXPECT_EQ(style.GetDecorationGapLength(), gap_length);
   EXPECT_EQ(style.GetDecorationSideMargin(), side_margin);
+  EXPECT_EQ(style.GetAttribute(kDecorationOffset).Float(), decoration_offset);
 }
 
 TEST(StyleManager, ApplyStyleInRange) {
