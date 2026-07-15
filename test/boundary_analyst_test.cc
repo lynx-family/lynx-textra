@@ -54,3 +54,37 @@ TEST(BoundaryAnalystTest, DisableAvoidBreakAroundPunctuation) {
               boundary_analyst.GetBoundaryType(i));
   }
 }
+
+TEST(BoundaryAnalystTest, OutOfRangeAccessFallsBackToLineBreakable) {
+  constexpr std::u32string_view text = U"text";
+  const BoundaryAnalyst boundary_analyst(text.data(), text.size(),
+                                         kLineBreakStrategyDefault);
+
+  EXPECT_EQ(BoundaryType::kLineBreakable,
+            boundary_analyst.GetBoundaryType(text.size()));
+  EXPECT_EQ(BoundaryType::kLineBreakable,
+            boundary_analyst.GetBoundaryTypeBefore(text.size() + 1));
+}
+
+TEST(BoundaryAnalystTest, EmptyBoundaryAccessFallsBackToLineBreakable) {
+  const BoundaryAnalyst boundary_analyst(nullptr, 0, kLineBreakStrategyDefault);
+
+  EXPECT_EQ(BoundaryType::kLineBreakable, boundary_analyst.GetBoundaryType(27));
+  EXPECT_EQ(BoundaryType::kLineBreakable,
+            boundary_analyst.GetBoundaryTypeBefore(28));
+  EXPECT_EQ(
+      0u, boundary_analyst.FindNextBoundary(27, BoundaryType::kLineBreakable));
+  EXPECT_EQ(
+      0u, boundary_analyst.FindPrevBoundary(28, BoundaryType::kLineBreakable));
+}
+
+TEST(BoundaryAnalystTest, NullContentUsesSafeFallbackBoundaries) {
+  constexpr uint32_t kCharCount = 28;
+  const BoundaryAnalyst boundary_analyst(nullptr, kCharCount,
+                                         kLineBreakStrategyDefault);
+
+  EXPECT_EQ(BoundaryType::kLineBreakable,
+            boundary_analyst.GetBoundaryType(kCharCount - 1));
+  EXPECT_EQ(kCharCount, boundary_analyst.FindPrevBoundary(
+                            kCharCount + 1, BoundaryType::kLineBreakable));
+}
