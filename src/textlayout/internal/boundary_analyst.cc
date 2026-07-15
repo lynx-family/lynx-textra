@@ -6,6 +6,7 @@
 
 #include <textra/macro.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #ifdef BOUNDARY_ANALYST_ICU
@@ -114,6 +115,10 @@ BoundaryAnalyst::BoundaryAnalyst(const char32_t* u32_content,
                                  LineBreakStrategy line_break_strategy) {
   // runs are left-closed right-open intervals, the last charpos of text is \0
   // character
+  if (u32_content == nullptr || char_count == 0) {
+    boundary_.resize(char_count, BoundaryType::kLineBreakable);
+    return;
+  }
 #ifdef BOUNDARY_ANALYST_ICU
   boundary_.resize(char_count, BoundaryType::kNone);
   auto& icu_wrapper = ICUWrapper::GetInstance();
@@ -133,6 +138,7 @@ uint32_t BoundaryAnalyst::FindNextBoundary(uint32_t start,
 }
 uint32_t BoundaryAnalyst::FindPrevBoundary(uint32_t start,
                                            BoundaryType type) const {
+  start = std::min(start, static_cast<uint32_t>(boundary_.size()));
   for (auto k = start; k > 0; --k) {
     if (GetBoundaryTypeBefore(k) >= type) return k;
   }

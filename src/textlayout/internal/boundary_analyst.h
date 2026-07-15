@@ -5,7 +5,6 @@
 #ifndef SRC_TEXTLAYOUT_INTERNAL_BOUNDARY_ANALYST_H_
 #define SRC_TEXTLAYOUT_INTERNAL_BOUNDARY_ANALYST_H_
 #include <textra/layout_definition.h>
-#include <textra/macro.h>
 
 #include <vector>
 
@@ -23,11 +22,12 @@ class BoundaryAnalyst {
   uint32_t FindNextBoundary(uint32_t start, BoundaryType type) const;
   uint32_t FindPrevBoundary(uint32_t start, BoundaryType type) const;
   BoundaryType GetBoundaryTypeBefore(uint32_t idx) const {
-    return idx == 0 ? BoundaryType::kLineBreakable : boundary_[idx - 1];
+    return idx == 0 || idx > boundary_.size() ? BoundaryType::kLineBreakable
+                                              : boundary_[idx - 1];
   }
   BoundaryType GetBoundaryType(uint32_t idx) const {
-    TTASSERT(idx < boundary_.size());
-    return boundary_[idx];
+    return idx < boundary_.size() ? boundary_[idx]
+                                  : BoundaryType::kLineBreakable;
   }
   void UpgradeBoundaryType(const Range& range, BoundaryType type);
 
