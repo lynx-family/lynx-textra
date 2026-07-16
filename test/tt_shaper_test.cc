@@ -9,7 +9,10 @@
 #include <textra/font_info.h>
 
 #include <array>
+#include <initializer_list>
 #include <numeric>
+#include <unordered_set>
+#include <utility>
 
 #include "mocks.h"
 #include "src/textlayout/shape_cache.h"
@@ -17,6 +20,96 @@
 
 using namespace ttoffice::tttext;
 using namespace ::testing;
+
+namespace {
+
+class SelectiveTypefaceHelper final : public FixedMetricsTypefaceHelper {
+ public:
+  SelectiveTypefaceHelper(uint32_t unique_id, TypefaceRef backing_typeface,
+                          std::initializer_list<Unichar> supported_characters)
+      : FixedMetricsTypefaceHelper(unique_id),
+        backing_typeface_(std::move(backing_typeface)),
+        supported_characters_(supported_characters) {}
+
+  uint16_t UnicharToGlyph(Unichar codepoint, uint32_t = 0) const override {
+    return supported_characters_.count(codepoint) == 0 ? 0 : 1;
+  }
+
+  void UnicharsToGlyphs(const Unichar* unichars, uint32_t count,
+                        GlyphID* glyphs) const override {
+    for (uint32_t i = 0; i < count; ++i) {
+      glyphs[i] = UnicharToGlyph(unichars[i]);
+    }
+  }
+
+  const void* GetFontData() const override {
+    return backing_typeface_->GetFontData();
+  }
+
+  size_t GetFontDataSize() const override {
+    return backing_typeface_->GetFontDataSize();
+  }
+
+  int GetFontIndex() const override {
+    return backing_typeface_->GetFontIndex();
+  }
+
+ private:
+  TypefaceRef backing_typeface_;
+  std::unordered_set<Unichar> supported_characters_;
+};
+
+class AdjacentFlagFontManager final : public IFontManager {
+ public:
+  AdjacentFlagFontManager()
+      : primary_typeface_(std::make_shared<SelectiveTypefaceHelper>(
+            1, TFH_DEFAULT, std::initializer_list<Unichar>{})),
+        first_flag_typeface_(std::make_shared<SelectiveTypefaceHelper>(
+            2, TFH_DEFAULT,
+            std::initializer_list<Unichar>{0x1F3F3, 0xFE0F, 0x200D, 0x1F308})),
+        second_flag_typeface_(std::make_shared<SelectiveTypefaceHelper>(
+            3, TFH_DEFAULT, std::initializer_list<Unichar>{0x1F1E8, 0x1F1F3})) {
+  }
+
+  int countFamilies() const override { return 0; }
+
+  TypefaceRef matchFamilyStyle(const char[], const FontStyle&) override {
+    return primary_typeface_;
+  }
+
+  TypefaceRef matchFamilyStyleCharacter(const char[], const FontStyle&,
+                                        const char*[], int,
+                                        uint32_t character) override {
+    if (first_flag_typeface_->UnicharToGlyph(character) != 0) {
+      return first_flag_typeface_;
+    }
+    if (second_flag_typeface_->UnicharToGlyph(character) != 0) {
+      return second_flag_typeface_;
+    }
+    return nullptr;
+  }
+
+  TypefaceRef makeFromFile(const char[], int) override { return nullptr; }
+
+  TypefaceRef legacyMakeTypeface(const char[], FontStyle) const override {
+    return primary_typeface_;
+  }
+
+  const TypefaceRef& first_flag_typeface() const {
+    return first_flag_typeface_;
+  }
+
+  const TypefaceRef& second_flag_typeface() const {
+    return second_flag_typeface_;
+  }
+
+ private:
+  TypefaceRef primary_typeface_;
+  TypefaceRef first_flag_typeface_;
+  TypefaceRef second_flag_typeface_;
+};
+
+}  // namespace
 
 TEST(ShapeStyle, Constructor) {
   FontDescriptor font_descriptor;
@@ -226,4 +319,24 @@ TEST(TTShaper, ShapeTextCallsOnShapeText) {
   auto result = mock_shaper.ShapeText(text.c_str(), text.length(), &style, rtl);
   // Check the returned ShapeResult is set by OnShapeText
   EXPECT_EQ(result->CharCount(), text.length());
+}
+
+TEST(TTShaper, UsesSeparateFallbackFontsForAdjacentFlagClusters) {
+  auto font_manager = std::make_shared<AdjacentFlagFontManager>();
+  FontmgrCollection font_collection(font_manager);
+  ShaperSkShaper shaper(font_collection);
+  const std::u32string text = U"🏳️‍🌈🇨🇳";
+  const ShapeStyle style(FontDescriptor(), 12.f, false, false);
+  const ShapeKey key(text.c_str(), text.size(), &style, false);
+  ShapeResult result(text.size(), false);
+
+  shaper.OnShapeText(key, &result);
+
+  ASSERT_EQ(result.CharCount(), text.size());
+  EXPECT_EQ(result.FontByCharId(0), font_manager->first_flag_typeface());
+  EXPECT_EQ(result.FontByCharId(1), font_manager->first_flag_typeface());
+  EXPECT_EQ(result.FontByCharId(2), font_manager->first_flag_typeface());
+  EXPECT_EQ(result.FontByCharId(3), font_manager->first_flag_typeface());
+  EXPECT_EQ(result.FontByCharId(4), font_manager->second_flag_typeface());
+  EXPECT_EQ(result.FontByCharId(5), font_manager->second_flag_typeface());
 }

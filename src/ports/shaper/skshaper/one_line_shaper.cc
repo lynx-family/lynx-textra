@@ -56,8 +56,7 @@ void AddProtectedRange(std::vector<TextRange>* ranges, TextIndex start,
   }
 
   TextRange range(start, end);
-  if (!ranges->empty() &&
-      (ranges->back().IsIntersect(range) || ranges->back().IsAdjacent(range))) {
+  if (!ranges->empty() && ranges->back().IsIntersect(range)) {
     ranges->back().Merge(range);
     return;
   }
