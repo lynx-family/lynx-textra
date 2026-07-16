@@ -358,6 +358,12 @@ void OneLineShaper::buildProtectedTextRanges() {
       continue;
     }
 
+    if (IsEmojiKeycapSequence(content_, i, len_)) {
+      AddProtectedRange(&fProtectedTextRanges, i, i + 3);
+      i += 3;
+      continue;
+    }
+
     if (IsEmojiBaseForFallback(codepoint)) {
       TextIndex end = i + 1;
       while (end < len_) {

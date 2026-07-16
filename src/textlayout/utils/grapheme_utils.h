@@ -38,6 +38,22 @@ inline bool IsEmojiRegionalIndicator(uint32_t codepoint) {
   return codepoint >= 0x1F1E6 && codepoint <= 0x1F1FF;
 }
 
+inline bool IsEmojiKeycapBase(uint32_t codepoint) {
+  return (codepoint >= 0x30 && codepoint <= 0x39) || codepoint == 0x23 ||
+         codepoint == 0x2A;
+}
+
+inline bool IsCombiningEnclosingKeycap(uint32_t codepoint) {
+  return codepoint == 0x20E3;
+}
+
+inline bool IsEmojiKeycapSequence(const char32_t* text, uint32_t start,
+                                  uint32_t end) {
+  return text != nullptr && start < end && end - start >= 3 &&
+         IsEmojiKeycapBase(text[start]) && text[start + 1] == 0xFE0F &&
+         IsCombiningEnclosingKeycap(text[start + 2]);
+}
+
 inline bool IsEmojiTagCharacter(uint32_t codepoint) {
   return codepoint >= 0xE0020 && codepoint <= 0xE007F;
 }
@@ -83,7 +99,8 @@ inline uint32_t EmojiFallbackKey(const char32_t* text, uint32_t start,
 
   for (uint32_t i = start; i < end; ++i) {
     uint32_t codepoint = text[i];
-    if (IsEmojiRegionalIndicator(codepoint) ||
+    if (IsCombiningEnclosingKeycap(codepoint) ||
+        IsEmojiRegionalIndicator(codepoint) ||
         IsEmojiBaseForFallback(codepoint)) {
       return codepoint;
     }
