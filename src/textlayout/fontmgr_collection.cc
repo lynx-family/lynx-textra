@@ -99,7 +99,8 @@ TypefaceRef FontmgrCollection::defaultFallback(
     if (!locale.empty()) {
       bcp47.push_back(locale.c_str());
     }
-    if (IsCommonEmoji(unicode) && locale != kEmojiBcp47Tag) {
+    if ((IsCommonEmoji(unicode) || IsCombiningEnclosingKeycap(unicode)) &&
+        locale != kEmojiBcp47Tag) {
       bcp47.push_back(kEmojiBcp47Tag);
     }
     TypefaceRef typeface(manager->matchFamilyStyleCharacter(
