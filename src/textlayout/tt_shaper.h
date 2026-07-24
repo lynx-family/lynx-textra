@@ -62,7 +62,7 @@ class ShapeStyle {
   friend std::hash<ShapeStyle>;
 
  public:
-  ShapeStyle() = default;
+  ShapeStyle() : hash_(UpdateHash()) {}
 
   ShapeStyle(const FontDescriptor& font_descriptor, float font_size,
              bool fake_bold, bool fake_italic)
@@ -84,23 +84,28 @@ class ShapeStyle {
 
  private:
   std::size_t UpdateHash() const {
-    std::size_t hash = 0;
+    std::size_t seed = 0;
+    const auto hash_combine = [&seed](size_t value) {
+      seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    };
     for (const auto& font_family : font_descriptor_.font_family_list_) {
-      hash ^= std::hash<std::string>()(font_family);
+      hash_combine(std::hash<std::string>()(font_family));
     }
-    hash ^= std::hash<uint64_t>()(font_descriptor_.platform_font_);
-    hash ^= std::hash<int32_t>()(font_descriptor_.font_style_.Value());
-    hash ^= std::hash<float>()(font_size_);
-    hash ^= std::hash<bool>()(fake_bold_) << 0u;
-    hash ^= std::hash<bool>()(fake_italic_) << 1u;
-    return hash;
+    hash_combine(std::hash<uint64_t>()(font_descriptor_.platform_font_));
+    hash_combine(std::hash<int32_t>()(font_descriptor_.font_style_.Value()));
+    hash_combine(std::hash<float>()(font_size_));
+    hash_combine(std::hash<bool>()(fake_bold_));
+    hash_combine(std::hash<bool>()(fake_italic_));
+    return seed;
   }
 
  public:
   bool operator==(const ShapeStyle& o) const {
     TTASSERT(hash_ == UpdateHash());
     TTASSERT(o.hash_ == o.UpdateHash());
-    return hash_ == o.hash_;
+    return hash_ == o.hash_ && font_descriptor_ == o.font_descriptor_ &&
+           font_size_ == o.font_size_ && fake_bold_ == o.fake_bold_ &&
+           fake_italic_ == o.fake_italic_;
   }
   std::size_t operator()(const ShapeStyle& k) const {
     TTASSERT(hash_ == UpdateHash());
@@ -133,7 +138,7 @@ class ShapeKey {
   friend std::hash<ShapeKey>;
 
  public:
-  ShapeKey() : text_(), style_(), rtl_(false), hash_(0) {}
+  ShapeKey() : text_(), style_(), rtl_(false), hash_(UpdateHash()) {}
   ShapeKey(const char32_t* text, uint32_t length, FontDescriptor&& p_font_list,
            float font_size, bool fake_bold, bool fake_italic, bool rtl)
       : text_(text, length),
@@ -149,8 +154,13 @@ class ShapeKey {
 
  private:
   std::size_t UpdateHash() const {
-    return std::hash<std::u32string>()(text_) ^
-           std::hash<ShapeStyle>()(style_) ^ std::hash<bool>()(rtl_);
+    std::size_t seed = std::hash<std::u32string>()(text_);
+    const auto hash_combine = [&seed](size_t value) {
+      seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    };
+    hash_combine(std::hash<ShapeStyle>()(style_));
+    hash_combine(std::hash<bool>()(rtl_));
+    return seed;
   }
 
  public:

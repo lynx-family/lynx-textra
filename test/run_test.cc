@@ -68,6 +68,13 @@ class TestableBaseRun final : public BaseRun {
   }
 };
 
+class TestableParagraphImpl final : public ParagraphImpl {
+ public:
+  void SetBidiLevelsForTest(std::vector<uint8_t> bidi_levels) {
+    bidi_level_ = std::move(bidi_levels);
+  }
+};
+
 class MultiFontShapingResultReader final
     : public tttext::PlatformShapingResultReader {
  public:
@@ -122,6 +129,21 @@ TEST(BaseRun, Constructor) {
   EXPECT_FLOAT_EQ(run.GetStartCharPos(), start_char_pos);
   EXPECT_FLOAT_EQ(run.GetEndCharPos(), end_char_pos);
   EXPECT_EQ(run.GetType(), type);
+}
+
+TEST(BaseRun, FontFamilyOrderParticipatesInShapingMerge) {
+  TestableParagraphImpl paragraph;
+  paragraph.SetBidiLevelsForTest({0, 0});
+  Style style_ab;
+  style_ab.SetFontDescriptor(
+      FontDescriptor{{"A", "B"}, FontStyle::Normal(), 0});
+  Style style_ba;
+  style_ba.SetFontDescriptor(
+      FontDescriptor{{"B", "A"}, FontStyle::Normal(), 0});
+  BaseRun run_ab(&paragraph, style_ab.GetImpl(), 0, 1, RunType::kTextRun);
+  BaseRun run_ba(&paragraph, style_ba.GetImpl(), 1, 2, RunType::kTextRun);
+
+  EXPECT_FALSE(run_ba.CanBeAppendToShaping(run_ab));
 }
 
 TEST(BaseRun, AssignmentOperator) {

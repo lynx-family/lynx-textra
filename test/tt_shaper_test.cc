@@ -14,6 +14,9 @@
 #include <unordered_set>
 #include <utility>
 
+#if defined(ENABLE_CTSHAPER)
+#include "src/ports/shaper/coretext/shaper_core_text_self_rendering.h"
+#endif
 #include "mocks.h"
 #include "src/textlayout/shape_cache.h"
 #include "test_utils.h"
@@ -143,6 +146,24 @@ TEST(ShapeStyle, SetFontDescriptor) {
   EXPECT_FALSE(old_style == new_style);
 }
 
+TEST(ShapeStyle, FamilyOrderAndAllFieldsParticipateInIdentity) {
+  FontDescriptor descriptor_ab{{"A", "B"}, FontStyle::Normal(), 0};
+  FontDescriptor descriptor_ba{{"B", "A"}, FontStyle::Normal(), 0};
+
+  ShapeStyle style_ab(descriptor_ab, 10.f, false, false);
+  ShapeStyle style_ba(descriptor_ba, 10.f, false, false);
+  ShapeStyle different_size(descriptor_ab, 11.f, false, false);
+  ShapeStyle fake_bold(descriptor_ab, 10.f, true, false);
+  ShapeStyle fake_italic(descriptor_ab, 10.f, false, true);
+
+  EXPECT_FALSE(style_ab == style_ba);
+  EXPECT_NE(std::hash<ShapeStyle>()(style_ab),
+            std::hash<ShapeStyle>()(style_ba));
+  EXPECT_FALSE(style_ab == different_size);
+  EXPECT_FALSE(style_ab == fake_bold);
+  EXPECT_FALSE(style_ab == fake_italic);
+}
+
 TEST(ShapeKey, Constructor) {
   const std::u32string text = U"Hello world";
   const float font_size = 10.f;
@@ -189,6 +210,147 @@ TEST(ShapeKey, UsedAsMapKey) {
   EXPECT_EQ(shape_map[key4], 4);
   EXPECT_EQ(shape_map[key5], 5);
 }
+
+TEST(ShapeKey, FamilyOrderAlwaysParticipatesInIdentity) {
+  const std::u32string text = U"same text";
+  const ShapeStyle style_ab(FontDescriptor{{"A", "B"}, FontStyle::Normal(), 0},
+                            10.f, false, false);
+  const ShapeStyle style_ba(FontDescriptor{{"B", "A"}, FontStyle::Normal(), 0},
+                            10.f, false, false);
+
+  ShapeKey system_ab(text.c_str(), text.size(), &style_ab, false);
+  ShapeKey system_ba(text.c_str(), text.size(), &style_ba, false);
+  EXPECT_FALSE(system_ab == system_ba);
+  EXPECT_NE(std::hash<ShapeKey>()(system_ab), std::hash<ShapeKey>()(system_ba));
+}
+
+#if defined(ENABLE_CTSHAPER)
+namespace ttoffice {
+namespace tttext {
+class ShaperCoreTextSelfRenderingTestAccess {
+ public:
+  static CTFontDescriptorRef CopyFontDescriptorWithoutCascade(
+      CTFontDescriptorRef descriptor) {
+    return ShaperCoreTextSelfRendering::CopyFontDescriptorWithoutCascade(
+        descriptor);
+  }
+
+  static CFArrayRef CreateOrderedCascadeDescriptors(
+      const std::vector<CTFontDescriptorRef>& descriptors) {
+    return ShaperCoreTextSelfRendering::CreateOrderedCascadeDescriptors(
+        descriptors);
+  }
+
+  static bool FontCoversStringRangeExactly(CTFontRef font, CFStringRef string,
+                                           CFRange range) {
+    return ShaperCoreTextSelfRendering::FontCoversStringRangeExactly(
+        font, string, range);
+  }
+
+  static size_t CacheKeyHash(const FontDescriptor& descriptor) {
+    ShaperCoreTextSelfRendering::CachedSafeFontKey key{descriptor, 10.f, false,
+                                                       false};
+    return ShaperCoreTextSelfRendering::CachedSafeFontKey::Hasher()(key);
+  }
+
+  static bool CacheKeysEqual(const FontDescriptor& lhs_descriptor,
+                             const FontDescriptor& rhs_descriptor) {
+    ShaperCoreTextSelfRendering::CachedSafeFontKey lhs{lhs_descriptor, 10.f,
+                                                       false, false};
+    ShaperCoreTextSelfRendering::CachedSafeFontKey rhs{rhs_descriptor, 10.f,
+                                                       false, false};
+    return lhs == rhs;
+  }
+};
+}  // namespace tttext
+}  // namespace ttoffice
+
+TEST(ShaperCoreTextSelfRendering, CacheKeyUsesFamilyOrder) {
+  const FontDescriptor descriptor_ab{{"A", "B"}, FontStyle::Normal(), 0};
+  const FontDescriptor descriptor_ba{{"B", "A"}, FontStyle::Normal(), 0};
+
+  EXPECT_FALSE(ShaperCoreTextSelfRenderingTestAccess::CacheKeysEqual(
+      descriptor_ab, descriptor_ba));
+  EXPECT_NE(ShaperCoreTextSelfRenderingTestAccess::CacheKeyHash(descriptor_ab),
+            ShaperCoreTextSelfRenderingTestAccess::CacheKeyHash(descriptor_ba));
+}
+
+TEST(ShaperCoreTextSelfRendering,
+     OrderedCascadeStripsNestedCascadesAndPreservesOrder) {
+  CTFontDescriptorRef descriptor_a =
+      CTFontDescriptorCreateWithNameAndSize(CFSTR("Helvetica"), 0.0);
+  CTFontDescriptorRef descriptor_b =
+      CTFontDescriptorCreateWithNameAndSize(CFSTR("Courier"), 0.0);
+  const void* nested_values[] = {descriptor_b};
+  CFArrayRef nested_cascade = CFArrayCreate(kCFAllocatorDefault, nested_values,
+                                            1, &kCFTypeArrayCallBacks);
+  const void* cascade_keys[] = {kCTFontCascadeListAttribute};
+  const void* cascade_values[] = {nested_cascade};
+  CFDictionaryRef nested_attributes = CFDictionaryCreate(
+      kCFAllocatorDefault, cascade_keys, cascade_values, 1,
+      &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+  CTFontDescriptorRef descriptor_a_with_nested_cascade =
+      CTFontDescriptorCreateCopyWithAttributes(descriptor_a, nested_attributes);
+
+  CTFontDescriptorRef descriptor_without_cascade =
+      ShaperCoreTextSelfRenderingTestAccess::CopyFontDescriptorWithoutCascade(
+          descriptor_a_with_nested_cascade);
+  CFArrayRef stripped_cascade =
+      static_cast<CFArrayRef>(CTFontDescriptorCopyAttribute(
+          descriptor_without_cascade, kCTFontCascadeListAttribute));
+  ASSERT_NE(stripped_cascade, nullptr);
+  EXPECT_EQ(CFArrayGetCount(stripped_cascade), 0);
+
+  CFArrayRef ordered_cascade =
+      ShaperCoreTextSelfRenderingTestAccess::CreateOrderedCascadeDescriptors(
+          {descriptor_a_with_nested_cascade, descriptor_b});
+  ASSERT_EQ(CFArrayGetCount(ordered_cascade), 6);
+  CTFontDescriptorRef ordered_a = static_cast<CTFontDescriptorRef>(
+      const_cast<void*>(CFArrayGetValueAtIndex(ordered_cascade, 0)));
+  CTFontDescriptorRef ordered_b = static_cast<CTFontDescriptorRef>(
+      const_cast<void*>(CFArrayGetValueAtIndex(ordered_cascade, 1)));
+  CFStringRef ordered_a_name = static_cast<CFStringRef>(
+      CTFontDescriptorCopyAttribute(ordered_a, kCTFontNameAttribute));
+  CFStringRef ordered_b_name = static_cast<CFStringRef>(
+      CTFontDescriptorCopyAttribute(ordered_b, kCTFontNameAttribute));
+  ASSERT_NE(ordered_a_name, nullptr);
+  ASSERT_NE(ordered_b_name, nullptr);
+  EXPECT_TRUE(CFEqual(ordered_a_name, CFSTR("Helvetica")));
+  EXPECT_TRUE(CFEqual(ordered_b_name, CFSTR("Courier")));
+
+  CFRelease(ordered_b_name);
+  CFRelease(ordered_a_name);
+  CFRelease(ordered_cascade);
+  CFRelease(stripped_cascade);
+  CFRelease(descriptor_without_cascade);
+  CFRelease(descriptor_a_with_nested_cascade);
+  CFRelease(nested_attributes);
+  CFRelease(nested_cascade);
+  CFRelease(descriptor_b);
+  CFRelease(descriptor_a);
+}
+
+TEST(ShaperCoreTextSelfRendering, ExactCoverageRejectsCoreTextSystemFallback) {
+  CTFontRef latin_font =
+      CTFontCreateWithName(CFSTR("Helvetica"), 16.0, nullptr);
+  CTFontRef cjk_font =
+      CTFontCreateWithName(CFSTR("PingFang SC"), 16.0, nullptr);
+  ASSERT_NE(latin_font, nullptr);
+  ASSERT_NE(cjk_font, nullptr);
+
+  CFStringRef text = CFSTR("\u4E2D");
+  const CFRange range = CFRangeMake(0, CFStringGetLength(text));
+  EXPECT_FALSE(
+      ShaperCoreTextSelfRenderingTestAccess::FontCoversStringRangeExactly(
+          latin_font, text, range));
+  EXPECT_TRUE(
+      ShaperCoreTextSelfRenderingTestAccess::FontCoversStringRangeExactly(
+          cjk_font, text, range));
+
+  CFRelease(cjk_font);
+  CFRelease(latin_font);
+}
+#endif
 
 TEST(ShapeResult, Constructor) {
   const uint32_t char_count = 10;

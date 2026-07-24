@@ -111,6 +111,8 @@ Pod::Spec.new do |s|
                                 "src/ports/platform_helper.cc",
                                 "src/ports/shaper/coretext/shaper_core_text.h",
                                 "src/ports/shaper/coretext/shaper_core_text.mm",
+                                "src/ports/shaper/coretext/shaper_core_text_self_rendering.h",
+                                "src/ports/shaper/coretext/shaper_core_text_self_rendering.mm",
                                 "src/textlayout/dominate_baseline.cc",
                                 "src/textlayout/dominate_baseline.h",
                                 "src/textlayout/font_info.cc",
