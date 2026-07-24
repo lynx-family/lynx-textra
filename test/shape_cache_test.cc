@@ -91,6 +91,32 @@ TEST(ShapeCache, Singleton) {
   EXPECT_EQ(&cache1, &cache2);
 }
 
+TEST(ShapeCache, ClearRemovesAllEntries) {
+  ShapeKey key(U"clear", 5, FontDescriptor(), 10.f, false, false, false);
+  auto result = std::make_shared<ShapeResult>(1, false);
+  ShapeCache& cache = ShapeCache::GetInstance();
+  cache.Clear();
+  cache.AddToCache(key, result);
+
+  EXPECT_EQ(cache.Find(key), result);
+  cache.Clear();
+  EXPECT_EQ(cache.Find(key), nullptr);
+}
+
+TEST(ShapeCache, ClearRejectsAnInFlightResultFromThePreviousEpoch) {
+  ShapeKey key(U"stale", 5, FontDescriptor(), 10.f, false, false, false);
+  auto result = std::make_shared<ShapeResult>(1, false);
+  ShapeCache& cache = ShapeCache::GetInstance();
+  cache.Clear();
+
+  ShapeCache::Epoch epoch = 0;
+  EXPECT_EQ(cache.Find(key, &epoch), nullptr);
+  cache.Clear();
+  cache.AddToCache(key, result, epoch);
+
+  EXPECT_EQ(cache.Find(key), nullptr);
+}
+
 TEST(ShapeResultPiece, GlyphCountIncludesLigatureGlyphs) {
   auto result = std::make_shared<ShapeResult>(3, false);
   LigatureShapeResultReader reader;

@@ -8,7 +8,9 @@
 #include <textra/font_info.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <memory>
+#include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
 
@@ -112,6 +114,8 @@ namespace ttoffice {
 namespace tttext {
 class ShapeCache final {
  public:
+  using Epoch = uint64_t;
+
   static ShapeCache& GetInstance() {
     static ShapeCache* instance = new ShapeCache();
     return *instance;
@@ -127,16 +131,26 @@ class ShapeCache final {
  public:
   void AddToCache(const ShapeKey& key, const ShapeResultRef& result) {
     std::unique_lock lock(mutex_);
-#ifdef USE_LRU_CACHE
-    TTASSERT(shape_cache_.get(key) == nullptr);
-    shape_cache_.put(key, result);
-#else
-    TTASSERT(shape_cache_.find(key) == shape_cache_.end());
-    shape_cache_.insert({key, result});
-#endif
+    AddToCacheLocked(key, result);
   }
-  std::shared_ptr<ShapeResult> Find(const ShapeKey& key) {
+
+  void AddToCache(const ShapeKey& key, const ShapeResultRef& result,
+                  Epoch epoch) {
+    std::unique_lock lock(mutex_);
+    // A font-manager update may clear the cache while shaping is in flight.
+    // Do not let a result made with the old font set repopulate the cache.
+    if (epoch != epoch_) {
+      return;
+    }
+    AddToCacheLocked(key, result);
+  }
+
+  std::shared_ptr<ShapeResult> Find(const ShapeKey& key,
+                                    Epoch* epoch = nullptr) {
     std::shared_lock lock(mutex_);
+    if (epoch != nullptr) {
+      *epoch = epoch_;
+    }
 #ifdef USE_LRU_CACHE
     auto iter = shape_cache_.get(key);
     return iter == nullptr ? nullptr : *iter;
@@ -146,7 +160,23 @@ class ShapeCache final {
 #endif
   }
 
+  void Clear() {
+    std::unique_lock lock(mutex_);
+    shape_cache_.clear();
+    ++epoch_;
+  }
+
  private:
+  void AddToCacheLocked(const ShapeKey& key, const ShapeResultRef& result) {
+#ifdef USE_LRU_CACHE
+    TTASSERT(shape_cache_.get(key) == nullptr);
+    shape_cache_.put(key, result);
+#else
+    TTASSERT(shape_cache_.find(key) == shape_cache_.end());
+    shape_cache_.insert({key, result});
+#endif
+  }
+
 #ifdef USE_LRU_CACHE
   android::LruCache<const ShapeKey, ShapeResultRef> shape_cache_{
       android::LruCache<const ShapeKey,
@@ -155,6 +185,7 @@ class ShapeCache final {
   std::unordered_map<const ShapeKey, ShapeResultRef> shape_cache_;
 #endif
   mutable std::shared_mutex mutex_{};
+  Epoch epoch_ = 0;
 };
 }  // namespace tttext
 }  // namespace ttoffice

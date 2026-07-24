@@ -8,6 +8,7 @@
 #include <textra/text_layout.h>
 #include <textra/tttext_context.h>
 
+#include "src/textlayout/shape_cache.h"
 #include "src/textlayout/text_layout_impl.h"
 #include "src/textlayout/tt_shaper.h"
 
@@ -23,6 +24,8 @@ TextLayout::TextLayout(std::unique_ptr<TTShaper> shaper)
 TextLayout::~TextLayout() = default;
 
 bool TextLayout::Preload(ShaperType type) { return TTShaper::Preload(type); }
+
+void TextLayout::ClearShapeCache() { ShapeCache::GetInstance().Clear(); }
 
 LayoutResult TextLayout::LayoutEx(Paragraph* para, LayoutRegion* page,
                                   TTTextContext& context) const {
