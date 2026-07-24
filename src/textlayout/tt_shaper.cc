@@ -103,8 +103,10 @@ ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
   const ShapeKey key(text, length, shape_style, rtl);
   const auto disable_shape_cache =
       context_ != nullptr && context_->GetImpl().IsShapeCacheDisabled();
-  auto result =
-      disable_shape_cache ? nullptr : ShapeCache::GetInstance().Find(key);
+  ShapeCache::Epoch cache_epoch = 0;
+  auto result = disable_shape_cache
+                    ? nullptr
+                    : ShapeCache::GetInstance().Find(key, &cache_epoch);
   if (result == nullptr) {
     result = std::make_shared<ShapeResult>(length, rtl);
     OnShapeText(key, result.get());
@@ -117,7 +119,7 @@ ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
       }
     }
     if (!disable_shape_cache) {
-      ShapeCache::GetInstance().AddToCache(key, result);
+      ShapeCache::GetInstance().AddToCache(key, result, cache_epoch);
     }
   }
   TTASSERT(result != nullptr);
