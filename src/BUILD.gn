@@ -303,6 +303,8 @@ source_set("textlayout") {
     sources += [
       "$prj_root/src/ports/shaper/coretext/shaper_core_text.h",
       "$prj_root/src/ports/shaper/coretext/shaper_core_text.mm",
+      "$prj_root/src/ports/shaper/coretext/shaper_core_text_self_rendering.h",
+      "$prj_root/src/ports/shaper/coretext/shaper_core_text_self_rendering.mm",
     ]
 
     cflags_objc = [ "-fobjc-arc" ]

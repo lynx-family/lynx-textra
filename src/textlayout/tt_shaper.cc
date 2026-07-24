@@ -12,6 +12,7 @@
 #endif
 #if defined(ENABLE_CTSHAPER) || defined(ENABLE_CTSHAPER_SKITY)
 #include "src/ports/shaper/coretext/shaper_core_text.h"
+#include "src/ports/shaper/coretext/shaper_core_text_self_rendering.h"
 #endif
 #if defined(ENABLE_OHOS)
 #include "src/ports/shaper/ark_graphics/shaper_ark_graphics.h"
@@ -53,7 +54,10 @@ std::unique_ptr<TTShaper> TTShaper::CreateShaper(
       break;
 #endif
 #ifdef ENABLE_CTSHAPER
-      return std::make_unique<ShaperCoreText>(*font_collection);
+      // Ordered CoreText family matching is intentionally isolated to the
+      // self-rendering path. Keep kSystem on the legacy shaper so TextService
+      // and other system-rendered callers retain their existing behavior.
+      return std::make_unique<ShaperCoreTextSelfRendering>(*font_collection);
       break;
 #endif
       break;

@@ -281,7 +281,7 @@ class TestUtils {
       std::string& text, ParagraphHorizontalAlignment align) {
     auto paragraph = std::make_unique<ParagraphImpl>();
     //    paragraph->GetParagraphStyle().SetHorizontalAlign(align);
-    Style r_pr;
+    ttoffice::tttext::Style r_pr;
     r_pr.SetTextSize(24);
     paragraph->GetParagraphStyle().SetDefaultStyle(r_pr);
     paragraph->AddTextRun(&r_pr, text.c_str());
