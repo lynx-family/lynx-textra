@@ -715,6 +715,7 @@ TEST_F(TextLayoutTest, ParagraphStyle_WriteDirection) {
     line->GetCharBoundingRect(text_run_rect, line->GetStartCharPos());
     // Expected output: "The quick..."
     EXPECT_FLOAT_EQ(text_run_rect[0], 0.f);
+    EXPECT_EQ(line->GetEndCharPos(), 9u);
   }
   {
     // Test RTL direction
@@ -725,7 +726,64 @@ TEST_F(TextLayoutTest, ParagraphStyle_WriteDirection) {
     line->GetCharBoundingRect(text_run_rect, line->GetStartCharPos());
     // Expected output: "...The quick"
     EXPECT_FLOAT_EQ(text_run_rect[0], strlen(ellipsis) * text_size);
+    EXPECT_EQ(line->GetEndCharPos(), 9u);
   }
+}
+
+TEST_F(TextLayoutTest, ParagraphStyle_EllipsisMixedBidiStripsFromRtlStart) {
+  auto para = std::make_unique<ParagraphImpl>();
+  Style style;
+  style.SetTextSize(1.f);
+  ParagraphStyle para_style;
+  para_style.SetDefaultStyle(style);
+  para_style.SetWriteDirection(WriteDirection::kRTL);
+  para_style.SetMaxLines(1);
+  para_style.SetEllipsis(".");
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&style, "abcdef");
+
+  TextLayout layout(TestUtils::CreateFixedBidiTestShaper({5, 4, 2, 3, 1, 0},
+                                                         {1, 1, 2, 2, 1, 1}));
+  TTTextContext context;
+  auto region = std::make_unique<LayoutRegion>(4.f, 3.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  float retained_char_rect[4];
+  float stripped_char_rect[4];
+  line->GetCharBoundingRect(retained_char_rect, 1);
+  line->GetCharBoundingRect(stripped_char_rect, 3);
+
+  EXPECT_FLOAT_EQ(retained_char_rect[2], 1.f);
+  EXPECT_FLOAT_EQ(stripped_char_rect[2], 0.f);
+  EXPECT_EQ(line->GetEndCharPos(), 3u);
+}
+
+TEST_F(TextLayoutTest, ParagraphStyle_EllipsisWiderThanIndentedRange) {
+  auto para = std::make_unique<ParagraphImpl>();
+  Style style;
+  style.SetTextSize(1.f);
+  ParagraphStyle para_style;
+  para_style.SetDefaultStyle(style);
+  para_style.SetFirstLineIndentInPx(3.f);
+  para_style.SetMaxLines(1);
+  para_style.SetEllipsis("..");
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&style, "ab");
+
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  auto region = std::make_unique<LayoutRegion>(4.f, 3.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  float text_rect[4];
+  line->GetCharBoundingRect(text_rect, 0);
+  EXPECT_FLOAT_EQ(text_rect[0], 3.f);
+  EXPECT_FLOAT_EQ(text_rect[2], 1.f);
+  EXPECT_EQ(line->GetEndCharPos(), 1u);
 }
 
 TEST_F(TextLayoutTest, ParagraphStyle_WriteDirectionUpdatesAfterLayout) {

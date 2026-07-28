@@ -209,9 +209,9 @@ void TextLineImpl::InsertDrawerPiece(
 }
 bool TextLineImpl::StripContentByWidth(float space) {
   auto& range = range_lst_.back();
-  auto range_width = range->x_max_;
+  auto range_width = range->GetRangeWidth();
   if (range_width < space) return false;
-  float total_width = range->x_min_;
+  float total_width = 0;
   for (auto& drawer : drawer_list_) {
     if (drawer->GetParent() == range.get()) {
       total_width += drawer->GetWidthWithIndent();
@@ -221,32 +221,60 @@ bool TextLineImpl::StripContentByWidth(float space) {
   if (space <= 0 || drawer_list_.empty()) {
     return true;
   }
-  int32_t index = static_cast<int32_t>(drawer_list_.size()) - 1;
-  while (space > 0 && index >= 0) {
+  const bool strip_from_start =
+      paragraph_->GetResolvedWriteDirection() == WriteDirection::kRTL;
+  size_t first_piece = 0;
+  size_t last_piece = drawer_list_.size();
+  uint32_t stripped_char_count = 0;
+  while (space > 0 && first_piece < last_piece) {
+    const size_t index = strip_from_start ? first_piece : last_piece - 1;
     auto& piece = drawer_list_[index];
     if (space > piece->GetWidthWithIndent() || !piece->GetRun()->IsTextRun()) {
-      index--;
       space -= piece->GetWidthWithIndent();
-      drawer_list_.pop_back();
+      if (!piece->GetRun()->IsGhostRun()) {
+        stripped_char_count += piece->GetCharCount();
+      }
+      if (strip_from_start) {
+        ++first_piece;
+      } else {
+        --last_piece;
+      }
     } else {
-      index--;
+      const auto piece_end_pos = piece->GetEndCharPosInParagraph();
       auto end_pos =
           piece->FindCharPosInParagraphByX(piece->GetWidthWithIndent() - space);
+      stripped_char_count += piece_end_pos - end_pos;
       if (end_pos == piece->GetStartCharPosInParagraph()) {
-        drawer_list_.pop_back();
+        if (strip_from_start) {
+          ++first_piece;
+        } else {
+          --last_piece;
+        }
       } else {
         auto* piece_run = piece->GetRun();
         auto new_piece = std::make_unique<RunRange>(
             piece_run, piece->GetParent(),
             piece->GetStartCharPosInParagraph() - piece_run->GetStartCharPos(),
             end_pos - piece_run->GetStartCharPos());
-        drawer_list_.pop_back();
-        drawer_list_.emplace_back(std::move(new_piece));
+        drawer_list_[index] = std::move(new_piece);
       }
       space = 0;
     }
   }
-  return FloatsLargerOrEqual(0, space);
+  if (strip_from_start) {
+    drawer_list_.erase(drawer_list_.begin(),
+                       drawer_list_.begin() + first_piece);
+  } else {
+    drawer_list_.erase(drawer_list_.begin() + last_piece, drawer_list_.end());
+  }
+  const bool strip_succeeded = FloatsLargerOrEqual(0, space);
+  if (strip_succeeded) {
+    const auto original_end_pos = GetEndCharPos();
+    TTASSERT(stripped_char_count <= original_end_pos - GetStartCharPos());
+    line_end_pos_ = paragraph_->CharPosToLayoutPosition(original_end_pos -
+                                                        stripped_char_count);
+  }
+  return strip_succeeded;
 }
 
 void TextLineImpl::AppendGhostRun(std::unique_ptr<BaseRun> ghost_run) {
