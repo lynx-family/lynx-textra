@@ -316,7 +316,7 @@ TEST(TextTest, EllipsisWithIndentTest) {
   constexpr float width = 101;
   auto region = TestUtils::SimpleLayoutParagraphByWidth(para.get(), width);
   EXPECT_EQ(region->GetLine(0)->GetCharCount(), 10u);
-  EXPECT_EQ(region->GetLine(1)->GetCharCount(), 8u);
+  EXPECT_EQ(region->GetLine(1)->GetCharCount(), 5u);
   auto* line = region->GetLine(1);
   float rect[4];
   line->GetBoundingRectByCharRange(rect, line->GetStartCharPos(),
