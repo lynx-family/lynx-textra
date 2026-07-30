@@ -25,7 +25,13 @@ TextLayout::~TextLayout() = default;
 
 bool TextLayout::Preload(ShaperType type) { return TTShaper::Preload(type); }
 
-void TextLayout::ClearShapeCache() { ShapeCache::GetInstance().Clear(); }
+void TextLayout::ClearShapeCache() { ClearGlobalShapeCache(); }
+
+void TextLayout::ClearGlobalShapeCache() { ShapeCache::GetInstance().Clear(); }
+
+void TextLayout::ClearInstanceShapeCache() {
+  shaper_->ClearInstanceShapeCache();
+}
 
 LayoutResult TextLayout::LayoutEx(Paragraph* para, LayoutRegion* page,
                                   TTTextContext& context) const {

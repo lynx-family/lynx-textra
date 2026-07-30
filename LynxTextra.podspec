@@ -135,6 +135,7 @@ Pod::Spec.new do |s|
                                 "src/textlayout/run/ghost_run.h",
                                 "src/textlayout/run/layout_metrics.h",
                                 "src/textlayout/run/object_run.h",
+                                "src/textlayout/shape_cache.cc",
                                 "src/textlayout/shape_cache.h",
                                 "src/textlayout/style/paragraph_style_impl.cc",
                                 "src/textlayout/style/paragraph_style_impl.h",

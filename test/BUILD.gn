@@ -60,6 +60,9 @@ executable("TextLayoutLiteTest") {
     "FONT_ROOT=\"$project_root/fonts/\"",
     "GOLDEN_IMAGES_DIR=\"$golden_images_dir/\"",
   ]
+  if (use_lru_cache) {
+    defines += [ "USE_LRU_CACHE=1" ]
+  }
 
   cflags_cc = [
     "-Wno-unused-function",

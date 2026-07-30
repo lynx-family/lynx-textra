@@ -20,7 +20,7 @@ TTTextContextImpl::TTTextContextImpl()
       trim_line_tail_space_(true),
       harmony_shaper_force_low_api_(false),
       enable_system_font_adjust_(false),
-      disable_shape_cache_(false),
+      shape_cache_mode_(ShapeCacheMode::kGlobal),
       layout_bottom_(0) {}
 
 TTTextContext::TTTextContext() : impl_(std::make_unique<TTTextContextImpl>()) {}
@@ -60,6 +60,14 @@ void TTTextContext::SetEnableSystemFontAdjust(bool enable_system_font_adjust) {
   impl_->enable_system_font_adjust_ = enable_system_font_adjust;
 }
 
+ShapeCacheMode TTTextContext::GetShapeCacheMode() const {
+  return impl_->shape_cache_mode_;
+}
+
+void TTTextContext::SetShapeCacheMode(ShapeCacheMode mode) {
+  impl_->shape_cache_mode_ = mode;
+}
+
 void TTTextContext::EnableFeature(FeatureOption feature_option, bool value) {
   switch (feature_option) {
     case kLastLineCanOverflow:
@@ -78,7 +86,8 @@ void TTTextContext::EnableFeature(FeatureOption feature_option, bool value) {
       impl_->enable_system_font_adjust_ = value;
       break;
     case kDisableShapeCache:
-      impl_->disable_shape_cache_ = value;
+      impl_->shape_cache_mode_ =
+          value ? ShapeCacheMode::kDisabled : ShapeCacheMode::kGlobal;
       break;
     default:
       break;

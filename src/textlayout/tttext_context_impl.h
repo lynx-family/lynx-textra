@@ -4,6 +4,8 @@
 
 #ifndef SRC_TEXTLAYOUT_TTTEXT_CONTEXT_IMPL_H_
 #define SRC_TEXTLAYOUT_TTTEXT_CONTEXT_IMPL_H_
+#include <textra/layout_definition.h>
+
 #include <memory>
 
 #include "src/textlayout/layout_position.h"
@@ -21,7 +23,6 @@ class TTTextContextImpl {
     return harmony_shaper_force_low_api_;
   }
   bool IsEnableSystemFontAdjust() const { return enable_system_font_adjust_; }
-  bool IsShapeCacheDisabled() const { return disable_shape_cache_; }
   bool IsTrimLineTailSpace() const { return trim_line_tail_space_; }
 
  private:
@@ -32,7 +33,7 @@ class TTTextContextImpl {
   bool trim_line_tail_space_;
   bool harmony_shaper_force_low_api_;
   bool enable_system_font_adjust_;
-  bool disable_shape_cache_;
+  ShapeCacheMode shape_cache_mode_;
   float layout_bottom_;
 };
 }  // namespace tttext

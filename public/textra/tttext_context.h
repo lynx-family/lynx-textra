@@ -65,6 +65,14 @@ class L_EXPORT TTTextContext {
   bool IsEnableSystemFontAdjust() const;
   void SetEnableSystemFontAdjust(bool enable_system_font_adjust);
 
+  /**
+   * @brief Selects the shaping cache used by layout operations.
+   *
+   * The default mode is ShapeCacheMode::kGlobal.
+   */
+  ShapeCacheMode GetShapeCacheMode() const;
+  void SetShapeCacheMode(ShapeCacheMode mode);
+
   void EnableFeature(FeatureOption feature_option, bool value);
 
   // Layout state getters/setters

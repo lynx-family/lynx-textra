@@ -7,6 +7,9 @@
 #include <gtest/gtest.h>
 #include <textra/font_info.h>
 
+#include <thread>
+#include <vector>
+
 #include "src/textlayout/tt_shaper.h"
 #include "test_utils.h"
 
@@ -41,6 +44,9 @@ class LigatureShapeResultReader final : public PlatformShapingResultReader {
 }  // namespace
 
 TEST(ShapeCache, AddToCacheAndFind) {
+  ShapeCache& cache = ShapeCache::GetInstance();
+  cache.Clear();
+
   FontDescriptor font1;
   FontDescriptor font2;
   font2.font_style_ = FontStyle::Bold();
@@ -67,7 +73,6 @@ TEST(ShapeCache, AddToCacheAndFind) {
   const ShapeResultRef result6 = create_fake_shape_result({6});
   const ShapeResultRef result7 = create_fake_shape_result({7});
 
-  ShapeCache& cache = ShapeCache::GetInstance();
   cache.AddToCache(key1, result1);
   cache.AddToCache(key2, result2);
   cache.AddToCache(key3, result3);
@@ -87,8 +92,54 @@ TEST(ShapeCache, AddToCacheAndFind) {
 
 TEST(ShapeCache, Singleton) {
   ShapeCache& cache1 = ShapeCache::GetInstance();
+  cache1.Clear();
   ShapeCache& cache2 = ShapeCache::GetInstance();
   EXPECT_EQ(&cache1, &cache2);
+}
+
+TEST(ShapeCache, InstancesAreIsolated) {
+  ShapeCache cache1;
+  ShapeCache cache2;
+  ShapeKey key(U"instance", 8, FontDescriptor(), 10.f, false, false, false);
+  auto result1 = std::make_shared<ShapeResult>(1, false);
+  auto result2 = std::make_shared<ShapeResult>(1, false);
+
+  cache1.AddToCache(key, result1);
+  EXPECT_EQ(cache1.Find(key), result1);
+  EXPECT_EQ(cache2.Find(key), nullptr);
+
+  cache2.AddToCache(key, result2);
+  EXPECT_EQ(cache1.Find(key), result1);
+  EXPECT_EQ(cache2.Find(key), result2);
+}
+
+TEST(ShapeCache, DuplicateInsertionIsIdempotent) {
+  ShapeCache cache;
+  ShapeKey key(U"duplicate", 9, FontDescriptor(), 10.f, false, false, false);
+  auto original_result = std::make_shared<ShapeResult>(1, false);
+  auto duplicate_result = std::make_shared<ShapeResult>(1, false);
+
+  cache.AddToCache(key, original_result);
+  cache.AddToCache(key, duplicate_result);
+
+  EXPECT_EQ(cache.Find(key), original_result);
+}
+
+TEST(ShapeCache, ConcurrentDuplicateInsertionIsIdempotent) {
+  ShapeCache cache;
+  ShapeKey key(U"concurrent", 10, FontDescriptor(), 10.f, false, false, false);
+  std::vector<std::thread> threads;
+
+  for (int i = 0; i < 8; ++i) {
+    threads.emplace_back([&cache, &key]() {
+      cache.AddToCache(key, std::make_shared<ShapeResult>(1, false));
+    });
+  }
+  for (auto& thread : threads) {
+    thread.join();
+  }
+
+  EXPECT_NE(cache.Find(key), nullptr);
 }
 
 TEST(ShapeCache, ClearRemovesAllEntries) {
@@ -106,8 +157,7 @@ TEST(ShapeCache, ClearRemovesAllEntries) {
 TEST(ShapeCache, ClearRejectsAnInFlightResultFromThePreviousEpoch) {
   ShapeKey key(U"stale", 5, FontDescriptor(), 10.f, false, false, false);
   auto result = std::make_shared<ShapeResult>(1, false);
-  ShapeCache& cache = ShapeCache::GetInstance();
-  cache.Clear();
+  ShapeCache cache;
 
   ShapeCache::Epoch epoch = 0;
   EXPECT_EQ(cache.Find(key, &epoch), nullptr);
@@ -152,10 +202,9 @@ TEST(ShapeCache, LruCacheCapacity) {
     return ShapeKey(u32str.c_str(), u32str.length(), FontDescriptor(), 10.f,
                     false, false, false);
   };
-  constexpr int kDefaultCapacity =
-      android::LruCache<const ShapeKey,
-                        ShapeResultRef>::Capacity::kDefaultCapacity;
+  constexpr int kDefaultCapacity = 10'000;
   ShapeCache& cache = ShapeCache::GetInstance();
+  cache.Clear();
   const auto dummy_shape_result = std::make_shared<ShapeResult>(1, false);
   // Fill the cache with kDefaultCapacity entries
   for (int i = 0; i < kDefaultCapacity; i++) {

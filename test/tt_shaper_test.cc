@@ -112,6 +112,11 @@ class AdjacentFlagFontManager final : public IFontManager {
   TypefaceRef second_flag_typeface_;
 };
 
+void AppendTestShapeResult(const ShapeKey& key, ShapeResult* result) {
+  TestShapingResultReader reader(static_cast<uint32_t>(key.text_.size()));
+  result->AppendPlatformShapingResult(reader);
+}
+
 }  // namespace
 
 TEST(ShapeStyle, Constructor) {
@@ -465,6 +470,7 @@ TEST(TTShaper, Constructor) {
 }
 
 TEST(TTShaper, ShapeTextCallsOnShapeText) {
+  ShapeCache::GetInstance().Clear();
   FontmgrCollection font_collection = TestUtils::getFontmgrCollection();
   MockTTShaper mock_shaper(font_collection);
   const std::u32string text = U"test";
@@ -481,6 +487,162 @@ TEST(TTShaper, ShapeTextCallsOnShapeText) {
   auto result = mock_shaper.ShapeText(text.c_str(), text.length(), &style, rtl);
   // Check the returned ShapeResult is set by OnShapeText
   EXPECT_EQ(result->CharCount(), text.length());
+}
+
+TEST(TTShaper, GlobalCacheIsSharedAcrossShapers) {
+  ShapeCache::GetInstance().Clear();
+  FontmgrCollection font_collection = TestUtils::getFontmgrCollection();
+  MockTTShaper first_shaper(font_collection);
+  MockTTShaper second_shaper(font_collection);
+  TTTextContext context;
+  context.SetShapeCacheMode(ShapeCacheMode::kGlobal);
+  first_shaper.SetContext(context);
+  second_shaper.SetContext(context);
+  const std::u32string text = U"global cache";
+  const ShapeStyle style(FontDescriptor(), 12.f, false, false);
+  const ShapeKey key(text.c_str(), text.size(), &style, false);
+
+  EXPECT_CALL(first_shaper, OnShapeText(key, _))
+      .WillOnce(Invoke(AppendTestShapeResult));
+  EXPECT_CALL(second_shaper, OnShapeText(_, _)).Times(0);
+
+  auto first_result =
+      first_shaper.ShapeText(text.c_str(), text.size(), &style, false);
+  auto second_result =
+      second_shaper.ShapeText(text.c_str(), text.size(), &style, false);
+
+  EXPECT_EQ(first_result, second_result);
+}
+
+TEST(TTShaper, InstanceCacheIsIsolatedPerShaper) {
+  ShapeCache::GetInstance().Clear();
+  FontmgrCollection font_collection = TestUtils::getFontmgrCollection();
+  MockTTShaper first_shaper(font_collection);
+  MockTTShaper second_shaper(font_collection);
+  TTTextContext context;
+  context.SetShapeCacheMode(ShapeCacheMode::kInstance);
+  first_shaper.SetContext(context);
+  second_shaper.SetContext(context);
+  const std::u32string text = U"instance cache";
+  const ShapeStyle style(FontDescriptor(), 12.f, false, false);
+  const ShapeKey key(text.c_str(), text.size(), &style, false);
+
+  EXPECT_CALL(first_shaper, OnShapeText(key, _))
+      .WillOnce(Invoke(AppendTestShapeResult));
+  EXPECT_CALL(second_shaper, OnShapeText(key, _))
+      .WillOnce(Invoke(AppendTestShapeResult));
+
+  auto first_result =
+      first_shaper.ShapeText(text.c_str(), text.size(), &style, false);
+  auto first_cached_result =
+      first_shaper.ShapeText(text.c_str(), text.size(), &style, false);
+  auto second_result =
+      second_shaper.ShapeText(text.c_str(), text.size(), &style, false);
+
+  EXPECT_EQ(first_result, first_cached_result);
+  EXPECT_NE(first_result, second_result);
+}
+
+TEST(TTShaper, DisabledCacheAlwaysMissesAndDoesNotPopulateGlobalCache) {
+  ShapeCache::GetInstance().Clear();
+  FontmgrCollection font_collection = TestUtils::getFontmgrCollection();
+  MockTTShaper shaper(font_collection);
+  TTTextContext context;
+  context.SetShapeCacheMode(ShapeCacheMode::kDisabled);
+  shaper.SetContext(context);
+  const std::u32string text = U"disabled cache";
+  const ShapeStyle style(FontDescriptor(), 12.f, false, false);
+  const ShapeKey key(text.c_str(), text.size(), &style, false);
+
+  EXPECT_CALL(shaper, OnShapeText(key, _))
+      .Times(3)
+      .WillRepeatedly(Invoke(AppendTestShapeResult));
+
+  auto first_disabled_result =
+      shaper.ShapeText(text.c_str(), text.size(), &style, false);
+  auto second_disabled_result =
+      shaper.ShapeText(text.c_str(), text.size(), &style, false);
+  EXPECT_NE(first_disabled_result, second_disabled_result);
+
+  context.SetShapeCacheMode(ShapeCacheMode::kGlobal);
+  auto global_result =
+      shaper.ShapeText(text.c_str(), text.size(), &style, false);
+  auto global_cached_result =
+      shaper.ShapeText(text.c_str(), text.size(), &style, false);
+
+  EXPECT_NE(global_result, first_disabled_result);
+  EXPECT_NE(global_result, second_disabled_result);
+  EXPECT_EQ(global_result, global_cached_result);
+}
+
+TEST(TTShaper, SwitchingModesPreservesInstanceCache) {
+  ShapeCache::GetInstance().Clear();
+  FontmgrCollection font_collection = TestUtils::getFontmgrCollection();
+  MockTTShaper shaper(font_collection);
+  TTTextContext context;
+  context.SetShapeCacheMode(ShapeCacheMode::kInstance);
+  shaper.SetContext(context);
+  const std::u32string text = U"preserved instance";
+  const ShapeStyle style(FontDescriptor(), 12.f, false, false);
+  const ShapeKey key(text.c_str(), text.size(), &style, false);
+
+  EXPECT_CALL(shaper, OnShapeText(key, _))
+      .Times(3)
+      .WillRepeatedly(Invoke(AppendTestShapeResult));
+
+  auto instance_result =
+      shaper.ShapeText(text.c_str(), text.size(), &style, false);
+
+  context.SetShapeCacheMode(ShapeCacheMode::kGlobal);
+  auto global_result =
+      shaper.ShapeText(text.c_str(), text.size(), &style, false);
+
+  context.SetShapeCacheMode(ShapeCacheMode::kDisabled);
+  auto disabled_result =
+      shaper.ShapeText(text.c_str(), text.size(), &style, false);
+
+  context.SetShapeCacheMode(ShapeCacheMode::kInstance);
+  auto restored_instance_result =
+      shaper.ShapeText(text.c_str(), text.size(), &style, false);
+
+  EXPECT_NE(instance_result, global_result);
+  EXPECT_NE(instance_result, disabled_result);
+  EXPECT_EQ(instance_result, restored_instance_result);
+}
+
+TEST(TTShaper, ClearShapeCacheOnlyClearsThisShaperInstanceCache) {
+  ShapeCache::GetInstance().Clear();
+  FontmgrCollection font_collection = TestUtils::getFontmgrCollection();
+  MockTTShaper first_shaper(font_collection);
+  MockTTShaper second_shaper(font_collection);
+  TTTextContext context;
+  context.SetShapeCacheMode(ShapeCacheMode::kInstance);
+  first_shaper.SetContext(context);
+  second_shaper.SetContext(context);
+  const std::u32string text = U"clear instance";
+  const ShapeStyle style(FontDescriptor(), 12.f, false, false);
+  const ShapeKey key(text.c_str(), text.size(), &style, false);
+
+  EXPECT_CALL(first_shaper, OnShapeText(key, _))
+      .Times(2)
+      .WillRepeatedly(Invoke(AppendTestShapeResult));
+  EXPECT_CALL(second_shaper, OnShapeText(key, _))
+      .WillOnce(Invoke(AppendTestShapeResult));
+
+  auto first_result =
+      first_shaper.ShapeText(text.c_str(), text.size(), &style, false);
+  auto second_result =
+      second_shaper.ShapeText(text.c_str(), text.size(), &style, false);
+
+  first_shaper.ClearInstanceShapeCache();
+
+  auto first_result_after_clear =
+      first_shaper.ShapeText(text.c_str(), text.size(), &style, false);
+  auto second_result_after_clear =
+      second_shaper.ShapeText(text.c_str(), text.size(), &style, false);
+
+  EXPECT_NE(first_result, first_result_after_clear);
+  EXPECT_EQ(second_result, second_result_after_clear);
 }
 
 TEST(TTShaper, UsesSeparateFallbackFontsForAdjacentFlagClusters) {
