@@ -244,6 +244,7 @@ source_set("textlayout") {
     "$prj_root/src/textlayout/run/ghost_run.h",
     "$prj_root/src/textlayout/run/layout_metrics.h",
     "$prj_root/src/textlayout/run/object_run.h",
+    "$prj_root/src/textlayout/shape_cache.cc",
     "$prj_root/src/textlayout/shape_cache.h",
     "$prj_root/src/textlayout/style/paragraph_style_impl.cc",
     "$prj_root/src/textlayout/style/paragraph_style_impl.h",

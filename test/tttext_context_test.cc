@@ -47,10 +47,23 @@ TEST_F(TTTextContextTest, ConfigurationGettersAndSetters) {
   EXPECT_EQ(context.IsSkipSpacingBeforeFirstLine(), true);
 }
 
+TEST_F(TTTextContextTest, ShapeCacheModeDefaultsToGlobalAndCanBeChanged) {
+  TTTextContext context;
+
+  EXPECT_EQ(context.GetShapeCacheMode(), ShapeCacheMode::kGlobal);
+
+  context.SetShapeCacheMode(ShapeCacheMode::kInstance);
+  EXPECT_EQ(context.GetShapeCacheMode(), ShapeCacheMode::kInstance);
+
+  context.SetShapeCacheMode(ShapeCacheMode::kDisabled);
+  EXPECT_EQ(context.GetShapeCacheMode(), ShapeCacheMode::kDisabled);
+}
+
 TEST_F(TTTextContextTest, Reset) {
   TTTextContext context;
 
   const float new_layout_bottom = 20.f;
+  context.SetShapeCacheMode(ShapeCacheMode::kInstance);
   TTTextContextTest::SetLayoutPosition(context, 5, 10);
   TTTextContextTest::SetLayoutBottom(context, new_layout_bottom);
   auto result = context.GetLayoutPosition();
@@ -63,6 +76,21 @@ TEST_F(TTTextContextTest, Reset) {
   EXPECT_EQ(result.first, 0);
   EXPECT_EQ(result.second, 0);
   EXPECT_EQ(TTTextContextTest::GetLayoutBottom(context), 0.f);
+  EXPECT_EQ(context.GetShapeCacheMode(), ShapeCacheMode::kInstance);
+}
+
+TEST_F(TTTextContextTest, LegacyShapeCacheFeatureUsesLastCall) {
+  TTTextContext context;
+
+  context.SetShapeCacheMode(ShapeCacheMode::kInstance);
+  context.EnableFeature(kDisableShapeCache, true);
+  EXPECT_EQ(context.GetShapeCacheMode(), ShapeCacheMode::kDisabled);
+
+  context.EnableFeature(kDisableShapeCache, false);
+  EXPECT_EQ(context.GetShapeCacheMode(), ShapeCacheMode::kGlobal);
+
+  context.SetShapeCacheMode(ShapeCacheMode::kInstance);
+  EXPECT_EQ(context.GetShapeCacheMode(), ShapeCacheMode::kInstance);
 }
 
 TEST_F(TTTextContextTest, ResetLayoutPosition) {

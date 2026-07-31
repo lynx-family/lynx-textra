@@ -192,12 +192,22 @@ enum LineBreakStrategy : uint8_t {
   kAvoidBreakAroundPunctuation = 1,
   kLineBreakStrategyDefault = 0xff,
 };
+enum class ShapeCacheMode : uint8_t {
+  // Reuse shaping results across TextLayout instances.
+  kGlobal = 0,
+  // Reuse shaping results only within one TextLayout instance.
+  kInstance = 1,
+  // Always shape text without reading or writing cached results.
+  kDisabled = 2,
+};
 enum FeatureOption : uint8_t {
   kLastLineCanOverflow,
   kSkipSpaceBeforeFirstLine,
   kTrimLineTailSpace,
   kHarmonyShaperForceUseLowAPI,
   kSystemFontAdjust,
+  // Deprecated: use TTTextContext::SetShapeCacheMode instead. This option
+  // only maps true to kDisabled and false to kGlobal.
   kDisableShapeCache,
 };
 enum class DominantBaseline : uint8_t {

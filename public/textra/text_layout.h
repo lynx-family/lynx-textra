@@ -49,9 +49,15 @@ class L_EXPORT TextLayout {
  public:
   static bool Preload(ShaperType type);
 
-  // Clears all cached shaping results. New lookups cannot reuse results that
-  // were being computed when this method was called.
+  // Clears the global shaping cache. Kept for backward compatibility.
   static void ClearShapeCache();
+
+  // Clears the global shaping cache. New lookups cannot reuse results that
+  // were being computed when this method was called.
+  static void ClearGlobalShapeCache();
+
+  // Clears shaping results cached by this TextLayout instance.
+  void ClearInstanceShapeCache();
 
   LayoutResult Layout(Paragraph* para, LayoutRegion* page,
                       TTTextContext& context) const {

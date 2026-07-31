@@ -49,6 +49,7 @@ class TTShaper {
                                   uint32_t* visual_map, uint32_t* logical_map,
                                   uint8_t* dir_vec);
   virtual void OnShapeText(const ShapeKey& key, ShapeResult* result) const = 0;
+  void ClearInstanceShapeCache();
   std::shared_ptr<ShapeResult> ShapeText(const char32_t* text, uint32_t length,
                                          const ShapeStyle* shape_style,
                                          bool rtl) const;
@@ -56,6 +57,7 @@ class TTShaper {
  protected:
   FontmgrCollection font_collection_;
   TTTextContext* context_;
+  mutable std::unique_ptr<ShapeCache> shape_cache_;
 };
 
 class ShapeStyle {

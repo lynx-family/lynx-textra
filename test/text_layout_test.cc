@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "mocks.h"
+#include "src/textlayout/shape_cache.h"
 #include "src/textlayout/style_attributes.h"
 #include "test_utils.h"
 
@@ -129,6 +130,67 @@ class TextLayoutTest : public ::testing::Test {
                            std::move(regions));
   };
 };
+
+TEST_F(TextLayoutTest, GlobalShapeCacheClearApisAreEquivalent) {
+  ShapeCache& cache = ShapeCache::GetInstance();
+  ShapeKey key(U"global clear", 12, FontDescriptor(), 10.f, false, false,
+               false);
+  auto result = std::make_shared<ShapeResult>(1, false);
+
+  cache.Clear();
+  cache.AddToCache(key, result);
+  TextLayout::ClearGlobalShapeCache();
+  EXPECT_EQ(cache.Find(key), nullptr);
+
+  cache.AddToCache(key, result);
+  TextLayout::ClearShapeCache();
+  EXPECT_EQ(cache.Find(key), nullptr);
+}
+
+TEST_F(TextLayoutTest, ClearInstanceShapeCacheClearsOnlyOwnedShaperCache) {
+  auto shaper =
+      std::make_unique<MockTTShaper>(TestUtils::getFontmgrCollection());
+  auto* shaper_ptr = shaper.get();
+  TextLayout layout(std::move(shaper));
+  TTTextContext context;
+  context.SetShapeCacheMode(ShapeCacheMode::kInstance);
+  shaper_ptr->SetContext(context);
+  const std::u32string text = U"instance clear";
+  const ShapeStyle style(FontDescriptor(), 12.f, false, false);
+
+  EXPECT_CALL(*shaper_ptr, OnShapeText(_, _))
+      .Times(3)
+      .WillRepeatedly(Invoke([](const ShapeKey& key, ShapeResult* result) {
+        TestShapingResultReader reader(static_cast<uint32_t>(key.text_.size()));
+        result->AppendPlatformShapingResult(reader);
+      }));
+
+  auto first_result =
+      shaper_ptr->ShapeText(text.c_str(), text.size(), &style, false);
+  auto cached_result =
+      shaper_ptr->ShapeText(text.c_str(), text.size(), &style, false);
+  EXPECT_EQ(first_result, cached_result);
+
+  TextLayout::ClearGlobalShapeCache();
+  auto instance_result_after_global_clear =
+      shaper_ptr->ShapeText(text.c_str(), text.size(), &style, false);
+  EXPECT_EQ(first_result, instance_result_after_global_clear);
+
+  layout.ClearInstanceShapeCache();
+  auto result_after_clear =
+      shaper_ptr->ShapeText(text.c_str(), text.size(), &style, false);
+  EXPECT_NE(first_result, result_after_clear);
+
+  context.SetShapeCacheMode(ShapeCacheMode::kGlobal);
+  TextLayout::ClearGlobalShapeCache();
+  auto global_result =
+      shaper_ptr->ShapeText(text.c_str(), text.size(), &style, false);
+  layout.ClearInstanceShapeCache();
+  auto global_result_after_instance_clear =
+      shaper_ptr->ShapeText(text.c_str(), text.size(), &style, false);
+  EXPECT_EQ(global_result, global_result_after_instance_clear);
+  TextLayout::ClearGlobalShapeCache();
+}
 
 TEST_F(TextLayoutTest, DifferentLayoutModes) {
   const float page_width = 3.f;
