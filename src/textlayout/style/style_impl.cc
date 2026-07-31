@@ -39,12 +39,7 @@ StyleImpl::StyleImpl()
       text_skew_(0.f),
       text_shadow_list_({}),
       flag_(0),
-      shape_style_(nullptr) {
-  text_stroke_.style_.color_ = TTColor::UNDEFINED;
-  text_stroke_.style_.fixed_10x_thickness_ = 10;
-  text_stroke_.style_.line_type_ = LineType::kSolid;
-  text_stroke_.style_.padding_ = 0;
-}
+      shape_style_(nullptr) {}
 StyleImpl::StyleImpl(const StyleImpl& style) : StyleImpl() { *this = style; }
 StyleImpl& StyleImpl::operator=(const StyleImpl& other) {
   if (&other == this) return *this;

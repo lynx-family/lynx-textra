@@ -20,13 +20,13 @@ namespace tttext {
 class ShapeStyle;
 
 union DecorationStyle {
-  uint64_t value = 0;
+  uint64_t value;
   struct {
     uint32_t color_ : 32;
     uint16_t fixed_10x_thickness_ : 16;
     LineType line_type_ : 8;
     uint8_t padding_ : 8;
-  } style_;
+  } style_ = {TTColor::UNDEFINED, 10, LineType::kSolid, 0};
 };
 
 class StyleImpl {
