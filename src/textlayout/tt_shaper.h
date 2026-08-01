@@ -38,6 +38,9 @@ class TTShaper {
   static std::unique_ptr<TTShaper> CreateShaper(
       FontmgrCollection* font_collection, ShaperType type = kSystem);
   static bool Preload(ShaperType type);
+  // Releases platform shaper font caches that outlive individual shapers.
+  // No-op on platforms whose shapers do not keep such a cache.
+  static void ClearFontCache();
 
   const FontmgrCollection& GetFontCollection() const noexcept {
     return font_collection_;

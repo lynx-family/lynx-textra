@@ -194,6 +194,17 @@ size_t ShaperCoreTextSelfRendering::GetSafeFontCacheMaxEntries() {
   return safe_font_cache_max_entries_;
 }
 
+void ShaperCoreTextSelfRendering::ClearSafeFontCache() {
+  std::lock_guard<std::mutex> lock(safe_font_cache_mutex_);
+  for (auto& entry : safe_font_cache_) {
+    if (entry.second.safe_font_ != nullptr) {
+      CFRelease(entry.second.safe_font_);
+    }
+  }
+  safe_font_cache_.clear();
+  safe_font_cache_lru_.clear();
+}
+
 void ShaperCoreTextSelfRendering::TrimSafeFontCacheLocked() {
   while (safe_font_cache_.size() > safe_font_cache_max_entries_) {
     const auto& oldest_key = safe_font_cache_lru_.back();

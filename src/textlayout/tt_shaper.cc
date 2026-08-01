@@ -84,6 +84,12 @@ bool TTShaper::Preload(ShaperType type) {
   }
 }
 
+void TTShaper::ClearFontCache() {
+#if defined(ENABLE_CTSHAPER) || defined(ENABLE_CTSHAPER_SKITY)
+  ShaperCoreTextSelfRendering::ClearSafeFontCache();
+#endif
+}
+
 TTShaper::TTShaper(FontmgrCollection font_collection) noexcept
     : font_collection_(font_collection), context_(nullptr) {}
 TTShaper::~TTShaper() = default;
