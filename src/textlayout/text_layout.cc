@@ -25,7 +25,14 @@ TextLayout::~TextLayout() = default;
 
 bool TextLayout::Preload(ShaperType type) { return TTShaper::Preload(type); }
 
-void TextLayout::ClearShapeCache() { ShapeCache::GetInstance().Clear(); }
+void TextLayout::ClearShapeCache() {
+  ShapeCache::GetInstance().Clear();
+  // Shaped results are not the only per-session font state: the self-rendering
+  // CoreText shaper keeps a process-wide safe-font cache whose CTFontRef
+  // entries pin the whole in-memory font file. Drop it here as well, otherwise
+  // clearing the shape cache reclaims almost nothing.
+  TTShaper::ClearFontCache();
+}
 
 LayoutResult TextLayout::LayoutEx(Paragraph* para, LayoutRegion* page,
                                   TTTextContext& context) const {

@@ -44,6 +44,10 @@ class ShaperCoreTextSelfRendering : public TTShaper {
   void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
   static void SetSafeFontCacheMaxEntries(size_t max_entries);
   static size_t GetSafeFontCacheMaxEntries();
+  // Releases every cached safe font. Callers of GetOrCreateSafeFont own the
+  // reference they received, so dropping the cache's own reference here cannot
+  // invalidate a shaping run that is already in flight.
+  static void ClearSafeFontCache();
 
  private:
   static CTFontDescriptorRef CopyFontDescriptorWithoutCascade(
