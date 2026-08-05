@@ -13,11 +13,13 @@
 #include <numeric>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 #if defined(ENABLE_CTSHAPER)
 #include "src/ports/shaper/coretext/shaper_core_text_self_rendering.h"
 #endif
 #include "mocks.h"
+#include "src/textlayout/icu_substitute/bidi/bidi_wrapper.h"
 #include "src/textlayout/shape_cache.h"
 #include "test_utils.h"
 
@@ -113,6 +115,42 @@ class AdjacentFlagFontManager final : public IFontManager {
 };
 
 }  // namespace
+
+TEST(BidiWrapper, BuildsMapsForLongParagraph) {
+  constexpr uint32_t kTextLength = 10000;
+  const std::u32string text(kTextLength, U'a');
+  std::vector<uint8_t> bidi_levels(kTextLength);
+  std::vector<uint32_t> visual_map(kTextLength);
+  std::vector<uint32_t> logical_map(kTextLength);
+
+  BidiWrapper::GetInstance().SetPara(text.data(), kTextLength,
+                                     WriteDirection::kLTR, bidi_levels.data(),
+                                     visual_map.data(), logical_map.data());
+
+  for (uint32_t index = 0; index < kTextLength; ++index) {
+    EXPECT_EQ(bidi_levels[index], 0u);
+    EXPECT_EQ(visual_map[index], index);
+    EXPECT_EQ(logical_map[index], index);
+  }
+}
+
+TEST(BidiWrapper, BuildsInverseMapsForMixedDirectionText) {
+  const std::u32string text = U"abc \u05D0\u05D1\u05D2 def";
+  std::vector<uint8_t> bidi_levels(text.size());
+  std::vector<uint32_t> visual_map(text.size());
+  std::vector<uint32_t> logical_map(text.size());
+
+  BidiWrapper::GetInstance().SetPara(text.data(), text.size(),
+                                     WriteDirection::kLTR, bidi_levels.data(),
+                                     visual_map.data(), logical_map.data());
+
+  EXPECT_EQ(bidi_levels[4], 1u);
+  EXPECT_EQ(bidi_levels[5], 1u);
+  EXPECT_EQ(bidi_levels[6], 1u);
+  for (uint32_t index = 0; index < text.size(); ++index) {
+    EXPECT_EQ(logical_map[visual_map[index]], index);
+  }
+}
 
 TEST(ShapeStyle, Constructor) {
   FontDescriptor font_descriptor;
