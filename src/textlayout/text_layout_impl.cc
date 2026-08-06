@@ -292,7 +292,11 @@ float TextLayoutImpl::TryAddRun(LayoutMetrics line_metrics,
       paragraph->style_manager_->GetBaselineOffset(run->GetStartCharPos());
   run_metrics.ApplyBaselineOffset(baseline_offset);
   line_metrics.UpdateMax(run_metrics);
-  return line_metrics.GetHeight();
+  auto line_height = line_metrics.GetHeight();
+  if (para_style.GetLineHeightRule() == RulerType::kAtLeast) {
+    line_height = std::max(line_height, para_style.GetLineHeightInPx());
+  }
+  return line_height;
 }
 float TextLayoutImpl::AddWordListToRunRange(LineRange* range,
                                             const ParagraphImpl& paragraph,

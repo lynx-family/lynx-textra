@@ -676,6 +676,33 @@ TEST_F(TextLayoutTest, ParagraphStyle_Spacing) {
   // Note: Spacing::before_px_ and after_px_ are unused
 }
 
+TEST_F(TextLayoutTest, InlineObjectRespectsAtLeastLineHeight) {
+  constexpr float kObjectWidth = 20.f;
+  constexpr float kObjectAscent = -6.f;
+  constexpr float kObjectDescent = 4.f;
+  constexpr float kLineHeight = 20.f;
+
+  auto para = std::make_unique<ParagraphImpl>();
+  ParagraphStyle para_style;
+  para_style.SetLineHeightInPxAtLeast(kLineHeight);
+  para->SetParagraphStyle(&para_style);
+  para->AddShapeRun(nullptr,
+                    std::make_shared<MockInlineObject>(
+                        kObjectWidth, kObjectAscent, kObjectDescent),
+                    false);
+
+  TTTextContext context;
+  TextLayout layout(GetFixedSizeMockShaper());
+  auto region = std::make_unique<LayoutRegion>(100.f, 100.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  ASSERT_NE(line, nullptr);
+  EXPECT_FLOAT_EQ(line->GetContentHeight(), kObjectDescent - kObjectAscent);
+  EXPECT_FLOAT_EQ(line->GetLineHeight(), kLineHeight);
+}
+
 // WriteDirection decides the position of the ellipsis
 TEST_F(TextLayoutTest, ParagraphStyle_WriteDirection) {
   const char* text = "The quick brown fox jumps over the lazy dog.";
