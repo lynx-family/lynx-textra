@@ -8,6 +8,7 @@
     "email": "lynx.authors@gmail.com",
     "url": "https://github.com/lynx-family/lynx-textra"
   },
+  "repository": "https://github.com/lynx-family/lynx-textra",
   "tags": [
     "textlayout",
   ],

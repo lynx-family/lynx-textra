@@ -48,7 +48,7 @@ def run_package_har(module_name, module_path, verbose):
         else:
             print('harmony/local.properties not found, and HARMONY_HOME is not set.')
 
-    cmd = f'hvigorw assembleHar --mode module -p module={module_name}@default -p product=default -p buildMode=debug --no-daemon'
+    cmd = f'hvigorw assembleHar --mode module -p module={module_name}@default -p product=default -p buildMode=release --no-daemon'
     if verbose:
         print(f'run command {cmd}')
     check_call(cmd, shell=True, cwd=HARMONY_DIR)
