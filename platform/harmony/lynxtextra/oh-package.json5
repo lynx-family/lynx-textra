@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "description": "high performance multiplatform textlayout project",
   "main": "Index.ets",
-  "author": "Lynx",
+  "author": {
+    "name": "Lynx",
+    "email": "lynx.authors@gmail.com",
+    "url": "https://github.com/lynx-family/lynx-textra"
+  },
   "tags": [
     "textlayout",
   ],
