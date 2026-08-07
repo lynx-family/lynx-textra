@@ -13,6 +13,7 @@
 #include <textra/platform/ios/typeface_coretext.h>
 
 #include <memory>
+#include <vector>
 
 using namespace tttext;
 
@@ -237,28 +238,29 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
         kCFAllocatorDefault, reinterpret_cast<const UInt8*>(text), text_bytes,
         kCFStringEncodingUTF8, FALSE);
     CFIndex cf_text_count = CFStringGetLength(cf_text);
-    UniChar uni_chars[cf_text_count];
-    CGGlyph cg_glyphs[cf_text_count];
-    CFStringGetCharacters(cf_text, CFRangeMake(0, cf_text_count), uni_chars);
-    BOOL ret =
-        CTFontGetGlyphsForCharacters(font, uni_chars, cg_glyphs, cf_text_count);
+    std::vector<UniChar> uni_chars(cf_text_count);
+    std::vector<CGGlyph> cg_glyphs(cf_text_count);
+    CFStringGetCharacters(cf_text, CFRangeMake(0, cf_text_count),
+                          uni_chars.data());
+    BOOL ret = CTFontGetGlyphsForCharacters(font, uni_chars.data(),
+                                            cg_glyphs.data(), cf_text_count);
     if (!ret) {
       font =
           CTFontCreateForString(font, cf_text, CFRangeMake(0, cf_text_count));
-      ret = CTFontGetGlyphsForCharacters(font, uni_chars, cg_glyphs,
-                                         cf_text_count);
+      ret = CTFontGetGlyphsForCharacters(font, uni_chars.data(),
+                                         cg_glyphs.data(), cf_text_count);
     }
     if (!ret) {
       //    LogUtil::W("iOS Canvas CTFontGetGlyphsForCharacters return false");
     }
-    uint16_t glyphs[cf_text_count];
-    float pos_x[cf_text_count];
-    float pos_y[cf_text_count];
+    std::vector<uint16_t> glyphs(cf_text_count);
+    std::vector<float> pos_x(cf_text_count);
+    std::vector<float> pos_y(cf_text_count);
     CGSize size;
     for (int i = 0; i < cf_text_count; i++) {
       glyphs[i] = cg_glyphs[i];
-      CTFontGetAdvancesForGlyphs(font, kCTFontOrientationDefault, cg_glyphs + i,
-                                 &size, 1);
+      CTFontGetAdvancesForGlyphs(font, kCTFontOrientationDefault,
+                                 cg_glyphs.data() + i, &size, 1);
       if (i == 0) {
         pos_x[0] = 0;
       } else {
@@ -266,8 +268,8 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
       }
       pos_y[i] = 0;
     }
-    DrawGlyphs(void_font, (uint32_t)cf_text_count, glyphs, text, text_bytes, x,
-               y, pos_x, pos_y, painter);
+    DrawGlyphs(void_font, (uint32_t)cf_text_count, glyphs.data(), text,
+               text_bytes, x, y, pos_x.data(), pos_y.data(), painter);
     CFRelease(cf_text);
   }
 
@@ -279,15 +281,15 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     if (font == nullptr) return;
     auto ct_font = ((tttext::TypefaceCoreText*)font)->GetFontRef();
 
-    CGGlyph cg_glyphs[glyph_count];
-    CGPoint cg_position[glyph_count];
+    std::vector<CGGlyph> cg_glyphs(glyph_count);
+    std::vector<CGPoint> cg_position(glyph_count);
     for (uint32_t i = 0; i < glyph_count; i++) {
       cg_glyphs[i] = glyphs[i];
       cg_position[i].x = x[i];
       cg_position[i].y = y[i];
     }
     auto fill_color = painter->GetFillColor();
-    auto mode = ApplyPainterStyle(painter);
+    ApplyPainterStyle(painter);
     CGContextSaveGState(context_);
     auto text_mat = CGAffineTransformIdentity;
     auto text_skew = painter->GetTextSkew();
@@ -326,7 +328,8 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     CGContextSetTextMatrix(context_, text_mat);
     CGContextTranslateCTM(context_, ox, oy);
     CGContextScaleCTM(context_, 1, -1);
-    CTFontDrawGlyphs(ct_font, cg_glyphs, cg_position, glyph_count, context_);
+    CTFontDrawGlyphs(ct_font, cg_glyphs.data(), cg_position.data(), glyph_count,
+                     context_);
     CGContextRestoreGState(context_);
     if (painter->IsUnderLine()) {
       auto underline_y = CTFontGetUnderlinePosition(ct_font);
