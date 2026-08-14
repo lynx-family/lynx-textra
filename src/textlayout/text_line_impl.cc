@@ -550,15 +550,6 @@ std::vector<RectF> TextLineImpl::GetCharRangeBounds(CharPos start_char_pos,
   float tight_left{0}, tight_right{0}, tight_ascent{0}, tight_descent{0};
   for (auto& drawer : drawer_list_) {
     if (drawer->GetRun()->IsGhostRun()) {
-      if (bounds_available) {
-        auto metrics = drawer->GetRun()->GetMetrics();
-        current_right = drawer->GetRight();
-        float local_baseline = drawer->GetYOffsetInLine() + y_base;
-        current_top =
-            std::min(current_top, local_baseline + metrics.GetMaxAscent());
-        current_bottom =
-            std::max(current_bottom, local_baseline + metrics.GetMaxDescent());
-      }
       continue;
     }
     auto drawer_start = drawer->GetStartCharPosInParagraph();
