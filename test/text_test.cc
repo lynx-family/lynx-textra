@@ -322,5 +322,6 @@ TEST(TextTest, EllipsisWithIndentTest) {
   line->GetBoundingRectByCharRange(rect, line->GetStartCharPos(),
                                    line->GetEndCharPos());
   EXPECT_EQ(rect[0], 20.f);
-  EXPECT_EQ(rect[2], 80.f);
+  // Character range bounds exclude the ellipsis ghost run.
+  EXPECT_EQ(rect[2], 50.f);
 }
