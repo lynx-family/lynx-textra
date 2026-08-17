@@ -29,6 +29,7 @@
 
 #include <algorithm>
 
+#include "src/textlayout/icu_substitute/bidi/bidi_wrapper.h"
 #include "src/textlayout/utils/grapheme_utils.h"
 #include "src/textlayout/utils/u_8_string.h"
 
@@ -298,79 +299,8 @@ void ShaperCoreText::ProcessBidirection(const char32_t* text, uint32_t length,
                                         uint32_t* visual_map,
                                         uint32_t* logical_map,
                                         uint8_t* dir_vec) {
-  auto u16_str = ttoffice::base::U32StringToU16(text, length);
-  uint32_t* u16_to_u32_map = tmp_buf_;
-  if (u16_str.length() + 1 > SHAPER_BUFF_SIZE) {
-    u16_to_u32_map = new uint32_t[u16_str.length() + 1];
-  }
-  CTWritingDirection direction = kCTWritingDirectionNatural;
-  if (write_direction == WriteDirection::kLTR ||
-      write_direction == WriteDirection::kTTB) {
-    direction = kCTWritingDirectionLeftToRight;
-  } else if (write_direction == WriteDirection::kRTL ||
-             write_direction == WriteDirection::kBTT) {
-    direction = kCTWritingDirectionRightToLeft;
-  }
-  CFMutableDictionaryRef dict =
-      CFDictionaryCreateMutable(NULL, 0, &kCFTypeDictionaryKeyCallBacks,
-                                &kCFTypeDictionaryValueCallBacks);
-  // --- FIX START ---
-  // Force inject a safe font into the dictionary.
-  // This ensures CTLineCreate has a localized fallback path.
-  FontDescriptor default_fd;
-  CTFontRef safe_font = GetOrCreateSafeFont(default_fd, 12.0, false, false);
-  if (safe_font != nullptr) {
-    CFDictionaryAddValue(dict, kCTFontAttributeName, safe_font);
-    CFRelease(safe_font);
-  }
-  // --- FIX END ---
-
-  CTParagraphStyleRef para_style = NULL;
-  if (direction != kCTWritingDirectionNatural) {
-    CTParagraphStyleSetting setting;
-    setting.spec = kCTParagraphStyleSpecifierBaseWritingDirection;
-    setting.valueSize = sizeof(direction);
-    setting.value = &direction;
-    para_style = CTParagraphStyleCreate(&setting, 1);
-    CFDictionaryAddValue(dict, kCTParagraphStyleAttributeName, para_style);
-  }
-  auto attr_text = GenerateAttributeString(
-      u16_str.data(), static_cast<uint32_t>(u16_str.length()), u16_to_u32_map,
-      dict);
-  auto line = CTLineCreateWithAttributedString(attr_text);
-  CFArrayRef array_ref = CTLineGetGlyphRuns(line);
-  auto array_count = CFArrayGetCount(array_ref);
-
-  int order = 0;
-  for (int run_idx = 0; run_idx < array_count; run_idx++) {
-    CTRunRef run = (CTRunRef)CFArrayGetValueAtIndex(array_ref, run_idx);
-    CFRange range = CTRunGetStringRange(run);
-    auto char_start = u16_to_u32_map[range.location];
-    auto char_end = u16_to_u32_map[range.location + range.length];
-    auto char_count = char_end - char_start;
-    auto run_status = CTRunGetStatus(run);
-    bool is_rtl = static_cast<bool>(run_status & kCTRunStatusRightToLeft);
-    if (is_rtl) {
-      for (long k = char_count - 1; k >= 0; k--) {
-        dir_vec[char_start + k] = 1;
-        visual_map[char_start + k] = static_cast<unsigned int>(order++);
-      }
-    } else {
-      for (long k = 0; k < char_count; k++) {
-        dir_vec[char_start + k] = 0;
-        visual_map[char_start + k] = static_cast<unsigned int>(order++);
-      }
-    }
-  }
-  if (u16_to_u32_map != tmp_buf_) {
-    delete[] u16_to_u32_map;
-  }
-  CFRelease(attr_text);
-  CFRelease(dict);
-  CFRelease(line);
-  if (para_style != NULL) {
-    CFRelease(para_style);
-  }
+  BidiWrapper::GetInstance().SetPara(text, length, write_direction, dir_vec,
+                                     visual_map, logical_map);
 }
 
 class CTShapingResult : public PlatformShapingResultReader {

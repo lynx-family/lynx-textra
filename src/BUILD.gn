@@ -215,7 +215,7 @@ source_set("textlayout") {
 
   sources = []
 
-  if (is_mac || is_linux || target_cpu == "wasm") {
+  if (is_ios || is_mac || is_linux || target_cpu == "wasm") {
     deps += [ ":bidi" ]
   }
 

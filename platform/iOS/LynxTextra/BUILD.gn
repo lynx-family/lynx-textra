@@ -20,7 +20,10 @@ source_set("LynxTextra") {
     header_mappings_dir = [ "public" ]
   }
 
-  deps = [ "$root_path/src:textlayout" ]
+  deps = [
+    "$root_path/src:bidi",
+    "$root_path/src:textlayout",
+  ]
 }
 group("LynxTextra_podspecs_group") {
   deps = [ ":LynxTextra" ]
