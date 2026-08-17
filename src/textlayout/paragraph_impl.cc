@@ -45,15 +45,10 @@ WriteDirection ParagraphImpl::ResolveWriteDirection(
     return direction;
   }
   if (!bidi_level.empty()) {
-#ifdef TTTEXT_OS_IOS
-    return (bidi_level[0] % 2) == 1 ? WriteDirection::kRTL
-                                    : WriteDirection::kLTR;
-#else
     // ProcessBidirection has already resolved kAuto via the shaper's bidi
     // wrapper. The lowest embedding level is the paragraph base level.
     auto para_level = *std::min_element(bidi_level.begin(), bidi_level.end());
     return para_level % 2 == 1 ? WriteDirection::kRTL : WriteDirection::kLTR;
-#endif
   }
   return WriteDirection::kLTR;
 }

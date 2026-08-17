@@ -331,6 +331,25 @@ TEST(ShaperCoreText, SafeFontCacheConfigurationRemainsIndependent) {
       self_rendering_max_entries);
 }
 
+TEST(ShaperCoreTextSelfRendering, BuildsInverseMapsForMixedDirectionText) {
+  const std::u32string text = U"abc \u05D0\u05D1\u05D2 def";
+  std::vector<uint8_t> bidi_levels(text.size());
+  std::vector<uint32_t> visual_map(text.size());
+  std::vector<uint32_t> logical_map(text.size());
+  ShaperCoreTextSelfRendering shaper(TestUtils::getFontmgrCollection());
+
+  shaper.ProcessBidirection(text.data(), text.size(), WriteDirection::kLTR,
+                            visual_map.data(), logical_map.data(),
+                            bidi_levels.data());
+
+  EXPECT_EQ(bidi_levels[4], 1u);
+  EXPECT_EQ(bidi_levels[5], 1u);
+  EXPECT_EQ(bidi_levels[6], 1u);
+  for (uint32_t index = 0; index < text.size(); ++index) {
+    EXPECT_EQ(logical_map[visual_map[index]], index);
+  }
+}
+
 TEST(ShaperCoreTextSelfRendering,
      OrderedCascadeStripsNestedCascadesAndPreservesOrder) {
   CTFontDescriptorRef descriptor_a =

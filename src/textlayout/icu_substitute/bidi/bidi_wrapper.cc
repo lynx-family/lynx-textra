@@ -4,13 +4,16 @@
 
 #include "src/textlayout/icu_substitute/bidi/bidi_wrapper.h"
 
-#include "src/textlayout/utils/u_8_string.h"
+#include <string>
+#include <vector>
+
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi.h"
 
 namespace ttoffice {
 namespace tttext {
-BidiWrapper::BidiWrapper() : bidi_(std::make_unique<Bidi>()) {}
+BidiWrapper::BidiWrapper() = default;
 
-BidiWrapper::~BidiWrapper() {}
+BidiWrapper::~BidiWrapper() = default;
 BidiWrapper& BidiWrapper::GetInstance() {
   static BidiWrapper bidi_utils;
   return bidi_utils;
@@ -25,11 +28,17 @@ void BidiWrapper::SetPara(const char32_t* u32_content, const uint32_t& length,
   if (direction == tttext::WriteDirection::kRTL ||
       direction == tttext::WriteDirection::kBTT)
     para_level = 1;
-  bidi_->setPara(u32_content, para_level, std::vector<int16_t>());
-  const auto visual_indices = bidi_->getVisualMap();
-  const auto logical_indices = bidi_->getLogicalMap();
+  if (length == 0) {
+    return;
+  }
+
+  Bidi bidi;
+  bidi.setPara(std::u32string(u32_content, length), para_level,
+               std::vector<int16_t>());
+  const auto visual_indices = bidi.getVisualMap();
+  const auto logical_indices = bidi.getLogicalMap();
   for (int k = 0; k < static_cast<int>(length); k++) {
-    bidi_levels[k] = bidi_->getLevelAt(k);
+    bidi_levels[k] = bidi.getLevelAt(k);
     visual_map[k] = visual_indices[k];
     logical_map[k] = logical_indices[k];
   }

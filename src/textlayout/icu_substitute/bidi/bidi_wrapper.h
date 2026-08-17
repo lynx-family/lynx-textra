@@ -7,11 +7,8 @@
 
 #include <textra/layout_definition.h>
 
-#include <memory>
-#include <string>
-#include <vector>
+#include <cstdint>
 
-#include "src/textlayout/icu_substitute/bidi/algorithm/bidi.h"
 namespace ttoffice {
 namespace tttext {
 class BidiWrapper {
@@ -28,9 +25,6 @@ class BidiWrapper {
   void SetPara(const char32_t* u32_content, const uint32_t& length,
                WriteDirection direction, uint8_t* bidi_levels,
                uint32_t* visual_map, uint32_t* logical_map);
-
- private:
-  std::unique_ptr<Bidi> bidi_;
 };
 }  // namespace tttext
 }  // namespace ttoffice
