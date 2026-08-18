@@ -16,6 +16,7 @@
 #include <vector>
 
 #if defined(ENABLE_CTSHAPER)
+#include "src/ports/shaper/coretext/shaper_core_text.h"
 #include "src/ports/shaper/coretext/shaper_core_text_self_rendering.h"
 #endif
 #include "mocks.h"
@@ -311,6 +312,23 @@ TEST(ShaperCoreTextSelfRendering, CacheKeyUsesFamilyOrder) {
       descriptor_ab, descriptor_ba));
   EXPECT_NE(ShaperCoreTextSelfRenderingTestAccess::CacheKeyHash(descriptor_ab),
             ShaperCoreTextSelfRenderingTestAccess::CacheKeyHash(descriptor_ba));
+}
+
+TEST(ShaperCoreText, SafeFontCacheConfigurationRemainsIndependent) {
+  const size_t system_max_entries =
+      ShaperCoreText::GetSafeFontCacheMaxEntries();
+  const size_t self_rendering_max_entries =
+      ShaperCoreTextSelfRendering::GetSafeFontCacheMaxEntries();
+
+  ShaperCoreText::SetSafeFontCacheMaxEntries(17);
+  ShaperCoreTextSelfRendering::SetSafeFontCacheMaxEntries(23);
+
+  EXPECT_EQ(ShaperCoreText::GetSafeFontCacheMaxEntries(), 17u);
+  EXPECT_EQ(ShaperCoreTextSelfRendering::GetSafeFontCacheMaxEntries(), 23u);
+
+  ShaperCoreText::SetSafeFontCacheMaxEntries(system_max_entries);
+  ShaperCoreTextSelfRendering::SetSafeFontCacheMaxEntries(
+      self_rendering_max_entries);
 }
 
 TEST(ShaperCoreTextSelfRendering,
