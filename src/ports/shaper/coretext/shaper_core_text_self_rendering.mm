@@ -34,15 +34,6 @@
 
 namespace ttoffice {
 namespace tttext {
-std::unordered_map<ShaperCoreTextSelfRendering::CachedSafeFontKey,
-                   ShaperCoreTextSelfRendering::CachedSafeFontEntry,
-                   ShaperCoreTextSelfRendering::CachedSafeFontKey::Hasher>
-    ShaperCoreTextSelfRendering::safe_font_cache_;
-std::list<ShaperCoreTextSelfRendering::CachedSafeFontKey>
-    ShaperCoreTextSelfRendering::safe_font_cache_lru_;
-std::mutex ShaperCoreTextSelfRendering::safe_font_cache_mutex_;
-size_t ShaperCoreTextSelfRendering::safe_font_cache_max_entries_ = 256;
-
 namespace {
 
 void AppendSafeFontCascadeDescriptors(CFMutableArrayRef descriptors) {
@@ -182,40 +173,53 @@ ShaperCoreTextSelfRendering::ShaperCoreTextSelfRendering(
 
 ShaperCoreTextSelfRendering::~ShaperCoreTextSelfRendering() = default;
 
+ShaperCoreTextSelfRendering::SafeFontCacheState&
+ShaperCoreTextSelfRendering::GetSafeFontCacheState() {
+  // Keep the cache valid even when app-load warm-up code reaches the shaper
+  // before namespace-scope C++ initialization, or while global teardown is in
+  // progress. Function-local initialization is thread-safe since C++11.
+  static SafeFontCacheState* state = new SafeFontCacheState();
+  return *state;
+}
+
 void ShaperCoreTextSelfRendering::SetSafeFontCacheMaxEntries(
     size_t max_entries) {
-  std::lock_guard<std::mutex> lock(safe_font_cache_mutex_);
-  safe_font_cache_max_entries_ = max_entries;
-  TrimSafeFontCacheLocked();
+  auto& state = GetSafeFontCacheState();
+  std::lock_guard<std::mutex> lock(state.mutex_);
+  state.max_entries_ = max_entries;
+  TrimSafeFontCacheLocked(state);
 }
 
 size_t ShaperCoreTextSelfRendering::GetSafeFontCacheMaxEntries() {
-  std::lock_guard<std::mutex> lock(safe_font_cache_mutex_);
-  return safe_font_cache_max_entries_;
+  auto& state = GetSafeFontCacheState();
+  std::lock_guard<std::mutex> lock(state.mutex_);
+  return state.max_entries_;
 }
 
 void ShaperCoreTextSelfRendering::ClearSafeFontCache() {
-  std::lock_guard<std::mutex> lock(safe_font_cache_mutex_);
-  for (auto& entry : safe_font_cache_) {
+  auto& state = GetSafeFontCacheState();
+  std::lock_guard<std::mutex> lock(state.mutex_);
+  for (auto& entry : state.cache_) {
     if (entry.second.safe_font_ != nullptr) {
       CFRelease(entry.second.safe_font_);
     }
   }
-  safe_font_cache_.clear();
-  safe_font_cache_lru_.clear();
+  state.cache_.clear();
+  state.lru_.clear();
 }
 
-void ShaperCoreTextSelfRendering::TrimSafeFontCacheLocked() {
-  while (safe_font_cache_.size() > safe_font_cache_max_entries_) {
-    const auto& oldest_key = safe_font_cache_lru_.back();
-    auto iter = safe_font_cache_.find(oldest_key);
-    if (iter != safe_font_cache_.end()) {
+void ShaperCoreTextSelfRendering::TrimSafeFontCacheLocked(
+    SafeFontCacheState& state) {
+  while (state.cache_.size() > state.max_entries_) {
+    const auto& oldest_key = state.lru_.back();
+    auto iter = state.cache_.find(oldest_key);
+    if (iter != state.cache_.end()) {
       if (iter->second.safe_font_ != nullptr) {
         CFRelease(iter->second.safe_font_);
       }
-      safe_font_cache_.erase(iter);
+      state.cache_.erase(iter);
     }
-    safe_font_cache_lru_.pop_back();
+    state.lru_.pop_back();
   }
 }
 
@@ -272,13 +276,13 @@ CTFontRef ShaperCoreTextSelfRendering::GetOrCreateSafeFont(
     const FontDescriptor& fd, float text_size, bool fake_bold,
     bool fake_italic) const {
   CachedSafeFontKey cache_key{fd, text_size, fake_bold, fake_italic};
+  auto& state = GetSafeFontCacheState();
   {
-    std::lock_guard<std::mutex> lock(safe_font_cache_mutex_);
-    auto iter = safe_font_cache_.find(cache_key);
-    if (iter != safe_font_cache_.end()) {
-      safe_font_cache_lru_.splice(safe_font_cache_lru_.begin(),
-                                  safe_font_cache_lru_, iter->second.lru_it_);
-      iter->second.lru_it_ = safe_font_cache_lru_.begin();
+    std::lock_guard<std::mutex> lock(state.mutex_);
+    auto iter = state.cache_.find(cache_key);
+    if (iter != state.cache_.end()) {
+      state.lru_.splice(state.lru_.begin(), state.lru_, iter->second.lru_it_);
+      iter->second.lru_it_ = state.lru_.begin();
       return static_cast<CTFontRef>(CFRetain(iter->second.safe_font_));
     }
   }
@@ -372,24 +376,23 @@ CTFontRef ShaperCoreTextSelfRendering::GetOrCreateSafeFont(
     return nullptr;
   }
 
-  std::lock_guard<std::mutex> lock(safe_font_cache_mutex_);
-  auto iter = safe_font_cache_.find(cache_key);
-  if (iter != safe_font_cache_.end()) {
+  std::lock_guard<std::mutex> lock(state.mutex_);
+  auto iter = state.cache_.find(cache_key);
+  if (iter != state.cache_.end()) {
     CFRelease(safe_font);
-    safe_font_cache_lru_.splice(safe_font_cache_lru_.begin(),
-                                safe_font_cache_lru_, iter->second.lru_it_);
-    iter->second.lru_it_ = safe_font_cache_lru_.begin();
+    state.lru_.splice(state.lru_.begin(), state.lru_, iter->second.lru_it_);
+    iter->second.lru_it_ = state.lru_.begin();
     return static_cast<CTFontRef>(CFRetain(iter->second.safe_font_));
   }
 
-  if (safe_font_cache_max_entries_ == 0) {
+  if (state.max_entries_ == 0) {
     return safe_font;
   }
 
-  safe_font_cache_lru_.push_front(cache_key);
-  safe_font_cache_.emplace(
-      cache_key, CachedSafeFontEntry{safe_font, safe_font_cache_lru_.begin()});
-  TrimSafeFontCacheLocked();
+  state.lru_.push_front(cache_key);
+  state.cache_.emplace(cache_key,
+                       CachedSafeFontEntry{safe_font, state.lru_.begin()});
+  TrimSafeFontCacheLocked(state);
   return static_cast<CTFontRef>(CFRetain(safe_font));
 }
 

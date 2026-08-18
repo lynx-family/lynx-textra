@@ -67,6 +67,15 @@ class ShaperCoreText : public TTShaper {
     std::list<CachedSafeFontKey>::iterator lru_it_;
   };
 
+  struct SafeFontCacheState {
+    std::unordered_map<CachedSafeFontKey, CachedSafeFontEntry,
+                       CachedSafeFontKey::Hasher>
+        cache_;
+    std::list<CachedSafeFontKey> lru_;
+    std::mutex mutex_;
+    size_t max_entries_ = 256;
+  };
+
   CFAttributedStringRef GenerateAttributeString(const char16_t* content,
                                                 uint32_t length,
                                                 uint32_t* u16char_map,
@@ -75,17 +84,12 @@ class ShaperCoreText : public TTShaper {
   CTFontRef CreateSafeFontUnified(CTFontRef existing_font) const;
   CTFontRef GetOrCreateSafeFont(const FontDescriptor& fd, float text_size,
                                 bool fake_bold, bool fake_italic) const;
-  static void TrimSafeFontCacheLocked();
+  static SafeFontCacheState& GetSafeFontCacheState();
+  static void TrimSafeFontCacheLocked(SafeFontCacheState& state);
 
  private:
   mutable std::vector<TypefaceRef> ct_font_lst_;
   mutable uint32_t tmp_buf_[SHAPER_BUFF_SIZE];
-  static std::unordered_map<CachedSafeFontKey, CachedSafeFontEntry,
-                            CachedSafeFontKey::Hasher>
-      safe_font_cache_;
-  static std::list<CachedSafeFontKey> safe_font_cache_lru_;
-  static std::mutex safe_font_cache_mutex_;
-  static size_t safe_font_cache_max_entries_;
 };
 }  // namespace tttext
 }  // namespace ttoffice
