@@ -11,6 +11,13 @@ import android.graphics.fonts.Font;
 import java.util.Objects;
 
 public class JavaTypeface {
+  private static final ThreadLocal<Paint> sPainter = new ThreadLocal<Paint>() {
+    @Override
+    protected Paint initialValue() {
+      return new Paint();
+    }
+  };
+
   public static class FontKey {
     String mFontFamily = "";
     int mFontWeight = 400;
@@ -27,7 +34,9 @@ public class JavaTypeface {
 
     @Override
     public int hashCode() {
-      return Objects.hash(mFontFamily, mFontWeight, mItalic);
+      int result = mFontFamily.hashCode();
+      result = 31 * result + mFontWeight;
+      return 31 * result + (mItalic ? 1 : 0);
     }
   }
 
@@ -41,15 +50,14 @@ public class JavaTypeface {
 
   public long mNativeHandler = 0;
 
-  private float dpi = 1;
-
   public JavaTypeface(int index, Typeface typeface, FontKey fontKey, long nativeHandler) {
     mIndex = index;
     mTypeface = typeface;
     mFontKey = fontKey;
     mNativeHandler = nativeHandler;
-    GetFontMetrics(24);
-    BindNativeHandler(nativeHandler, this, mIndex);
+    InitFontMetrics(24);
+    BindNativeHandler(nativeHandler, this, mIndex, mFontMetrics.ascent / mTextSize,
+        mFontMetrics.descent / mTextSize);
   }
 
   public JavaTypeface(int index, Font typeface, FontKey fontKey, long nativeHandler) {
@@ -57,7 +65,9 @@ public class JavaTypeface {
     mFont = typeface;
     mFontKey = fontKey;
     mNativeHandler = nativeHandler;
-    BindNativeHandler(nativeHandler, this, mIndex);
+    InitFontMetrics(24);
+    BindNativeHandler(nativeHandler, this, mIndex, mFontMetrics.ascent / mTextSize,
+        mFontMetrics.descent / mTextSize);
   }
 
   @Override
@@ -75,26 +85,21 @@ public class JavaTypeface {
     return Objects.hash(mFontKey);
   }
 
-  public float[] GetFontMetrics(float text_size) {
-    float[] font_metrics = new float[2];
-    if (mTextSize == 0 || dpi != TTTextUtils.density_) {
-      TTText.mPainter.setTypeface(mTypeface);
-      TTText.mPainter.setTextSize(TTTextUtils.Dp2Px(text_size));
-      TTText.mPainter.getFontMetrics(mFontMetrics);
-      dpi = TTTextUtils.density_;
-    } else {
-      float scale = text_size / mTextSize;
-      mFontMetrics.ascent *= scale;
-      mFontMetrics.descent *= scale;
-    }
+  private void InitFontMetrics(float text_size) {
+    Paint paint = sPainter.get();
+    paint.setTypeface(mTypeface);
+    paint.setTextSize(text_size);
+    paint.getFontMetrics(mFontMetrics);
     mTextSize = text_size;
-    font_metrics[0] = TTTextUtils.Px2Dp(mFontMetrics.ascent);
-    font_metrics[1] = TTTextUtils.Px2Dp(mFontMetrics.descent);
-    return font_metrics;
+  }
+
+  public float[] GetFontMetrics(float text_size) {
+    float scale = text_size / mTextSize;
+    return new float[] {mFontMetrics.ascent * scale, mFontMetrics.descent * scale};
   }
 
   public float[] GetTextBounds(char[] text, float text_size) {
-    Paint paint = TTText.mPainter;
+    Paint paint = sPainter.get();
     Rect rect = new Rect();
     paint.setTypeface(mTypeface);
     paint.setTextSize(text_size);
@@ -107,5 +112,6 @@ public class JavaTypeface {
     return ret;
   }
 
-  public native void BindNativeHandler(long nativeHandler, JavaTypeface javaTypeface, int index);
+  public native void BindNativeHandler(
+      long nativeHandler, JavaTypeface javaTypeface, int index, float ascent, float descent);
 }

@@ -5,25 +5,20 @@
 package com.lynx.textra;
 
 import android.graphics.Paint;
-import java.util.HashMap;
 
 public class JavaShaper {
-  private HashMap<Integer, JavaTypeface> mFontMap = new HashMap<>(10);
+  private static final int INITIAL_ADVANCES_CAPACITY = 32;
+  private static final int MAX_REUSABLE_ADVANCES_CAPACITY = 256;
 
-  public JavaShaper(JavaFontManager font_manager) {
-    mFontManager = font_manager;
-  }
+  public JavaShaper(JavaFontManager font_manager) {}
 
   public float[] OnShapeText(
       String content, JavaTypeface font, float text_size, boolean is_rtl, boolean italic) {
-    float[] result = new float[content.length()];
+    int textLength = content.length();
+    float[] result = obtainAdvances(textLength);
     mPaint.setTypeface(font.mTypeface);
-    mPaint.setTextSize(TTTextUtils.Dp2Px(text_size));
+    mPaint.setTextSize(text_size);
     mPaint.getTextWidths(content, result);
-    for (int k = 0; k < content.length(); k++) {
-      result[k] = TTTextUtils.Px2Dp(result[k]);
-    }
-    font.GetFontMetrics(text_size);
     return result;
   }
 
@@ -32,7 +27,18 @@ public class JavaShaper {
     return null;
   }
 
-  private JavaFontManager mFontManager = null;
-  private BBufferOutputStream bs = null;
-  private Paint mPaint = new Paint();
+  private float[] obtainAdvances(int requiredCapacity) {
+    if (requiredCapacity > MAX_REUSABLE_ADVANCES_CAPACITY) {
+      return new float[requiredCapacity];
+    }
+    if (requiredCapacity > mAdvances.length) {
+      int newCapacity = Math.min(
+          MAX_REUSABLE_ADVANCES_CAPACITY, Math.max(requiredCapacity, mAdvances.length * 2));
+      mAdvances = new float[newCapacity];
+    }
+    return mAdvances;
+  }
+
+  private final Paint mPaint = new Paint();
+  private float[] mAdvances = new float[INITIAL_ADVANCES_CAPACITY];
 }

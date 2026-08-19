@@ -38,7 +38,6 @@ jmethodID TTTextJNIProxy::JavaFontManager_method_init_ = nullptr;
 jmethodID TTTextJNIProxy::JavaFontManager_method_onMatchFamilyStyle_ = nullptr;
 jmethodID TTTextJNIProxy::JavaFontManager_method_onMatchTypefaceIndex_ =
     nullptr;
-jmethodID TTTextJNIProxy::JavaTypeface_method_GetFontMetrics = nullptr;
 jmethodID TTTextJNIProxy::JavaTypeface_method_GetTextBounds = nullptr;
 
 std::unique_ptr<ScopedGlobalRef> TTTextJNIProxy::tttext_utils_class_ = nullptr;
@@ -147,8 +146,6 @@ void TTTextJNIProxy::InitialJNI(JNIEnv* env) {
       env, clzz_font_manager, INSTANCE_METHOD, "onMatchTypefaceIndex", "(J)J");
   env->DeleteLocalRef(clzz_font_manager);
   auto clzz_JavaTypeface = GetClass(env, CLASS_JAVA_TYPEFACE);
-  JavaTypeface_method_GetFontMetrics = GetMethod(
-      env, clzz_JavaTypeface, INSTANCE_METHOD, "GetFontMetrics", "(F)[F");
   JavaTypeface_method_GetTextBounds = GetMethod(
       env, clzz_JavaTypeface, INSTANCE_METHOD, "GetTextBounds", "([CF)[F");
   env->DeleteLocalRef(clzz_JavaTypeface);
@@ -238,11 +235,12 @@ void WarmICU() {
       &out_buffer_32, &out_buffer_32);
 }
 
-extern "C" JNIEXPORT void JNICALL
-JavaTypefaceBindNativeInstance(JNIEnv* env, jobject thiz, jlong native_handler,
-                               jobject java_instance, jint index) {
+extern "C" JNIEXPORT void JNICALL JavaTypefaceBindNativeInstance(
+    JNIEnv* env, jobject thiz, jlong native_handler, jobject java_instance,
+    jint index, jfloat font_ascent_ratio, jfloat font_descent_ratio) {
   auto typeface = reinterpret_cast<tttext::JavaTypeface*>(native_handler);
-  typeface->BindJavaHandler(java_instance, index);
+  typeface->BindJavaHandler(env, java_instance, index, font_ascent_ratio,
+                            font_descent_ratio);
 }
 
 extern "C" JNIEXPORT void JNICALL JavaFontManagerBindNativeInstance(
@@ -261,7 +259,7 @@ extern "C" JNIEXPORT jlong JNICALL JavaFontManagerCreateNativeTypeface(
 
 // define the methods to be registered
 static JNINativeMethod java_typeface_methods[] = {
-    {"BindNativeHandler", "(JLcom/lynx/textra/JavaTypeface;I)V",
+    {"BindNativeHandler", "(JLcom/lynx/textra/JavaTypeface;IFF)V",
      reinterpret_cast<void*>(JavaTypefaceBindNativeInstance)},
 };
 

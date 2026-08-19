@@ -42,7 +42,7 @@ extern "C" JNIEXPORT jbyteArray JNICALL
 Java_com_lynx_textra_demo_PageView_drawJsonTestCase(JNIEnv* env, jobject thiz,
                                                     jlong font_manager_handler,
                                                     jbyteArray jsonBytes,
-                                                    jfloat width) {
+                                                    jfloat width_px) {
   jsize length = env->GetArrayLength(jsonBytes);
   jbyte* bytes = env->GetByteArrayElements(jsonBytes, nullptr);
   std::string jsonString(reinterpret_cast<char*>(bytes), length);
@@ -52,11 +52,11 @@ Java_com_lynx_textra_demo_PageView_drawJsonTestCase(JNIEnv* env, jobject thiz,
   auto& regions_from_json = jsonDoc->layout_regions_;
   if (regions_from_json.empty()) {
     regions_from_json.emplace_back(std::make_unique<LayoutRegion>(
-        width, kDefaultHeight, kDefaultWidthMode, kDefaultHeightMode));
+        width_px, kDefaultHeight, kDefaultWidthMode, kDefaultHeightMode));
   } else {
     auto& old_region = regions_from_json[0];
     auto new_region = std::make_unique<LayoutRegion>(
-        width, old_region->GetPageHeight(), old_region->GetWidthMode(),
+        width_px, old_region->GetPageHeight(), old_region->GetWidthMode(),
         old_region->GetHeightMode());
     old_region = std::move(new_region);
   }

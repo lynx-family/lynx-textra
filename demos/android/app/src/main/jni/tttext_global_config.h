@@ -16,8 +16,6 @@ class L_EXPORT TTTextGlobalConfig {
     static TTTextGlobalConfig config;
     return config;
   }
-  float GetDpi() const { return dpi_; }
-  void SetDpi(float dpi) { dpi_ = dpi; }
 
   bool IsAndroidEnableLayoutCache() const {
     return android_enable_layout_cache;
@@ -27,7 +25,6 @@ class L_EXPORT TTTextGlobalConfig {
   }
 
  private:
-  float dpi_{};
   bool android_enable_layout_cache{true};
 };
 }  // namespace illusion

@@ -70,9 +70,12 @@ void* JavaFontManager::getPlatformFontFromTypeface(TypefaceRef typeface) {
 }
 
 std::shared_ptr<JavaTypeface> JavaFontManager::CreateNativeTypeface() {
-  typeface_list_.push_back(std::make_shared<JavaTypeface>(0));
-  return typeface_list_.back();
+  auto typeface = std::make_shared<JavaTypeface>(0);
+  std::lock_guard<std::mutex> lock(typeface_list_mutex_);
+  typeface_list_.push_back(typeface);
+  return typeface;
 }
+
 std::shared_ptr<JavaTypeface> JavaFontManager::matchTypeface(
     const FontDescriptor& fd) {
   {
