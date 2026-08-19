@@ -7,15 +7,16 @@ package com.lynx.textra;
 import android.graphics.Typeface;
 import android.graphics.fonts.Font;
 import java.lang.reflect.Type;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class JavaFontManager {
   private final long mNativeHandler;
-  private final AtomicInteger mCount = new AtomicInteger(0);
-  private final LinkedHashMap<JavaTypeface.FontKey, JavaTypeface> mFontMap = new LinkedHashMap<>();
-  private final LinkedList<JavaTypeface> mFontList = new LinkedList<>();
+  private final ConcurrentHashMap<JavaTypeface.FontKey, JavaTypeface> mFontMap =
+      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Integer, JavaTypeface> mTypefaceByIndex =
+      new ConcurrentHashMap<>();
+  private final AtomicInteger mCount = new AtomicInteger();
 
   public JavaFontManager(long handler) {
     mNativeHandler = handler;
@@ -25,45 +26,54 @@ public class JavaFontManager {
     return mNativeHandler;
   }
 
-  public synchronized JavaTypeface CreateOrRegisterTypeface(
+  public JavaTypeface CreateOrRegisterTypeface(
       Typeface typeface, String families, int font_weight, boolean italic) {
-    JavaTypeface.FontKey key = new JavaTypeface.FontKey();
-    if (families != null && !families.isEmpty()) {
-      key.mFontFamily = families;
-    }
-    key.mFontWeight = font_weight;
-    key.mItalic = italic;
+    JavaTypeface.FontKey key = CreateFontKey(families, font_weight, italic);
     JavaTypeface cached_typeface = mFontMap.get(key);
-    if (cached_typeface == null) {
-      cached_typeface = RegisterTypeface(typeface, key, CreateNativeTypeface(mNativeHandler));
-    } else if (cached_typeface.mTypeface != typeface) {
-      mFontList.add(cached_typeface);
-      cached_typeface = RegisterTypeface(typeface, key, CreateNativeTypeface(mNativeHandler));
+    if (cached_typeface != null && cached_typeface.mTypeface == typeface) {
+      return cached_typeface;
     }
-    mFontMap.put(key, cached_typeface);
-    return cached_typeface;
+
+    JavaTypeface candidate = RegisterTypeface(typeface, key, CreateNativeTypeface(mNativeHandler));
+    mTypefaceByIndex.put(candidate.mIndex, candidate);
+    while (true) {
+      cached_typeface = mFontMap.get(key);
+      if (cached_typeface != null && cached_typeface.mTypeface == typeface) {
+        mTypefaceByIndex.remove(candidate.mIndex, candidate);
+        return cached_typeface;
+      }
+      if (cached_typeface == null) {
+        if (mFontMap.putIfAbsent(key, candidate) == null) {
+          return candidate;
+        }
+      } else if (mFontMap.replace(key, cached_typeface, candidate)) {
+        return candidate;
+      }
+    }
   }
 
   public long onMatchTypefaceIndex(long index) {
     return GetTypefaceByIndex((int) index).mNativeHandler;
   }
-  public synchronized long onMatchFamilyStyle(
+  public long onMatchFamilyStyle(
       String families, int font_weight, boolean is_italic, long typeface_handler) {
-    JavaTypeface.FontKey key = new JavaTypeface.FontKey();
-    if (families != null && !families.isEmpty()) {
-      key.mFontFamily = families;
-    }
-    key.mFontWeight = font_weight;
-    key.mItalic = is_italic;
-    JavaTypeface cached_typeface = mFontMap.get(key);
+    JavaTypeface.FontKey requested_key = CreateFontKey(families, font_weight, is_italic);
+    JavaTypeface.FontKey fallback_key = requested_key;
+    JavaTypeface cached_typeface = mFontMap.get(requested_key);
     if (cached_typeface != null) {
       return cached_typeface.mNativeHandler;
     }
 
-    key.mFontFamily = "";
-    cached_typeface = mFontMap.get(key);
-    if (cached_typeface != null) {
-      return cached_typeface.mNativeHandler;
+    if (!requested_key.mFontFamily.isEmpty()) {
+      fallback_key = CreateFontKey("", font_weight, is_italic);
+      cached_typeface = mFontMap.get(fallback_key);
+      if (cached_typeface != null) {
+        JavaTypeface requested_typeface = mFontMap.get(requested_key);
+        if (requested_typeface != null) {
+          return requested_typeface.mNativeHandler;
+        }
+        return cached_typeface.mNativeHandler;
+      }
     }
 
     int style = Typeface.NORMAL;
@@ -75,59 +85,52 @@ public class JavaFontManager {
       style = Typeface.ITALIC;
     }
 
-    try {
-      Typeface tf = Typeface.create(Typeface.DEFAULT, style);
-      if (tf == null)
-        tf = Typeface.DEFAULT;
-
-      cached_typeface = RegisterTypeface(tf, key, typeface_handler);
-      if (cached_typeface.mNativeHandler == 0) {
-        cached_typeface = null;
-      }
-    } catch (Exception e) {
-      cached_typeface = null;
-    }
+    JavaTypeface candidate =
+        RegisterTypeface(Typeface.create(Typeface.DEFAULT, style), fallback_key, typeface_handler);
+    mTypefaceByIndex.put(candidate.mIndex, candidate);
+    cached_typeface = mFontMap.putIfAbsent(fallback_key, candidate);
     if (cached_typeface != null) {
-      mFontMap.put(key, cached_typeface);
-    } else {
-      if (!mFontMap.isEmpty()) {
-        cached_typeface = mFontMap.values().iterator().next();
-      } else if (!mFontList.isEmpty()) {
-        cached_typeface = mFontList.getFirst();
-      }
+      mTypefaceByIndex.remove(candidate.mIndex, candidate);
+      return cached_typeface.mNativeHandler;
     }
-
-    return cached_typeface != null ? cached_typeface.mNativeHandler : 0;
+    return candidate.mNativeHandler;
   }
 
-  private synchronized JavaTypeface RegisterTypeface(
+  private JavaTypeface RegisterTypeface(
       Typeface typeface, JavaTypeface.FontKey key, long typeface_handler) {
-    int index = mCount.incrementAndGet();
-    return new JavaTypeface(index, typeface, key, typeface_handler);
+    return new JavaTypeface(mCount.incrementAndGet(), typeface, key, typeface_handler);
   }
 
-  public synchronized JavaTypeface RegisterShapeFont(Font font, JavaTypeface.FontKey key) {
+  public JavaTypeface RegisterShapeFont(Font font, JavaTypeface.FontKey key) {
     JavaTypeface java_typeface = mFontMap.get(key);
-    if (java_typeface == null) {
-      int index = mCount.incrementAndGet();
-      java_typeface = new JavaTypeface(index, font, key, CreateNativeTypeface(mNativeHandler));
-      mFontMap.put(key, java_typeface);
+    if (java_typeface != null) {
+      return java_typeface;
     }
-    return java_typeface;
+
+    JavaTypeface candidate =
+        new JavaTypeface(mCount.incrementAndGet(), font, key, CreateNativeTypeface(mNativeHandler));
+    mTypefaceByIndex.put(candidate.mIndex, candidate);
+    java_typeface = mFontMap.putIfAbsent(key, candidate);
+    if (java_typeface != null) {
+      mTypefaceByIndex.remove(candidate.mIndex, candidate);
+      return java_typeface;
+    }
+    return candidate;
   }
 
-  public synchronized JavaTypeface GetTypefaceByIndex(int index) {
-    for (JavaTypeface java_typeface : mFontMap.values()) {
-      if (java_typeface.mIndex == index) {
-        return java_typeface;
-      }
+  public JavaTypeface GetTypefaceByIndex(int index) {
+    return mTypefaceByIndex.get(index);
+  }
+
+  private static JavaTypeface.FontKey CreateFontKey(
+      String families, int font_weight, boolean italic) {
+    JavaTypeface.FontKey key = new JavaTypeface.FontKey();
+    if (families != null && !families.isEmpty()) {
+      key.mFontFamily = families;
     }
-    for (JavaTypeface java_typeface : mFontList) {
-      if (java_typeface.mIndex == index) {
-        return java_typeface;
-      }
-    }
-    return null;
+    key.mFontWeight = font_weight;
+    key.mItalic = italic;
+    return key;
   }
 
   private native void BindNativeInstance(long nativeHandler, JavaFontManager java_instance);

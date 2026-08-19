@@ -4,8 +4,6 @@
 
 package com.lynx.textra;
 
-import android.graphics.Paint;
-
 public class TTText {
   private static boolean sInitialized = false;
   private static boolean sSelfRenderingPreloaded = false;
@@ -47,6 +45,5 @@ public class TTText {
 
   private native static JavaFontManager nativeGetDefaultFontManager();
 
-  public static Paint mPainter = new Paint();
   public static JavaFontManager mFontManager = null;
 }

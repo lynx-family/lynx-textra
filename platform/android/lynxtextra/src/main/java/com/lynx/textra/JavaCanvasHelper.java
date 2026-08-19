@@ -141,8 +141,8 @@ public class JavaCanvasHelper {
   }
 
   protected void translate(BBufferInputStream stream) throws IOException {
-    float x = TTTextUtils.Dp2Px(stream.readFloat());
-    float y = TTTextUtils.Dp2Px(stream.readFloat());
+    float x = stream.readFloat();
+    float y = stream.readFloat();
     canvas_.translate(x, y);
   }
 
@@ -158,33 +158,33 @@ public class JavaCanvasHelper {
   }
 
   protected void skew(BBufferInputStream stream) throws IOException {
-    float x = TTTextUtils.Dp2Px(stream.readFloat());
-    float y = TTTextUtils.Dp2Px(stream.readFloat());
+    float x = stream.readFloat();
+    float y = stream.readFloat();
     canvas_.skew(x, y);
   }
 
   protected void clipRect(BBufferInputStream stream) throws IOException {
-    float l = TTTextUtils.Dp2Px(stream.readFloat());
-    float t = TTTextUtils.Dp2Px(stream.readFloat());
-    float r = TTTextUtils.Dp2Px(stream.readFloat());
-    float b = TTTextUtils.Dp2Px(stream.readFloat());
+    float l = stream.readFloat();
+    float t = stream.readFloat();
+    float r = stream.readFloat();
+    float b = stream.readFloat();
     canvas_.clipRect(l, t, r, b);
   }
 
   protected void clearRect(BBufferInputStream stream) throws IOException {
-    float l = TTTextUtils.Dp2Px(stream.readFloat());
-    float t = TTTextUtils.Dp2Px(stream.readFloat());
-    float r = TTTextUtils.Dp2Px(stream.readFloat());
-    float b = TTTextUtils.Dp2Px(stream.readFloat());
+    float l = stream.readFloat();
+    float t = stream.readFloat();
+    float r = stream.readFloat();
+    float b = stream.readFloat();
     // TODO: ClearRect
   }
 
   protected void fillRect(BBufferInputStream stream) throws IOException {
     int color = stream.readInt();
-    float l = TTTextUtils.Dp2Px(stream.readFloat());
-    float t = TTTextUtils.Dp2Px(stream.readFloat());
-    float r = TTTextUtils.Dp2Px(stream.readFloat());
-    float b = TTTextUtils.Dp2Px(stream.readFloat());
+    float l = stream.readFloat();
+    float t = stream.readFloat();
+    float r = stream.readFloat();
+    float b = stream.readFloat();
     Paint p = new Paint();
     p.setColor(color);
     p.setStyle(Paint.Style.FILL);
@@ -197,10 +197,10 @@ public class JavaCanvasHelper {
   }
 
   protected void drawLine(BBufferInputStream stream) throws IOException {
-    float x1 = TTTextUtils.Dp2Px(stream.readFloat());
-    float y1 = TTTextUtils.Dp2Px(stream.readFloat());
-    float x2 = TTTextUtils.Dp2Px(stream.readFloat());
-    float y2 = TTTextUtils.Dp2Px(stream.readFloat());
+    float x1 = stream.readFloat();
+    float y1 = stream.readFloat();
+    float x2 = stream.readFloat();
+    float y2 = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
     p.setColor(color_);
     if (color_ != 0 && stroke_color_ == color_) {
@@ -220,10 +220,10 @@ public class JavaCanvasHelper {
   }
 
   protected void drawRect(BBufferInputStream stream) throws IOException {
-    float l = TTTextUtils.Dp2Px(stream.readFloat());
-    float t = TTTextUtils.Dp2Px(stream.readFloat());
-    float r = TTTextUtils.Dp2Px(stream.readFloat());
-    float b = TTTextUtils.Dp2Px(stream.readFloat());
+    float l = stream.readFloat();
+    float t = stream.readFloat();
+    float r = stream.readFloat();
+    float b = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
     p.setColor(color_);
     if (color_ != 0 && stroke_color_ == color_) {
@@ -243,11 +243,11 @@ public class JavaCanvasHelper {
   }
 
   protected void drawRoundRect(BBufferInputStream stream) throws IOException {
-    float l = TTTextUtils.Dp2Px(stream.readFloat());
-    float t = TTTextUtils.Dp2Px(stream.readFloat());
-    float r = TTTextUtils.Dp2Px(stream.readFloat());
-    float b = TTTextUtils.Dp2Px(stream.readFloat());
-    float radii = TTTextUtils.Dp2Px(stream.readFloat());
+    float l = stream.readFloat();
+    float t = stream.readFloat();
+    float r = stream.readFloat();
+    float b = stream.readFloat();
+    float radii = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
     p.setColor(color_);
     if (color_ != 0 && stroke_color_ == color_) {
@@ -279,18 +279,18 @@ public class JavaCanvasHelper {
   }
 
   protected void drawOval(BBufferInputStream stream) throws IOException {
-    float l = TTTextUtils.Dp2Px(stream.readFloat());
-    float t = TTTextUtils.Dp2Px(stream.readFloat());
-    float r = TTTextUtils.Dp2Px(stream.readFloat());
-    float b = TTTextUtils.Dp2Px(stream.readFloat());
+    float l = stream.readFloat();
+    float t = stream.readFloat();
+    float r = stream.readFloat();
+    float b = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
     //        canvas_.drawOval(l, t, r, b, p);
   }
 
   protected void drawCircle(BBufferInputStream stream) throws IOException {
-    float x = TTTextUtils.Dp2Px(stream.readFloat());
-    float y = TTTextUtils.Dp2Px(stream.readFloat());
-    float r = TTTextUtils.Dp2Px(stream.readFloat());
+    float x = stream.readFloat();
+    float y = stream.readFloat();
+    float r = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
     p.setColor(color_);
     if (color_ != 0 && stroke_color_ == color_) {
@@ -310,12 +310,12 @@ public class JavaCanvasHelper {
   }
 
   protected void drawArc(BBufferInputStream stream) throws IOException {
-    float l = TTTextUtils.Dp2Px(stream.readFloat());
-    float t = TTTextUtils.Dp2Px(stream.readFloat());
-    float r = TTTextUtils.Dp2Px(stream.readFloat());
-    float b = TTTextUtils.Dp2Px(stream.readFloat());
-    float start = TTTextUtils.Dp2Px(stream.readFloat());
-    float end = TTTextUtils.Dp2Px(stream.readFloat());
+    float l = stream.readFloat();
+    float t = stream.readFloat();
+    float r = stream.readFloat();
+    float b = stream.readFloat();
+    float start = stream.readFloat();
+    float end = stream.readFloat();
     boolean center = stream.readInt() != 0;
     Paint p = ReadPaint(stream, paint_);
   }
@@ -343,13 +343,13 @@ public class JavaCanvasHelper {
   }
 
   protected void drawArcTo(BBufferInputStream stream) throws IOException {
-    float x1 = TTTextUtils.Dp2Px(stream.readFloat());
-    float y1 = TTTextUtils.Dp2Px(stream.readFloat());
-    float x2 = TTTextUtils.Dp2Px(stream.readFloat());
-    float y2 = TTTextUtils.Dp2Px(stream.readFloat());
-    float x3 = TTTextUtils.Dp2Px(stream.readFloat());
-    float y3 = TTTextUtils.Dp2Px(stream.readFloat());
-    float r = TTTextUtils.Dp2Px(stream.readFloat());
+    float x1 = stream.readFloat();
+    float y1 = stream.readFloat();
+    float x2 = stream.readFloat();
+    float y2 = stream.readFloat();
+    float x3 = stream.readFloat();
+    float y3 = stream.readFloat();
+    float r = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
   }
 
@@ -363,8 +363,8 @@ public class JavaCanvasHelper {
     }
     while (char_count > 0 && text_[char_count - 1] < 32) char_count--;
 
-    float x = TTTextUtils.Dp2Px(stream.readFloat());
-    float y = TTTextUtils.Dp2Px(stream.readFloat());
+    float x = stream.readFloat();
+    float y = stream.readFloat();
     paint_.setTypeface(ttfont.mTypeface);
     Paint p = ReadPaint(stream, paint_);
     p.setFakeBoldText(is_bold_);
@@ -388,8 +388,8 @@ public class JavaCanvasHelper {
 
   protected void drawGlyphs(BBufferInputStream stream) throws IOException {
     JavaTypeface ttfont = mFontManager.GetTypefaceByIndex(stream.readInt());
-    float x = TTTextUtils.Dp2Px(stream.readFloat());
-    float y = TTTextUtils.Dp2Px(stream.readFloat());
+    float x = stream.readFloat();
+    float y = stream.readFloat();
     int glyph_count = stream.readInt();
     int[] glyph_ids = new int[glyph_count];
     float[] pos = new float[2 * glyph_count];
@@ -402,10 +402,10 @@ public class JavaCanvasHelper {
 
   protected void drawRunDelegate(BBufferInputStream stream) throws IOException {
     int id = stream.readInt();
-    float dl = TTTextUtils.Dp2Px(stream.readFloat());
-    float dt = TTTextUtils.Dp2Px(stream.readFloat());
-    float dr = TTTextUtils.Dp2Px(stream.readFloat());
-    float db = TTTextUtils.Dp2Px(stream.readFloat());
+    float dl = stream.readFloat();
+    float dt = stream.readFloat();
+    float dr = stream.readFloat();
+    float db = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
   }
 
@@ -418,10 +418,10 @@ public class JavaCanvasHelper {
     int len = stream.readInt();
     byte[] buffer = new byte[len];
     stream.read(buffer, 0, len);
-    float dl = TTTextUtils.Dp2Px(stream.readFloat());
-    float dt = TTTextUtils.Dp2Px(stream.readFloat());
-    float dr = TTTextUtils.Dp2Px(stream.readFloat());
-    float db = TTTextUtils.Dp2Px(stream.readFloat());
+    float dl = stream.readFloat();
+    float dt = stream.readFloat();
+    float dr = stream.readFloat();
+    float db = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
     Bitmap img = BitmapFactory.decodeByteArray(buffer, 0, len);
     canvas_.drawBitmap(img, new Rect(0, 0, img.getWidth(), img.getHeight()),
@@ -432,14 +432,14 @@ public class JavaCanvasHelper {
     int len = stream.readInt();
     byte[] buffer = new byte[len];
     stream.read(buffer, 0, len);
-    float sl = TTTextUtils.Dp2Px(stream.readFloat());
-    float st = TTTextUtils.Dp2Px(stream.readFloat());
-    float sr = TTTextUtils.Dp2Px(stream.readFloat());
-    float sb = TTTextUtils.Dp2Px(stream.readFloat());
-    float dl = TTTextUtils.Dp2Px(stream.readFloat());
-    float dt = TTTextUtils.Dp2Px(stream.readFloat());
-    float dr = TTTextUtils.Dp2Px(stream.readFloat());
-    float db = TTTextUtils.Dp2Px(stream.readFloat());
+    float sl = stream.readFloat();
+    float st = stream.readFloat();
+    float sr = stream.readFloat();
+    float sb = stream.readFloat();
+    float dl = stream.readFloat();
+    float dt = stream.readFloat();
+    float dr = stream.readFloat();
+    float db = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
     Bitmap img = BitmapFactory.decodeByteArray(buffer, 0, len);
     canvas_.drawBitmap(img, new Rect((int) sl, (int) st, (int) sr, (int) sb),
@@ -448,10 +448,10 @@ public class JavaCanvasHelper {
 
   protected Paint ReadPaint(BBufferInputStream stream, Paint painter) throws IOException {
     painter.setAntiAlias(true);
-    painter.setStrokeWidth(TTTextUtils.Dp2Px(stream.readFloat()));
+    painter.setStrokeWidth(stream.readFloat());
     color_ = stream.readInt();
     stroke_color_ = stream.readInt();
-    text_size_ = TTTextUtils.Dp2Px(stream.readFloat());
+    text_size_ = stream.readFloat();
     painter.setTextSize(text_size_);
     text_skew_ = stream.readFloat();
     int flag = stream.readByte();
@@ -479,27 +479,27 @@ public class JavaCanvasHelper {
       case kLines: {
         int len = stream.readInt();
         for (int i = 0; i < len; i++) {
-          float x = TTTextUtils.Dp2Px(stream.readFloat());
-          float y = TTTextUtils.Dp2Px(stream.readFloat());
+          float x = stream.readFloat();
+          float y = stream.readFloat();
           path.lineTo(x, y);
         }
       } break;
       case kArc: {
-        float x1 = TTTextUtils.Dp2Px(stream.readFloat());
-        float y1 = TTTextUtils.Dp2Px(stream.readFloat());
-        float x2 = TTTextUtils.Dp2Px(stream.readFloat());
-        float y2 = TTTextUtils.Dp2Px(stream.readFloat());
-        float x3 = TTTextUtils.Dp2Px(stream.readFloat());
-        float y3 = TTTextUtils.Dp2Px(stream.readFloat());
-        float r = TTTextUtils.Dp2Px(stream.readFloat());
+        float x1 = stream.readFloat();
+        float y1 = stream.readFloat();
+        float x2 = stream.readFloat();
+        float y2 = stream.readFloat();
+        float x3 = stream.readFloat();
+        float y3 = stream.readFloat();
+        float r = stream.readFloat();
         // TODO:add arc
       } break;
       case kBezier: {
         int len = stream.readInt();
         PointF[] points = new PointF[len];
         for (int i = 0; i < len; i++) {
-          float x = TTTextUtils.Dp2Px(stream.readFloat());
-          float y = TTTextUtils.Dp2Px(stream.readFloat());
+          float x = stream.readFloat();
+          float y = stream.readFloat();
           points[i] = new PointF(x, y);
         }
         if (len == 2) {
@@ -510,8 +510,8 @@ public class JavaCanvasHelper {
         }
       } break;
       case kMoveTo: {
-        float x = TTTextUtils.Dp2Px(stream.readFloat());
-        float y = TTTextUtils.Dp2Px(stream.readFloat());
+        float x = stream.readFloat();
+        float y = stream.readFloat();
         path.moveTo(x, y);
       } break;
       case kMultiPath: {

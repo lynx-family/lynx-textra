@@ -35,13 +35,14 @@ Java_com_lynx_textra_demo_PageView_getCppTestList(JNIEnv* env, jclass clazz) {
 extern "C" JNIEXPORT jbyteArray JNICALL
 Java_com_lynx_textra_demo_PageView_drawCppTestCase(JNIEnv* env, jobject thiz,
                                                    jlong font_manager_handler,
-                                                   jint case_id, float width) {
+                                                   jint case_id,
+                                                   float width_px) {
   auto java_font_manager =
       ((JavaFontManager*)font_manager_handler)->shared_from_this();
   JavaCanvasHelper canvas_helper;
   tttext::FontmgrCollection font_collection(java_font_manager);
   ParagraphTest paragraph_test(kSystem, &font_collection);
-  paragraph_test.TestWithId(&canvas_helper, width, case_id);
+  paragraph_test.TestWithId(&canvas_helper, width_px, case_id);
   auto& buffer = canvas_helper.GetBuffer();
   auto* data = buffer.GetBuffer();
   auto length = buffer.GetSize();

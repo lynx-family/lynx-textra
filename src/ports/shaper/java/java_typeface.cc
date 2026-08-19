@@ -11,10 +11,13 @@ namespace tttext {
 JavaTypeface::JavaTypeface(uint32_t unique_id) : ITypefaceHelper(unique_id) {}
 JavaTypeface::~JavaTypeface() = default;
 jobject JavaTypeface::GetInstance() const { return java_instance_->get(); }
-void JavaTypeface::BindJavaHandler(jobject handler, uint32_t unique_id) {
-  auto env = TTTextJNIProxy::GetInstance().GetCurrentJNIEnv();
+void JavaTypeface::BindJavaHandler(JNIEnv* env, jobject handler,
+                                   uint32_t unique_id, float font_ascent_ratio,
+                                   float font_descent_ratio) {
   java_instance_ = std::make_unique<ScopedGlobalRef>(env, handler);
   unique_id_ = unique_id;
+  font_ascent_ratio_ = font_ascent_ratio;
+  font_descent_ratio_ = font_descent_ratio;
 }
 float JavaTypeface::GetHorizontalAdvance(GlyphID glyph_id,
                                          float font_size) const {
@@ -57,22 +60,8 @@ uint16_t JavaTypeface::UnicharToGlyph(Unichar codepoint,
 void JavaTypeface::UnicharsToGlyphs(const Unichar* unichars, uint32_t count,
                                     GlyphID* glyphs) const {}
 void JavaTypeface::OnCreateFontInfo(FontInfo* info, float font_size) const {
-  auto& proxy = TTTextJNIProxy::GetInstance();
-  auto env = proxy.GetCurrentJNIEnv();
-  auto* metrics = (jfloatArray)env->CallObjectMethod(
-      java_instance_->get(), proxy.JavaTypeface_method_GetFontMetrics,
-      font_size);
-  if (metrics == nullptr) {
-    ClearException(env);
-    info->SetAscent(0);
-    info->SetDescent(0);
-    info->SetFontSize(font_size);
-    return;
-  }
-  auto* jarray = env->GetFloatArrayElements(metrics, nullptr);
-  TTASSERT(env->GetArrayLength(metrics) == 2);
-  info->SetAscent(jarray[0]);
-  info->SetDescent(jarray[1]);
+  info->SetAscent(font_ascent_ratio_ * font_size);
+  info->SetDescent(font_descent_ratio_ * font_size);
   info->SetFontSize(font_size);
 }
 }  // namespace tttext

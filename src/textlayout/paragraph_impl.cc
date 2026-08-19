@@ -148,9 +148,9 @@ void ParagraphImpl::FormatRunList() {
     FormatIndent();
     if (content_.Empty() && run_lst_.empty()) {
       AddTextRun(nullptr, "\n", 1);
+      u32_content = content_.ToUTF32();
     }
     TTASSERT(!content_.Empty() || !run_lst_.empty());
-    auto u32_content = content_.ToUTF32();
     boundary_analyst_ = std::make_unique<BoundaryAnalyst>(
         u32_content.data(), u32_content.length(),
         paragraph_style_.line_break_strategy_);

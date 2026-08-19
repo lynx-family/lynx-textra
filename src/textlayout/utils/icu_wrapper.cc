@@ -485,6 +485,15 @@ void ICUWrapper::BidiInit(const char32_t* u32_content, const uint32_t& length,
   if (ErrorCode != U_ZERO_ERROR) {
     return DefaultBidiResult(length, bidi_levels, visual_map, logical_map);
   }
+  if (ICUWrapper::ubidiGetDirection(para) == UBIDI_LTR) {
+    for (auto index = 0u; index < length; index++) {
+      bidi_levels[index] = 0;
+      visual_map[index] = index;
+      logical_map[index] = index;
+    }
+    bidi_close(para);
+    return;
+  }
   const auto* bidiLevels = bidi_getLevels(para, pErrorCode);
   if (ErrorCode != U_ZERO_ERROR) {
     return DefaultBidiResult(length, bidi_levels, visual_map, logical_map);

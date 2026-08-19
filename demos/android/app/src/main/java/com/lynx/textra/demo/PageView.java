@@ -17,7 +17,6 @@ import androidx.annotation.Nullable;
 import com.lynx.textra.JavaCanvasHelper;
 import com.lynx.textra.JavaFontManager;
 import com.lynx.textra.TTTextDefinition;
-import com.lynx.textra.TTTextUtils;
 
 public class PageView extends View implements IDrawerCallback {
   private JavaDrawerCallback drawer;
@@ -25,7 +24,8 @@ public class PageView extends View implements IDrawerCallback {
   private byte[] mDrawBuffer;
   private final float x_ = getContext().getResources().getDisplayMetrics().widthPixels * 0.01f;
   private final float y_ = getContext().getResources().getDisplayMetrics().heightPixels * 0.01f;
-  private final float width_ = getContext().getResources().getDisplayMetrics().widthPixels * 0.98f;
+  private final float width_px_ =
+      getContext().getResources().getDisplayMetrics().widthPixels * 0.98f;
   private final float height_ =
       getContext().getResources().getDisplayMetrics().heightPixels * 0.95f;
   MainActivity activity;
@@ -83,8 +83,7 @@ public class PageView extends View implements IDrawerCallback {
    * Set C++ test case and update draw buffer
    */
   public void setCppTestCase(int case_id) {
-    mDrawBuffer =
-        drawCppTestCase(font_manager.GetNativeHandler(), case_id, TTTextUtils.Px2Dp(width_));
+    mDrawBuffer = drawCppTestCase(font_manager.GetNativeHandler(), case_id, width_px_);
     invalidate();
   }
 
@@ -92,14 +91,14 @@ public class PageView extends View implements IDrawerCallback {
    * Set JSON test case and update draw buffer
    */
   public void setJsonTestCase(byte[] jsonBytes) {
-    mDrawBuffer =
-        drawJsonTestCase(font_manager.GetNativeHandler(), jsonBytes, TTTextUtils.Px2Dp(width_));
+    mDrawBuffer = drawJsonTestCase(font_manager.GetNativeHandler(), jsonBytes, width_px_);
     invalidate();
   }
 
-  private native byte[] drawCppTestCase(long font_manager_handler, int case_id, float width);
+  private native byte[] drawCppTestCase(long font_manager_handler, int case_id, float width_px);
 
-  private native byte[] drawJsonTestCase(long font_manager_handler, byte[] jsonBytes, float width);
+  private native byte[] drawJsonTestCase(
+      long font_manager_handler, byte[] jsonBytes, float width_px);
 
   @Override
   public int fetchThemeColor(TTTextDefinition.ThemeColorType type, String extra) {

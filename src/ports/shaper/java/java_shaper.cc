@@ -84,21 +84,20 @@ void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
   if (info_list == nullptr) {
     // maybe encounter java exception
     ClearException(env);
-    std::vector<float> advances(glyph_count, 0);
-    reader.advances_.insert(reader.advances_.begin(), advances.begin(),
-                            advances.end());
+    reader.advances_.resize(glyph_count, 0);
     reader.font_ = java_typeface;
     result->AppendPlatformShapingResult(reader);
+    env->DeleteLocalRef(j_content);
     return;
   }
   auto* ret_advances = env->GetFloatArrayElements(info_list, nullptr);
-  size_t ret_length = env->GetArrayLength(info_list);
-  TTASSERT(ret_length == glyph_count);
+  auto ret_length = env->GetArrayLength(info_list);
+  TTASSERT(ret_length >= static_cast<jsize>(glyph_count));
   reader.advances_.insert(reader.advances_.begin(), ret_advances,
                           ret_advances + glyph_count);
   reader.font_ = java_typeface;
   result->AppendPlatformShapingResult(reader);
-  env->ReleaseFloatArrayElements(info_list, ret_advances, 0);
+  env->ReleaseFloatArrayElements(info_list, ret_advances, JNI_ABORT);
   env->DeleteLocalRef(info_list);
   env->DeleteLocalRef(j_content);
 }
