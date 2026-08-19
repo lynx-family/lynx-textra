@@ -19,7 +19,8 @@ class JavaTypeface final : public ITypefaceHelper {
   ~JavaTypeface() override;
 
  public:
-  void BindJavaHandler(jobject handler, uint32_t unique_id);
+  void BindJavaHandler(JNIEnv* env, jobject handler, uint32_t unique_id,
+                       float font_ascent_ratio, float font_descent_ratio);
 
  public:
   jobject GetInstance() const;
@@ -44,6 +45,8 @@ class JavaTypeface final : public ITypefaceHelper {
 
  private:
   std::unique_ptr<ScopedGlobalRef> java_instance_ = nullptr;
+  float font_ascent_ratio_ = 0;
+  float font_descent_ratio_ = 0;
 };
 }  // namespace tttext
 }  // namespace ttoffice

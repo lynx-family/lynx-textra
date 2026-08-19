@@ -47,6 +47,7 @@ class L_EXPORT JavaFontManager : public IFontManager {
  private:
   std::unique_ptr<ScopedGlobalRef> java_instance_ = nullptr;
   std::list<std::shared_ptr<JavaTypeface>> typeface_list_;
+  std::mutex typeface_list_mutex_;
   std::unordered_map<FontDescriptor, std::shared_ptr<JavaTypeface>,
                      FontDescriptor::Hasher>
       typeface_map_;

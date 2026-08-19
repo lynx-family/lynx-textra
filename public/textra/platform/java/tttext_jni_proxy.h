@@ -59,7 +59,6 @@ class TTTextJNIProxy {
   static jmethodID JavaFontManager_method_init_;
   static jmethodID JavaFontManager_method_onMatchFamilyStyle_;
   static jmethodID JavaFontManager_method_onMatchTypefaceIndex_;
-  static jmethodID JavaTypeface_method_GetFontMetrics;
   static jmethodID JavaTypeface_method_GetTextBounds;
   static std::unique_ptr<ScopedGlobalRef> tttext_utils_class_;
   static jmethodID TTTextUtils_method_SystemFontStyleAdjust_;

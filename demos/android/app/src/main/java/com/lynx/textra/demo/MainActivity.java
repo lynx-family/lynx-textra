@@ -5,12 +5,10 @@
 package com.lynx.textra.demo;
 
 import android.os.Bundle;
-import android.util.DisplayMetrics;
 import android.view.MenuItem;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
 import com.lynx.textra.TTText;
-import com.lynx.textra.TTTextUtils;
 
 public class MainActivity extends AppCompatActivity {
   static {
@@ -25,11 +23,6 @@ public class MainActivity extends AppCompatActivity {
 
     // Set ActionBar
     getSupportActionBar().setTitle("LynxTextra Demo");
-
-    // Initialize DPI
-    DisplayMetrics metrics = new DisplayMetrics();
-    getWindowManager().getDefaultDisplay().getMetrics(metrics);
-    TTTextUtils.SetDpi(metrics.densityDpi / 2);
 
     // If first creation, show list Fragment
     if (savedInstanceState == null) {
