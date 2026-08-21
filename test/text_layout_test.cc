@@ -38,6 +38,26 @@ class MockInlineObject : public RunDelegate {
   float descent_;
 };
 
+class HeightSensitiveLayoutRegion : public LayoutRegion {
+ public:
+  HeightSensitiveLayoutRegion() : LayoutRegion(100.f, 200.f) {}
+
+  std::vector<std::array<float, 2>> GetRangeList(float* top, float range_height,
+                                                 float start_indent,
+                                                 float end_indent) override {
+    ++range_query_count_;
+    // The fallback after repeated queries keeps a broken implementation from
+    // hanging the test while still exposing a non-converging relayout loop.
+    const bool use_tall_range = range_height >= 40.f || range_query_count_ > 6;
+    return {{start_indent, (use_tall_range ? 80.f : 100.f) - end_indent}};
+  }
+
+  int GetRangeQueryCount() const { return range_query_count_; }
+
+ private:
+  int range_query_count_ = 0;
+};
+
 class TextLayoutTest : public ::testing::Test {
  public:
   ::TypefaceRef CreateFixedSizeMockTypeface() {
@@ -701,6 +721,262 @@ TEST_F(TextLayoutTest, InlineObjectRespectsAtLeastLineHeight) {
   ASSERT_NE(line, nullptr);
   EXPECT_FLOAT_EQ(line->GetContentHeight(), kObjectDescent - kObjectAscent);
   EXPECT_FLOAT_EQ(line->GetLineHeight(), kLineHeight);
+}
+
+TEST_F(TextLayoutTest, ExactLineBoxOnlyExpandsInlineObjectLine) {
+  constexpr float kLineHeight = 20.f;
+
+  auto para = std::make_unique<ParagraphImpl>();
+  ParagraphStyle para_style;
+  Style text_style;
+  text_style.SetTextSize(40.f);
+  para_style.SetDefaultStyle(text_style);
+  para_style.SetLineHeightInPx(kLineHeight, RulerType::kExact);
+  para_style.SetInlineVerticalAlignmentMode(
+      InlineVerticalAlignmentMode::kLineBox);
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&text_style, "first\nsecond", 12);
+  para->AddShapeRun(&text_style,
+                    std::make_shared<MockInlineObject>(20.f, -20.f, 10.f),
+                    false);
+  para->AddTextRun(&text_style, "\nthird", 6);
+
+  TTTextContext context;
+  TextLayout layout(GetFixedSizeMockShaper());
+  auto region = std::make_unique<LayoutRegion>(1000.f, 200.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 3u);
+  EXPECT_FLOAT_EQ(region->GetLine(0)->GetLineHeight(), kLineHeight);
+  EXPECT_FLOAT_EQ(region->GetLine(1)->GetLineHeight(), 30.f);
+  EXPECT_FLOAT_EQ(region->GetLine(2)->GetLineHeight(), kLineHeight);
+  EXPECT_GE(region->GetLine(1)->GetLineBaseLine() - 20.f,
+            region->GetLine(1)->GetLineTop());
+  EXPECT_LE(region->GetLine(1)->GetLineBaseLine() + 10.f,
+            region->GetLine(1)->GetLineBottom());
+  EXPECT_LE(region->GetLine(0)->GetLineBottom(),
+            region->GetLine(1)->GetLineTop());
+  EXPECT_LE(region->GetLine(1)->GetLineBottom(),
+            region->GetLine(2)->GetLineTop());
+}
+
+TEST_F(TextLayoutTest, ExactLineBoxKeepsInlineObjectOutOfTextMetrics) {
+  auto para = std::make_unique<ParagraphImpl>();
+  ParagraphStyle para_style;
+  Style text_style;
+  text_style.SetTextSize(20.f);
+  para_style.SetDefaultStyle(text_style);
+  para_style.SetLineHeightInPx(20.f, RulerType::kExact);
+  para_style.SetInlineVerticalAlignmentMode(
+      InlineVerticalAlignmentMode::kLineBox);
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&text_style, "A");
+  para->AddShapeRun(
+      &text_style, std::make_shared<MockInlineObject>(10.f, -60.f, 0.f), false);
+
+  TTTextContext context;
+  TextLayout layout(GetFixedSizeMockShaper());
+  auto region = std::make_unique<LayoutRegion>(100.f, 100.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  EXPECT_FLOAT_EQ(region->GetLine(0)->GetContentHeight(), 20.f);
+  EXPECT_FLOAT_EQ(region->GetLine(0)->GetLineHeight(), 65.f);
+}
+
+TEST_F(TextLayoutTest, ExactLineBoxJointlyFitsTopAndBottomObjects) {
+  auto para = std::make_unique<ParagraphImpl>();
+  ParagraphStyle para_style;
+  Style text_style;
+  text_style.SetTextSize(20.f);
+  Style top_style = text_style;
+  top_style.SetVerticalAlignment(CharacterVerticalAlignment::kTop);
+  Style bottom_style = text_style;
+  bottom_style.SetVerticalAlignment(CharacterVerticalAlignment::kBottom);
+  para_style.SetDefaultStyle(text_style);
+  para_style.SetLineHeightInPx(20.f, RulerType::kExact);
+  para_style.SetInlineVerticalAlignmentMode(
+      InlineVerticalAlignmentMode::kLineBox);
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&text_style, "A");
+  auto top_object = std::make_shared<MockInlineObject>(10.f, -40.f, 0.f);
+  auto bottom_object = std::make_shared<MockInlineObject>(10.f, -40.f, 0.f);
+  para->AddShapeRun(&top_style, top_object, false);
+  para->AddShapeRun(&bottom_style, bottom_object, false);
+
+  TTTextContext context;
+  TextLayout layout(GetFixedSizeMockShaper());
+  auto region = std::make_unique<LayoutRegion>(100.f, 100.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  EXPECT_FLOAT_EQ(line->GetLineHeight(), 40.f);
+  EXPECT_FLOAT_EQ(top_object->GetYOffset(), line->GetLineTop());
+  EXPECT_FLOAT_EQ(bottom_object->GetYOffset(), line->GetLineBottom() - 40.f);
+}
+
+TEST_F(TextLayoutTest, ExactLineBoxRelayoutUsesResolvedObjectHeight) {
+  auto para = std::make_unique<ParagraphImpl>();
+  ParagraphStyle para_style;
+  Style text_style;
+  text_style.SetTextSize(20.f);
+  para_style.SetDefaultStyle(text_style);
+  para_style.SetLineHeightInPx(20.f, RulerType::kExact);
+  para_style.SetInlineVerticalAlignmentMode(
+      InlineVerticalAlignmentMode::kLineBox);
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&text_style, "A");
+  para->AddShapeRun(
+      &text_style, std::make_shared<MockInlineObject>(10.f, -60.f, 0.f), false);
+  para->AddTextRun(&text_style, "B");
+
+  TTTextContext context;
+  TextLayout layout(GetFixedSizeMockShaper());
+  auto region = std::make_unique<HeightSensitiveLayoutRegion>();
+  auto* region_ptr = region.get();
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  EXPECT_LE(region_ptr->GetRangeQueryCount(), 4);
+  EXPECT_FLOAT_EQ(region->GetLine(0)->GetLineHeight(), 65.f);
+}
+
+TEST_F(TextLayoutTest, ExactLineBoxMatchesCssVerticalAlignGeometry) {
+  constexpr float kFontSize = 40.f;
+  constexpr float kLineHeight = 20.f;
+  struct Expectation {
+    CharacterVerticalAlignment alignment;
+    float object_height;
+    float line_height;
+    float object_top;
+  };
+  const Expectation expectations[] = {
+      {CharacterVerticalAlignment::kBaseLine, 10.f, 20.f, 10.f},
+      {CharacterVerticalAlignment::kSuperScript, 10.f, 23.2f, 0.f},
+      {CharacterVerticalAlignment::kSubScript, 10.f, 28.f, 18.f},
+      {CharacterVerticalAlignment::kMiddle, 10.f, 20.f, 5.f},
+      {CharacterVerticalAlignment::kTextTop, 10.f, 30.f, 0.f},
+      {CharacterVerticalAlignment::kTextBottom, 10.f, 30.f, 20.f},
+      {CharacterVerticalAlignment::kTop, 10.f, 20.f, 0.f},
+      {CharacterVerticalAlignment::kBottom, 10.f, 20.f, 10.f},
+      {CharacterVerticalAlignment::kBaseLine, 60.f, 60.f, 0.f},
+      {CharacterVerticalAlignment::kSuperScript, 60.f, 73.2f, 0.f},
+      {CharacterVerticalAlignment::kSubScript, 60.f, 60.f, 0.f},
+      {CharacterVerticalAlignment::kMiddle, 60.f, 60.f, 0.f},
+      {CharacterVerticalAlignment::kTextTop, 60.f, 60.f, 0.f},
+      {CharacterVerticalAlignment::kTextBottom, 60.f, 60.f, 0.f},
+      {CharacterVerticalAlignment::kTop, 60.f, 60.f, 0.f},
+      {CharacterVerticalAlignment::kBottom, 60.f, 60.f, 0.f},
+  };
+
+  for (const auto& expectation : expectations) {
+    SCOPED_TRACE(static_cast<int>(expectation.alignment));
+    SCOPED_TRACE(expectation.object_height);
+    auto para = std::make_unique<ParagraphImpl>();
+    ParagraphStyle para_style;
+    Style text_style;
+    text_style.SetTextSize(kFontSize);
+    Style object_style = text_style;
+    object_style.SetVerticalAlignment(expectation.alignment);
+    para_style.SetDefaultStyle(text_style);
+    para_style.SetLineHeightInPx(kLineHeight, RulerType::kExact);
+    para_style.SetInlineVerticalAlignmentMode(
+        InlineVerticalAlignmentMode::kLineBox);
+    para->SetParagraphStyle(&para_style);
+    para->AddTextRun(&text_style, "A", 1);
+    auto object = std::make_shared<MockInlineObject>(
+        10.f, -expectation.object_height, 0.f);
+    para->AddShapeRun(&object_style, object, false);
+    para->AddTextRun(&text_style, "A", 1);
+
+    TTTextContext context;
+    TextLayout layout(GetFixedSizeMockShaper());
+    auto region = std::make_unique<LayoutRegion>(1000.f, 300.f);
+    layout.Layout(para.get(), region.get(), context);
+
+    ASSERT_EQ(region->GetLineCount(), 1u);
+    EXPECT_NEAR(region->GetLine(0)->GetLineHeight(), expectation.line_height,
+                0.001f);
+    EXPECT_NEAR(object->GetYOffset() - region->GetLine(0)->GetLineTop(),
+                expectation.object_top, 0.001f);
+  }
+}
+
+TEST_F(TextLayoutTest,
+       LineBoxSuperAndSubUseContainingInlineFontInsteadOfObjectHeight) {
+  auto para = std::make_unique<ParagraphImpl>();
+  ParagraphStyle para_style;
+  Style parent_style;
+  parent_style.SetTextSize(40.f);
+  para_style.SetDefaultStyle(parent_style);
+  para_style.SetLineHeightInPx(20.f, RulerType::kExact);
+  para_style.SetInlineVerticalAlignmentMode(
+      InlineVerticalAlignmentMode::kLineBox);
+  para->SetParagraphStyle(&para_style);
+
+  // The object is inside a nested 12 px inline, while the paragraph root is
+  // 40 px. Its computed style is the containing inline style available after
+  // the DOM has been flattened into TTText runs.
+  Style containing_inline_style;
+  containing_inline_style.SetTextSize(12.f);
+  containing_inline_style.SetVerticalAlignment(
+      CharacterVerticalAlignment::kSuperScript);
+  Style sub_style = containing_inline_style;
+  sub_style.SetVerticalAlignment(CharacterVerticalAlignment::kSubScript);
+
+  para->AddTextRun(&parent_style, "x");
+  para->AddShapeRun(&containing_inline_style,
+                    std::make_shared<MockInlineObject>(20.f, -60.f, 0.f),
+                    false);
+  para->AddShapeRun(
+      &sub_style, std::make_shared<MockInlineObject>(20.f, -60.f, 0.f), false);
+
+  TTTextContext context;
+  TextLayout layout(GetFixedSizeMockShaper());
+  auto region = std::make_unique<LayoutRegion>(100.f, 100.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  auto* line = region->GetLine(0);
+  ASSERT_NE(line, nullptr);
+  const float baseline = line->GetLineBaseLine();
+
+  float super_rect[4]{};
+  float sub_rect[4]{};
+  line->GetCharBoundingRect(super_rect, 1);
+  line->GetCharBoundingRect(sub_rect, 2);
+
+  // CSS super/sub use the parent inline's font metrics. With the current
+  // fallback ratios, a 12 px inherited font shifts by -3.96 px / +2.4 px even
+  // though the replaced inline itself is 60 px tall.
+  EXPECT_NEAR(super_rect[1] - baseline, -63.96f, 0.001f);
+  EXPECT_NEAR(sub_rect[1] - baseline, -57.6f, 0.001f);
+  EXPECT_NEAR(line->GetLineHeight(), 66.36f, 0.001f);
+}
+
+TEST_F(TextLayoutTest, ExactLineHeightDoesNotExpandInlineObjectLine) {
+  constexpr float kLineHeight = 20.f;
+
+  auto para = std::make_unique<ParagraphImpl>();
+  ParagraphStyle para_style;
+  Style text_style;
+  text_style.SetTextSize(40.f);
+  para_style.SetDefaultStyle(text_style);
+  para_style.SetLineHeightInPx(kLineHeight, RulerType::kExact);
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&text_style, "text", 4);
+  para->AddShapeRun(&text_style,
+                    std::make_shared<MockInlineObject>(20.f, -20.f, 10.f),
+                    false);
+
+  TTTextContext context;
+  TextLayout layout(GetFixedSizeMockShaper());
+  auto region = std::make_unique<LayoutRegion>(1000.f, 200.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  EXPECT_FLOAT_EQ(region->GetLine(0)->GetLineHeight(), kLineHeight);
 }
 
 // WriteDirection decides the position of the ellipsis

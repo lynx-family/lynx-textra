@@ -18,6 +18,14 @@
 
 namespace ttoffice {
 namespace tttext {
+namespace {
+bool UsesExactTextLineBox(const ParagraphStyleImpl& para_style) {
+  return para_style.GetLineHeightRule() == RulerType::kExact &&
+         para_style.GetInlineVerticalAlignmentMode() ==
+             InlineVerticalAlignmentMode::kLineBox;
+}
+}  // namespace
+
 LayoutResult TextLayoutImpl::LayoutEx(Paragraph* i_para, LayoutRegion* page,
                                       TTTextContext& context,
                                       TTShaper* shaper) {
@@ -152,16 +160,19 @@ LayoutPosition TextLayoutImpl::ProcessBreakableRunList(
 }
 bool TextLayoutImpl::CheckLineNeedRelayout(LayoutRegion* region,
                                            TextLineImpl* line, float new_height,
-                                           float& next_line_top) {
+                                           float& next_line_top,
+                                           bool force_height_check) {
   next_line_top = line->line_top_;
+  const float range_height = std::max(new_height, line->range_height_floor_);
   std::vector<std::array<float, 2>> list;
   if (line->range_lst_.empty()) {
-    list = region->GetRangeList(&next_line_top, new_height,
+    list = region->GetRangeList(&next_line_top, range_height,
                                 line->GetStartIndent(), line->GetEndIndent());
     TTASSERT(!list.empty());
     line->SetRangeLst(list);
-  } else if (FloatsLarger(new_height, line->GetLineHeight())) {
-    list = region->GetRangeList(&next_line_top, new_height,
+  } else if (force_height_check ||
+             FloatsLarger(new_height, line->GetLineHeight())) {
+    list = region->GetRangeList(&next_line_top, range_height,
                                 line->GetStartIndent(), line->GetEndIndent());
     TTASSERT(!list.empty());
     if (!line->IsEqualRangeList(list)) {
@@ -212,12 +223,14 @@ LayoutPosition TextLayoutImpl::AddBreakableRunsToLine(
     if (line_break_pos > pos) {
       auto d_height = AddWordListToRunRange(range.get(), paragraph, pos,
                                             line_break_pos, &metrics);
-      if (CheckLineNeedRelayout(region, line, d_height, next_line_top)) {
+      line->UpdateLine(line_break_pos, metrics.GetMaxAscent(),
+                       metrics.GetMaxDescent(), d_height);
+      line->AdjustInlineObjectLineBox();
+      if (CheckLineNeedRelayout(region, line, line->GetLineHeight(),
+                                next_line_top, true)) {
         *result = LayoutResult::kRelayoutLine;
         return position;
       }
-      line->UpdateLine(line_break_pos, metrics.GetMaxAscent(),
-                       metrics.GetMaxDescent(), d_height);
       pos = line_break_pos;
     }
     if (line_break_pos.GetRunIdx() >= paragraph.GetRunCount() ||
@@ -264,12 +277,14 @@ LayoutPosition TextLayoutImpl::AddBreakableRunsToLine(
   if (break_pos > pos) {
     auto d_height = AddWordListToRunRange(line->GetCurrentRange(), paragraph,
                                           pos, break_pos, &metrics);
-    if (CheckLineNeedRelayout(region, line, d_height, next_line_top)) {
+    line->UpdateLine(break_pos, metrics.GetMaxAscent(), metrics.GetMaxDescent(),
+                     d_height);
+    line->AdjustInlineObjectLineBox();
+    if (CheckLineNeedRelayout(region, line, line->GetLineHeight(),
+                              next_line_top, true)) {
       *result = LayoutResult::kRelayoutLine;
       return position;
     }
-    line->UpdateLine(break_pos, metrics.GetMaxAscent(), metrics.GetMaxDescent(),
-                     d_height);
   }
   *result = LayoutResult::kBreakLine;
   return break_pos;
@@ -303,16 +318,20 @@ float TextLayoutImpl::AddWordListToRunRange(LineRange* range,
                                             const LayoutPosition& start_pos,
                                             const LayoutPosition& end_pos,
                                             LayoutMetrics* metrics) {
+  const bool use_exact_text_line_box =
+      UsesExactTextLineBox(paragraph.GetParagraphStyleImpl());
   float max_desired_height = LAYOUT_MIN_UNITS;
   for (auto pos = start_pos; pos < end_pos; pos.NextRun()) {
     auto* run = paragraph.GetRun(pos.GetRunIdx());
     auto desired_height = TryAddRun(*metrics, run);
     max_desired_height = std::fmax(max_desired_height, desired_height);
-    auto run_metrics = run->GetMetrics();
-    float baseline_offset =
-        paragraph.style_manager_->GetBaselineOffset(run->GetStartCharPos());
-    run_metrics.ApplyBaselineOffset(baseline_offset);
-    metrics->UpdateMax(run_metrics);
+    if (!(use_exact_text_line_box && run->IsObjectRun())) {
+      auto run_metrics = run->GetMetrics();
+      float baseline_offset =
+          paragraph.style_manager_->GetBaselineOffset(run->GetStartCharPos());
+      run_metrics.ApplyBaselineOffset(baseline_offset);
+      metrics->UpdateMax(run_metrics);
+    }
     auto end_char_in_run = pos.GetRunIdx() == end_pos.GetRunIdx()
                                ? end_pos.GetCharIdx()
                                : run->GetCharCount();

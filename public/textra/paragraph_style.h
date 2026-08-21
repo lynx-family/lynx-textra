@@ -380,6 +380,17 @@ class L_EXPORT ParagraphStyle {
   RulerType GetLineHeightRule() const;
 
   /**
+   * @brief Selects how inline vertical-align participates in line layout.
+   *
+   * kLegacy preserves TTText's existing placement behavior. kLineBox resolves
+   * super/sub and other baseline-relative values against the parent font and
+   * includes the final aligned inline box in the containing line metrics.
+   * Default is kLegacy.
+   */
+  void SetInlineVerticalAlignmentMode(InlineVerticalAlignmentMode mode);
+  InlineVerticalAlignmentMode GetInlineVerticalAlignmentMode() const;
+
+  /**
    * @brief Additional spacing before each line.
    *
    * Adds extra vertical space above each line, in addition to the

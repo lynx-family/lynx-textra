@@ -25,6 +25,10 @@
 
 namespace ttoffice {
 namespace tttext {
+float ParagraphImpl::GetBaselineOffset(uint32_t char_pos) const {
+  return style_manager_->GetBaselineOffset(char_pos);
+}
+
 std::unique_ptr<Paragraph> Paragraph::Create() {
   return std::make_unique<ParagraphImpl>();
 }

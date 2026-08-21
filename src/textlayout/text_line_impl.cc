@@ -89,6 +89,80 @@ LayoutPosition TextLineImpl::UpdateLine(LayoutPosition pos, float max_ascent,
   return pos;
 }
 
+void TextLineImpl::AdjustInlineObjectLineBox() {
+  if (paragraph_->GetParagraphStyleImpl().GetInlineVerticalAlignmentMode() !=
+      InlineVerticalAlignmentMode::kLineBox) {
+    return;
+  }
+  const float baseline = GetContentBaseline();
+  float top_extension = 0.f;
+  float bottom_extension = 0.f;
+  float max_top_object_height = 0.f;
+  float max_bottom_object_height = 0.f;
+  for (const auto& range : range_lst_) {
+    for (const auto& run_range : range->run_range_lst_) {
+      const auto* run = run_range->GetRun();
+      if (!run->IsObjectRun()) {
+        continue;
+      }
+      const auto alignment =
+          LayoutMeasurer::ResolveCharacterVerticalAlignment(run);
+      const auto metrics = run->GetScaledMetrics();
+      const float object_height = metrics.GetHeight();
+      if (alignment == CharacterVerticalAlignment::kTop) {
+        max_top_object_height = std::max(max_top_object_height, object_height);
+        continue;
+      }
+      if (alignment == CharacterVerticalAlignment::kBottom) {
+        max_bottom_object_height =
+            std::max(max_bottom_object_height, object_height);
+        continue;
+      }
+      const float offset = LayoutMeasurer::CalcInlineObjectBaselineOffset(
+          run, max_ascent_, max_descent_);
+      top_extension = std::max(top_extension,
+                               -(baseline + offset + metrics.GetMaxAscent()));
+      bottom_extension = std::max(
+          bottom_extension,
+          baseline + offset + metrics.GetMaxDescent() - GetLineHeight());
+    }
+  }
+  top_extra_ += std::max(0.f, top_extension);
+  bottom_extra_ += std::max(0.f, bottom_extension);
+
+  const float line_height = GetLineHeight();
+  const float top_object_extension =
+      std::max(0.f, max_top_object_height - line_height);
+  const float bottom_object_extension =
+      std::max(0.f, max_bottom_object_height - line_height);
+  if (top_object_extension >= bottom_object_extension) {
+    bottom_extra_ += top_object_extension;
+  } else {
+    top_extra_ += bottom_object_extension;
+  }
+
+  for (const auto& range : range_lst_) {
+    for (const auto& run_range : range->run_range_lst_) {
+      const auto* run = run_range->GetRun();
+      if (!run->IsObjectRun()) {
+        continue;
+      }
+      const auto alignment =
+          LayoutMeasurer::ResolveCharacterVerticalAlignment(run);
+      const bool align_to_line =
+          alignment == CharacterVerticalAlignment::kTop ||
+          alignment == CharacterVerticalAlignment::kBottom;
+      const float line_baseline = GetContentBaseline();
+      run_range->SetYOffsetInLine(
+          line_baseline +
+          LayoutMeasurer::CalcInlineObjectBaselineOffset(
+              run, align_to_line ? line_baseline : max_ascent_,
+              align_to_line ? GetLineHeight() - line_baseline : max_descent_));
+    }
+  }
+  range_height_floor_ = std::max(range_height_floor_, GetLineHeight());
+}
+
 bool TextLineImpl::IsEqualRangeList(
     const std::vector<std::array<float, 2>>& list) const {
   if (range_lst_.size() != list.size()) return false;
@@ -138,6 +212,7 @@ void TextLineImpl::SplitToWordDrawer(const LineRange& line_range) {
         auto drawer = std::make_unique<DrawerPiece>(
             run, run_range->GetParent(), start_char - run->GetStartCharPos(),
             next_justify_opportunity - run->GetStartCharPos());
+        drawer->SetYOffsetInLine(run_range->GetYOffsetInLine());
         InsertDrawerPiece(std::move(drawer));
         start_char = next_justify_opportunity;
         next_justify_opportunity =
@@ -147,6 +222,7 @@ void TextLineImpl::SplitToWordDrawer(const LineRange& line_range) {
         auto drawer = std::make_unique<DrawerPiece>(
             run, run_range->GetParent(), start_char - run->GetStartCharPos(),
             end_char - run->GetStartCharPos());
+        drawer->SetYOffsetInLine(run_range->GetYOffsetInLine());
         InsertDrawerPiece(std::move(drawer));
       }
     }
@@ -348,45 +424,56 @@ void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
       drawer->SetXOffset(start_offset);
       auto* run = drawer->GetRun();
       auto metrics = run->GetScaledMetrics();
-      auto cva = CharacterVerticalAlignment::kBaseLine;
-      if (run->GetLayoutStyle().HasStyleAttribute(
-              Style::VerticalAlignmentFlag)) {
-        cva = run->GetLayoutStyle().GetVerticalAlignment();
-      } else if (paragraph_->GetDefaultStyleImpl().HasStyleAttribute(
-                     Style::VerticalAlignmentFlag)) {
-        cva = paragraph_->GetDefaultStyleImpl().GetVerticalAlignment();
-      }
       auto y_offset = GetContentBaseline();
-      auto element_ascent = metrics.GetMaxAscent();
-      auto element_descent = metrics.GetMaxDescent();
-      if (cva == CharacterVerticalAlignment::kTextTop ||
-          cva == CharacterVerticalAlignment::kTextBottom) {
-        container_ascent = GetContentBaseline() - GetContentTop();
-        container_descent = GetContentBottom() - GetContentBaseline();
-      }
-      if (cva != CharacterVerticalAlignment::kBaseLine) {
-        y_offset += LayoutMeasurer::CalcElementY(
-            cva, container_ascent, container_descent, element_ascent,
-            element_descent);
-        if (cva == CharacterVerticalAlignment::kSuperScript) {
-          auto base_metrics = run->GetMetrics();
-          y_offset += base_metrics.GetSupOffset();
+      const bool use_line_box_vertical_alignment =
+          run->IsObjectRun() && !run->IsGhostRun() &&
+          paragraph_->GetParagraphStyleImpl()
+                  .GetInlineVerticalAlignmentMode() ==
+              InlineVerticalAlignmentMode::kLineBox;
+      if (use_line_box_vertical_alignment) {
+        y_offset = drawer->GetYOffsetInLine();
+      } else {
+        auto cva = CharacterVerticalAlignment::kBaseLine;
+        if (run->GetLayoutStyle().HasStyleAttribute(
+                Style::VerticalAlignmentFlag)) {
+          cva = run->GetLayoutStyle().GetVerticalAlignment();
+        } else if (paragraph_->GetDefaultStyleImpl().HasStyleAttribute(
+                       Style::VerticalAlignmentFlag)) {
+          cva = paragraph_->GetDefaultStyleImpl().GetVerticalAlignment();
         }
-        if (cva == CharacterVerticalAlignment::kSubScript) {
-          auto base_metrics = run->GetMetrics();
-          y_offset += base_metrics.GetSubOffset();
+        auto element_ascent = metrics.GetMaxAscent();
+        auto element_descent = metrics.GetMaxDescent();
+        if (cva == CharacterVerticalAlignment::kTextTop ||
+            cva == CharacterVerticalAlignment::kTextBottom) {
+          container_ascent = GetContentBaseline() - GetContentTop();
+          container_descent = GetContentBottom() - GetContentBaseline();
+        }
+        if (cva != CharacterVerticalAlignment::kBaseLine) {
+          y_offset += LayoutMeasurer::CalcElementY(
+              cva, container_ascent, container_descent, element_ascent,
+              element_descent);
+          if (cva == CharacterVerticalAlignment::kSuperScript) {
+            auto base_metrics = run->GetMetrics();
+            y_offset += base_metrics.GetSupOffset();
+          }
+          if (cva == CharacterVerticalAlignment::kSubScript) {
+            auto base_metrics = run->GetMetrics();
+            y_offset += base_metrics.GetSubOffset();
+          }
+        }
+        if (drawer->GetRun()->GetType() == RunType::kInlineObject ||
+            drawer->GetRun()->GetType() == RunType::kFloatObject) {
+          auto paragraph = run->GetParagraph();
+          if (paragraph) {
+            auto& style_manager = paragraph->style_manager_;
+            auto base_line_offset = style_manager->GetBaselineOffset(
+                drawer->GetRun()->GetStartCharPos());
+            y_offset += base_line_offset;
+          }
         }
       }
       if (drawer->GetRun()->GetType() == RunType::kInlineObject ||
           drawer->GetRun()->GetType() == RunType::kFloatObject) {
-        auto paragraph = run->GetParagraph();
-        if (paragraph) {
-          auto& style_manager = paragraph->style_manager_;
-          auto base_line_offset = style_manager->GetBaselineOffset(
-              drawer->GetRun()->GetStartCharPos());
-          y_offset += base_line_offset;
-        }
-
         auto y = GetLineTop() + y_offset;
         drawer->GetRun()->GetRunDelegate()->SetOffset(
             start_offset, y + metrics.GetMaxAscent());
@@ -406,6 +493,7 @@ void TextLineImpl::ClearForRelayout() {
   empty_ = true;
   layouted_ = false;
   max_ascent_ = max_descent_ = 0;
+  top_extra_ = bottom_extra_ = 0;
   current_available_range_index_ = 0;
 }
 bool TextLineImpl::IsLastLineOfParagraph() const {

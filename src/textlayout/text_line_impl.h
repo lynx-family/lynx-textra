@@ -53,6 +53,7 @@ class TextLineImpl : public TextLine {
  public:
   LayoutPosition UpdateLine(LayoutPosition pos, float max_ascent,
                             float max_descent, float desired_height);
+  void AdjustInlineObjectLineBox();
   LineRange* GetCurrentRange() const {
     return range_lst_[current_available_range_index_].get();
   }
@@ -103,6 +104,7 @@ class TextLineImpl : public TextLine {
   std::vector<std::unique_ptr<LineRange>> range_lst_;
   std::vector<std::unique_ptr<DrawerPiece>> drawer_list_;
   std::vector<std::unique_ptr<BaseRun>> extra_contents_;
+  float range_height_floor_ = 0;
 };
 }  // namespace tttext
 }  // namespace ttoffice

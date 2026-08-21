@@ -116,6 +116,12 @@ class ParagraphStyleImpl {
     spacing_->line_percent_ = percent;
   }
   RulerType GetLineHeightRule() const { return spacing_->line_rule_; }
+  void SetInlineVerticalAlignmentMode(InlineVerticalAlignmentMode mode) {
+    inline_vertical_alignment_mode_ = mode;
+  }
+  InlineVerticalAlignmentMode GetInlineVerticalAlignmentMode() const {
+    return inline_vertical_alignment_mode_;
+  }
   void SetLineSpaceBeforePx(float px) { spacing_->line_space_before_px_ = px; }
   float GetLineSpaceBeforePx() const { return spacing_->line_space_before_px_; }
   void SetLineSpaceAfterPx(float px) { spacing_->line_space_after_px_ = px; }
@@ -176,6 +182,7 @@ class ParagraphStyleImpl {
   bool line_height_override_;
   bool half_leading_;
   bool enable_text_bounds_;
+  InlineVerticalAlignmentMode inline_vertical_alignment_mode_;
   OverflowWrap overflow_wrap_;
   LineBreakStrategy line_break_strategy_;
 };

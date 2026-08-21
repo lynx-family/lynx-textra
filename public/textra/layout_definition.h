@@ -113,6 +113,10 @@ enum class TabStopType : uint8_t {
   kNum
 };
 enum class RulerType : uint8_t { kAtLeast, kAuto, kExact };
+enum class InlineVerticalAlignmentMode : uint8_t {
+  kLegacy,
+  kLineBox,
+};
 enum class LineBreakType : uint8_t {
   kNotDefined,
   kNoBreak,

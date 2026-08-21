@@ -31,6 +31,7 @@ ParagraphStyleImpl::ParagraphStyleImpl()
       line_height_override_(false),
       half_leading_(false),
       enable_text_bounds_(false),
+      inline_vertical_alignment_mode_(InlineVerticalAlignmentMode::kLegacy),
       overflow_wrap_(OverflowWrap::kAnywhere),
       line_break_strategy_(kLineBreakStrategyDefault) {}
 ParagraphStyleImpl::ParagraphStyleImpl(
@@ -55,6 +56,8 @@ ParagraphStyleImpl& ParagraphStyleImpl::operator=(
   line_height_override_ = paragraph_style.line_height_override_;
   half_leading_ = paragraph_style.half_leading_;
   enable_text_bounds_ = paragraph_style.enable_text_bounds_;
+  inline_vertical_alignment_mode_ =
+      paragraph_style.inline_vertical_alignment_mode_;
   overflow_wrap_ = paragraph_style.overflow_wrap_;
   line_break_strategy_ = paragraph_style.line_break_strategy_;
   return *this;
@@ -196,6 +199,14 @@ void ParagraphStyle::SetLineHeightInPercent(float percent) {
 }
 RulerType ParagraphStyle::GetLineHeightRule() const {
   return impl_->GetLineHeightRule();
+}
+void ParagraphStyle::SetInlineVerticalAlignmentMode(
+    InlineVerticalAlignmentMode mode) {
+  impl_->SetInlineVerticalAlignmentMode(mode);
+}
+InlineVerticalAlignmentMode ParagraphStyle::GetInlineVerticalAlignmentMode()
+    const {
+  return impl_->GetInlineVerticalAlignmentMode();
 }
 void ParagraphStyle::SetLineSpaceBeforePx(float px) {
   impl_->SetLineSpaceBeforePx(px);

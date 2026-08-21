@@ -2,10 +2,13 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+#include <textra/paragraph_style.h>
 #include <textra/platform/skity/skity_canvas_helper.h>
 #include <textra/text_layout.h>
 
+#include <cmath>
 #include <memory>
+#include <utility>
 
 #include "demos/darwin/macos/ttreaderdemo/paragraph_test.h"
 #include "gtest/gtest.h"
@@ -157,6 +160,95 @@ class ParagraphImageTest : public ::testing::Test {
   void TestHalfLeading() {
     TestHelper(&ParagraphTest::TestHalfLeading, "half_leading.png");
   }
+
+  void TestVerticalAlignMultipleLinesCase(float length_alignment,
+                                          const char* out_file_name) {
+    constexpr float kWidth = 220.f;
+    constexpr float kFontSize = 14.f;
+    constexpr float kLineHeight = 30.f;
+    constexpr float kObjectSize = 20.f;
+
+    auto layout_text = [&](uint32_t object_color) {
+      auto paragraph = std::make_unique<ParagraphImpl>();
+      ParagraphStyle paragraph_style;
+      Style text_style;
+      text_style.SetTextSize(kFontSize);
+      paragraph_style.SetDefaultStyle(text_style);
+      paragraph_style.SetLineHeightInPx(kLineHeight, RulerType::kExact);
+      paragraph_style.SetInlineVerticalAlignmentMode(
+          InlineVerticalAlignmentMode::kLineBox);
+      paragraph->SetParagraphStyle(&paragraph_style);
+      paragraph->AddTextRun(&text_style, "x", 1);
+
+      class CaseShape final : public RunDelegate {
+       public:
+        explicit CaseShape(uint32_t color) : color_(color) {}
+        float GetAscent() const override { return -kObjectSize; }
+        float GetDescent() const override { return 0.f; }
+        float GetAdvance() const override { return kObjectSize; }
+        void Draw(ICanvasHelper* canvas, float x, float y) override {
+          auto painter = canvas->CreatePainter();
+          painter->SetFillColor(color_);
+          canvas->DrawRect(x, y, x + kObjectSize, y + kObjectSize,
+                           painter.get());
+        }
+
+       private:
+        uint32_t color_;
+      };
+
+      const CharacterVerticalAlignment alignments[] = {
+          CharacterVerticalAlignment::kMiddle,
+          CharacterVerticalAlignment::kMiddle,
+          CharacterVerticalAlignment::kTop,
+          CharacterVerticalAlignment::kBottom,
+          CharacterVerticalAlignment::kTextTop,
+          CharacterVerticalAlignment::kTextBottom,
+          CharacterVerticalAlignment::kSuperScript,
+          CharacterVerticalAlignment::kBaseLine,
+          CharacterVerticalAlignment::kSubScript,
+      };
+      for (const float baseline_offset :
+           {-length_alignment, length_alignment}) {
+        Style length_style = text_style;
+        length_style.SetBaselineOffset(baseline_offset);
+        paragraph->AddShapeRun(
+            &length_style, std::make_shared<CaseShape>(object_color), false);
+        for (const auto alignment : alignments) {
+          Style object_style = text_style;
+          object_style.SetVerticalAlignment(alignment);
+          paragraph->AddShapeRun(
+              &object_style, std::make_shared<CaseShape>(object_color), false);
+        }
+      }
+      paragraph->AddTextRun(&text_style, "e", 1);
+
+      TTTextContext context;
+      TextLayout layout(TestUtils::getRealShaper());
+      auto region = std::make_unique<LayoutRegion>(kWidth, 300.f);
+      layout.Layout(paragraph.get(), region.get(), context);
+      return std::make_pair(std::move(paragraph), std::move(region));
+    };
+
+    auto [image_paragraph, image_region] = layout_text(0xFF41A5F5);
+    auto [view_paragraph, view_region] = layout_text(0xFFFF7043);
+    const float image_height = image_region->GetLayoutedHeight();
+    const float view_height = view_region->GetLayoutedHeight();
+    skity::Bitmap bitmap(
+        static_cast<uint32_t>(kWidth),
+        static_cast<uint32_t>(std::ceil(image_height + view_height)),
+        skity::AlphaType::kPremul_AlphaType, skity::ColorType::kRGBA);
+    auto canvas = skity::Canvas::MakeSoftwareCanvas(&bitmap);
+    canvas->DrawColor(skity::Color_WHITE);
+    SkityCanvasHelper canvas_helper(canvas.get());
+    TestUtils::DrawLayoutRegionOnCanvas(canvas_helper, *image_region);
+    canvas_helper.Translate(0.f, image_height);
+    TestUtils::DrawLayoutRegionOnCanvas(canvas_helper, *view_region);
+
+    auto codec = skity::Codec::MakePngCodec();
+    auto data = codec->Encode(bitmap.GetPixmap().get());
+    data->WriteToFile(out_file_name);
+  }
 };
 
 TEST_F(ParagraphImageTest, TestSupSub) { TestSupSub(); }
@@ -206,3 +298,11 @@ TEST_F(ParagraphImageTest, TestModifyHAlignAfterLayout) {
 TEST_F(ParagraphImageTest, TestApplyStyleRange) { TestApplyStyleRange(); }
 TEST_F(ParagraphImageTest, TestTextShadow) { TestTextShadow(); }
 TEST_F(ParagraphImageTest, TestHalfLeading) { TestHalfLeading(); }
+TEST_F(ParagraphImageTest, VerticalAlignMultipleLinesCaseBeforeClick) {
+  TestVerticalAlignMultipleLinesCase(
+      0.f, "vertical_align_multiple_lines_before_click.png");
+}
+TEST_F(ParagraphImageTest, VerticalAlignMultipleLinesCaseAfterClick) {
+  TestVerticalAlignMultipleLinesCase(
+      20.f, "vertical_align_multiple_lines_after_click.png");
+}
