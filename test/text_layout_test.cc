@@ -1577,5 +1577,591 @@ TEST_F(TextLayoutTest, InlineObjectWithBaselineOffset) {
   EXPECT_FLOAT_EQ(rect[1] - baseline, baseline_offset + ascent);
 }
 
+TEST_F(TextLayoutTest, PunctuationCompressionModesAndFallback) {
+  struct TestCase {
+    const char* text;
+    PunctuationCompressOption options;
+    std::vector<PunctuationCompressConfig> configs;
+    float layout_width;
+    float expected_width;
+  };
+  const std::vector<TestCase> cases{
+      {u8"A，B",
+       PunctuationCompressOption::kAll,
+       {{U'，', PunctuationType::kCenter, 0.5f, 0.f, 0.f}},
+       25.f,
+       25.f},
+      {u8"（AB）",
+       PunctuationCompressOption::kLineEdge,
+       {{U'（', PunctuationType::kOpen, 0.25f, 0.5f, 0.f},
+        {U'）', PunctuationType::kClose, 0.25f, 0.5f, 0.f}},
+       40.f,
+       30.f},
+      {u8"A）（B",
+       PunctuationCompressOption::kAdjacent,
+       {{U'（', PunctuationType::kOpen, 0.f, 0.f, 0.5f},
+        {U'）', PunctuationType::kClose, 0.f, 0.f, 0.5f}},
+       40.f,
+       30.f},
+      {u8"（A",
+       PunctuationCompressOption::kLineEdge,
+       {{U'（', PunctuationType::kOpen, 0.25f, 0.f, 0.f}},
+       17.5f,
+       17.5f},
+      {"A",
+       PunctuationCompressOption::kAll,
+       {{U'A', PunctuationType::kNone, 0.5f, 0.f, 0.f}},
+       10.f,
+       10.f},
+  };
+
+  for (const auto& test : cases) {
+    SCOPED_TRACE(test.text);
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    auto& paragraph_style = paragraph.GetParagraphStyle();
+    paragraph_style.SetPunctuationCompressOptions(test.options);
+    for (const auto& config : test.configs) {
+      paragraph_style.UpdatePunctuationCompressConfig(config);
+    }
+    paragraph.AddTextRun(&text_style, test.text);
+
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    LayoutRegion region(test.layout_width, 100.f);
+    layout.Layout(&paragraph, &region, context);
+
+    ASSERT_EQ(region.GetLineCount(), 1u);
+    EXPECT_EQ(region.GetLine(0)->GetCharCount(), paragraph.GetCharCount());
+    EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), test.expected_width);
+  }
+}
+
+TEST_F(TextLayoutTest,
+       AdjacentPunctuationCompressionIsIndependentOfLineBreaks) {
+  for (const auto layout_width : {10.f, 20.f}) {
+    SCOPED_TRACE(layout_width);
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    auto& paragraph_style = paragraph.GetParagraphStyle();
+    paragraph_style.AllowBreakAroundPunctuation(true);
+    paragraph_style.SetPunctuationCompressOptions(
+        PunctuationCompressOption::kAdjacent);
+    paragraph_style.UpdatePunctuationCompressConfig(
+        {U'）', PunctuationType::kClose, 0.f, 0.f, 0.25f});
+    paragraph_style.UpdatePunctuationCompressConfig(
+        {U'（', PunctuationType::kOpen, 0.f, 0.f, 0.25f});
+    paragraph.AddTextRun(&text_style, u8"）（");
+
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    LayoutRegion region(layout_width, 100.f);
+    layout.Layout(&paragraph, &region, context);
+
+    const auto expected_lines = layout_width == 10.f ? 2u : 1u;
+    ASSERT_EQ(region.GetLineCount(), expected_lines);
+    for (auto index = 0u; index < expected_lines; ++index) {
+      EXPECT_EQ(region.GetLine(index)->GetCharCount(), 2u / expected_lines);
+      EXPECT_FLOAT_EQ(region.GetLine(index)->GetLineRight(),
+                      expected_lines == 2u ? 7.5f : 15.f);
+    }
+  }
+}
+
+TEST_F(TextLayoutTest, LineEndCompressionDoesNotPullFollowingText) {
+  ParagraphImpl paragraph;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  auto& paragraph_style = paragraph.GetParagraphStyle();
+  paragraph_style.AllowBreakAroundPunctuation(true);
+  paragraph_style.SetPunctuationCompressOptions(
+      PunctuationCompressOption::kLineEdge);
+  paragraph_style.UpdatePunctuationCompressConfig(
+      {U'）', PunctuationType::kClose, 0.f, 0.5f, 0.f});
+  paragraph.AddTextRun(&text_style, u8"A）B");
+
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  LayoutRegion region(25.f, 100.f);
+  layout.Layout(&paragraph, &region, context);
+
+  ASSERT_EQ(region.GetLineCount(), 2u);
+  EXPECT_EQ(region.GetLine(0)->GetCharCount(), 2u);
+  EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), 15.f);
+  EXPECT_EQ(region.GetLine(1)->GetCharCount(), 1u);
+}
+
+TEST_F(TextLayoutTest, LineEndCompressionAppendsNextPunctuationIfItFits) {
+  for (const auto width : {14.f, 15.f, 25.f}) {
+    SCOPED_TRACE(width);
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    auto& style = paragraph.GetParagraphStyle();
+    style.AllowBreakAroundPunctuation(true);
+    style.SetPunctuationCompressOptions(PunctuationCompressOption::kLineEdge);
+    style.UpdatePunctuationCompressConfig(
+        {U'）', PunctuationType::kClose, 0.f, 0.5f, 0.f});
+    paragraph.AddTextRun(&text_style, u8"A）B");
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    LayoutRegion region(width, 100.f);
+    layout.Layout(&paragraph, &region, context);
+    ASSERT_EQ(region.GetLineCount(), width < 15.f ? 3u : 2u);
+    EXPECT_EQ(region.GetLine(0)->GetCharCount(), width < 15.f ? 1u : 2u);
+    EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(),
+                    width < 15.f ? 10.f : 15.f);
+  }
+}
+
+TEST_F(TextLayoutTest, AppendedPunctuationRecomputesFormerLineEndCompression) {
+  for (const auto width : {20.f, 25.f}) {
+    SCOPED_TRACE(width);
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    auto& style = paragraph.GetParagraphStyle();
+    style.AllowBreakAroundPunctuation(true);
+    style.SetPunctuationCompressOptions(PunctuationCompressOption::kLineEdge);
+    style.UpdatePunctuationCompressConfig(
+        {U'）', PunctuationType::kClose, 0.f, 0.75f, 0.f});
+    paragraph.AddTextRun(&text_style, u8"A））B");
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    LayoutRegion region(width, 100.f);
+    layout.Layout(&paragraph, &region, context);
+    ASSERT_EQ(region.GetLineCount(), 2u);
+    EXPECT_EQ(region.GetLine(0)->GetCharCount(), width == 20.f ? 2u : 3u);
+    EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(),
+                    width == 20.f ? 12.5f : 22.5f);
+  }
+}
+
+TEST_F(TextLayoutTest, LineEndCompressionDoesNotAppendAcrossHardBreak) {
+  ParagraphImpl paragraph;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  auto& style = paragraph.GetParagraphStyle();
+  style.SetPunctuationCompressOptions(PunctuationCompressOption::kLineEdge);
+  style.UpdatePunctuationCompressConfig(
+      {U'）', PunctuationType::kClose, 0.f, 0.5f, 0.f});
+  paragraph.AddTextRun(&text_style, u8"A\n）");
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  LayoutRegion region(25.f, 100.f);
+  layout.Layout(&paragraph, &region, context);
+  ASSERT_EQ(region.GetLineCount(), 2u);
+  EXPECT_EQ(region.GetLine(0)->GetCharCount(), 2u);
+  EXPECT_EQ(region.GetLine(1)->GetCharCount(), 1u);
+}
+
+TEST_F(TextLayoutTest, CompressionPostProcessFillsReleasedLineSpace) {
+  ParagraphImpl paragraph;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  auto& paragraph_style = paragraph.GetParagraphStyle();
+  paragraph_style.AllowBreakAroundPunctuation(true);
+  paragraph_style.SetPunctuationCompressOptions(
+      PunctuationCompressOption::kAll);
+  paragraph_style.UpdatePunctuationCompressConfig(
+      {U'，', PunctuationType::kCenter, 0.5f, 0.f, 0.f});
+  paragraph.AddTextRun(&text_style, u8"A，B");
+
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  LayoutRegion region(25.f, 100.f);
+  layout.Layout(&paragraph, &region, context);
+
+  ASSERT_EQ(region.GetLineCount(), 1u);
+  EXPECT_EQ(region.GetLine(0)->GetCharCount(), 3u);
+  EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), 25.f);
+}
+
+TEST_F(TextLayoutTest, CompressionPostProcessRelayoutsNewPunctuation) {
+  ParagraphImpl paragraph;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  auto& paragraph_style = paragraph.GetParagraphStyle();
+  paragraph_style.AllowBreakAroundPunctuation(true);
+  paragraph_style.SetPunctuationCompressOptions(
+      PunctuationCompressOption::kAll);
+  paragraph_style.UpdatePunctuationCompressConfig(
+      {U'，', PunctuationType::kCenter, 0.75f, 0.f, 0.f});
+  paragraph.AddTextRun(&text_style, u8"A，，B");
+
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  LayoutRegion region(25.f, 100.f);
+  layout.Layout(&paragraph, &region, context);
+
+  ASSERT_EQ(region.GetLineCount(), 1u);
+  EXPECT_EQ(region.GetLine(0)->GetCharCount(), 4u);
+  EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), 25.f);
+}
+
+TEST_F(TextLayoutTest, PunctuationCompressionIsRecomputedForEachLayout) {
+  ParagraphImpl paragraph;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  auto& paragraph_style = paragraph.GetParagraphStyle();
+  paragraph_style.AllowBreakAroundPunctuation(true);
+  paragraph_style.SetPunctuationCompressOptions(
+      PunctuationCompressOption::kAll);
+  paragraph_style.UpdatePunctuationCompressConfig(
+      {U'，', PunctuationType::kCenter, 0.5f, 0.f, 0.f});
+  paragraph.AddTextRun(&text_style, u8"A，B");
+
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext first_context;
+  LayoutRegion first_region(25.f, 100.f);
+  layout.Layout(&paragraph, &first_region, first_context);
+  ASSERT_EQ(first_region.GetLineCount(), 1u);
+
+  TTTextContext second_context;
+  LayoutRegion second_region(20.f, 100.f);
+  layout.Layout(&paragraph, &second_region, second_context);
+
+  ASSERT_EQ(second_region.GetLineCount(), 2u);
+  EXPECT_EQ(second_region.GetLine(0)->GetCharCount(), 2u);
+  EXPECT_FLOAT_EQ(second_region.GetLine(0)->GetLineRight(), 15.f);
+}
+
+TEST_F(TextLayoutTest,
+       PunctuationBoundaryEmptyParagraphAndDisabledCompression) {
+  for (const auto* text : {"", u8"（A）"}) {
+    SCOPED_TRACE(text);
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    auto& style = paragraph.GetParagraphStyle();
+    style.SetPunctuationCompressOptions(PunctuationCompressOption::kNone);
+    style.UpdatePunctuationCompressConfig(
+        {U'（', PunctuationType::kOpen, 0.5f, 0.5f, 0.5f});
+    style.UpdatePunctuationCompressConfig(
+        {U'）', PunctuationType::kClose, 0.5f, 0.5f, 0.5f});
+    paragraph.AddTextRun(&text_style, text);
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    LayoutRegion region(30.f, 100.f);
+    layout.Layout(&paragraph, &region, context);
+    // FormatRunList represents an empty paragraph with a newline.
+    ASSERT_EQ(region.GetLineCount(), 1u);
+    EXPECT_EQ(region.GetLine(0)->GetCharCount(), text[0] == '\0' ? 1u : 3u);
+    if (text[0] != '\0') {
+      EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), 30.f);
+    }
+  }
+}
+
+TEST_F(TextLayoutTest, PunctuationBoundarySingleCharacterAndRatioExtremes) {
+  struct CharacterCase {
+    const char* text;
+    char32_t unicode;
+    PunctuationType type;
+  };
+  for (const auto& item :
+       {CharacterCase{u8"（", U'（', PunctuationType::kOpen},
+        CharacterCase{u8"）", U'）', PunctuationType::kClose},
+        CharacterCase{u8"，", U'，', PunctuationType::kCenter}}) {
+    for (const auto ratio : {0.f, 0.5f, 1.f}) {
+      SCOPED_TRACE(item.text);
+      SCOPED_TRACE(ratio);
+      ParagraphImpl paragraph;
+      Style text_style;
+      text_style.SetTextSize(10.f);
+      auto& style = paragraph.GetParagraphStyle();
+      style.SetPunctuationCompressOptions(PunctuationCompressOption::kAll);
+      style.UpdatePunctuationCompressConfig(
+          {item.unicode, item.type, ratio, 0.f, 0.f});
+      paragraph.AddTextRun(&text_style, item.text);
+      TextLayout layout(GetFixedSizeMockShaper());
+      TTTextContext context;
+      LayoutRegion region(10.f, 100.f);
+      layout.Layout(&paragraph, &region, context);
+      ASSERT_EQ(region.GetLineCount(), 1u);
+      EXPECT_EQ(region.GetLine(0)->GetCharCount(), 1u);
+      EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), 10.f * (1.f - ratio));
+      float rect[4];
+      region.GetLine(0)->GetCharBoundingRect(rect, 0);
+      EXPECT_FLOAT_EQ(rect[2], 10.f * (1.f - ratio));
+    }
+  }
+}
+
+TEST_F(TextLayoutTest, PunctuationBoundaryLineEndExactFit) {
+  // The gap is larger than the layout epsilon, so all three cases are distinct.
+  for (const auto width : {14.999f, 15.f, 15.001f}) {
+    SCOPED_TRACE(width);
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    auto& style = paragraph.GetParagraphStyle();
+    style.AllowBreakAroundPunctuation(true);
+    style.SetPunctuationCompressOptions(PunctuationCompressOption::kLineEdge);
+    style.UpdatePunctuationCompressConfig(
+        {U'）', PunctuationType::kClose, 0.f, 0.5f, 0.f});
+    paragraph.AddTextRun(&text_style, u8"A）");
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    LayoutRegion region(width, 100.f);
+    layout.Layout(&paragraph, &region, context);
+    ASSERT_EQ(region.GetLineCount(), width < 15.f ? 2u : 1u);
+    EXPECT_EQ(region.GetLine(0)->GetCharCount(), width < 15.f ? 1u : 2u);
+    EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(),
+                    width < 15.f ? 10.f : 15.f);
+    if (width < 15.f) {
+      EXPECT_EQ(region.GetLine(1)->GetCharCount(), 1u);
+      EXPECT_FLOAT_EQ(region.GetLine(1)->GetLineRight(), 5.f);
+    }
+  }
+}
+
+TEST_F(TextLayoutTest, PunctuationBoundaryAdjacentCompressionBeforeLineEnd) {
+  ParagraphImpl paragraph;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  auto& style = paragraph.GetParagraphStyle();
+  style.AllowBreakAroundPunctuation(true);
+  style.SetPunctuationCompressOptions(PunctuationCompressOption::kAdjacent |
+                                      PunctuationCompressOption::kLineEdge);
+  style.UpdatePunctuationCompressConfig(
+      {U'）', PunctuationType::kClose, 0.f, 0.25f, 0.75f});
+  paragraph.AddTextRun(&text_style, u8"A））B");
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  LayoutRegion region(25.f, 100.f);
+  layout.Layout(&paragraph, &region, context);
+  ASSERT_EQ(region.GetLineCount(), 2u);
+  EXPECT_EQ(region.GetLine(0)->GetCharCount(), 3u);
+  EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), 20.f);
+  EXPECT_EQ(region.GetLine(1)->GetCharCount(), 1u);
+  EXPECT_FLOAT_EQ(region.GetLine(1)->GetLineRight(), 10.f);
+}
+
+TEST_F(TextLayoutTest, PunctuationBoundaryRulePriorityAndRatioFallback) {
+  for (const auto use_fallback : {false, true}) {
+    SCOPED_TRACE(use_fallback);
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    auto& style = paragraph.GetParagraphStyle();
+    style.SetPunctuationCompressOptions(PunctuationCompressOption::kAll |
+                                        PunctuationCompressOption::kAdjacent |
+                                        PunctuationCompressOption::kLineEdge);
+    const auto edge_ratio = use_fallback ? 0.f : 0.5f;
+    const auto adjacent_ratio = use_fallback ? 0.f : 0.25f;
+    style.UpdatePunctuationCompressConfig(
+        {U'（', PunctuationType::kOpen, 0.125f, edge_ratio, adjacent_ratio});
+    style.UpdatePunctuationCompressConfig(
+        {U'）', PunctuationType::kClose, 0.125f, edge_ratio, adjacent_ratio});
+    paragraph.AddTextRun(&text_style, u8"（）（）");
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    LayoutRegion region(40.f, 100.f);
+    layout.Layout(&paragraph, &region, context);
+    ASSERT_EQ(region.GetLineCount(), 1u);
+    auto* line = region.GetLine(0);
+    EXPECT_EQ(line->GetCharCount(), 4u);
+    EXPECT_FLOAT_EQ(line->GetLineRight(), use_fallback ? 35.f : 25.f);
+    for (auto index = 0u; index < 4u; ++index) {
+      float rect[4];
+      line->GetCharBoundingRect(rect, index);
+      EXPECT_FLOAT_EQ(rect[2], use_fallback
+                                   ? 8.75f
+                                   : (index == 0 || index == 3 ? 5.f : 7.5f));
+    }
+  }
+}
+
+TEST_F(TextLayoutTest, PunctuationBoundaryOrdinaryCharactersSeparateNeighbors) {
+  struct TestCase {
+    const char* text;
+    uint32_t count;
+    float width;
+  };
+  for (const auto& item :
+       {TestCase{u8"）（", 2u, 15.f}, TestCase{u8"）A（", 3u, 30.f},
+        TestCase{u8"） （", 3u, 30.f}, TestCase{u8"（）（", 3u, 25.f}}) {
+    SCOPED_TRACE(item.text);
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    auto& style = paragraph.GetParagraphStyle();
+    style.SetPunctuationCompressOptions(PunctuationCompressOption::kAdjacent);
+    style.UpdatePunctuationCompressConfig(
+        {U'（', PunctuationType::kOpen, 0.f, 0.f, 0.25f});
+    style.UpdatePunctuationCompressConfig(
+        {U'）', PunctuationType::kClose, 0.f, 0.f, 0.25f});
+    paragraph.AddTextRun(&text_style, item.text);
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    LayoutRegion region(40.f, 100.f);
+    layout.Layout(&paragraph, &region, context);
+    ASSERT_EQ(region.GetLineCount(), 1u);
+    EXPECT_EQ(region.GetLine(0)->GetCharCount(), item.count);
+    EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), item.width);
+  }
+}
+
+TEST_F(TextLayoutTest, PunctuationBoundaryHardBreakVariants) {
+  for (const auto* text : {u8"A\n）", u8"A\r）", u8"A\r\n）"}) {
+    SCOPED_TRACE(text);
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    auto& style = paragraph.GetParagraphStyle();
+    style.SetPunctuationCompressOptions(PunctuationCompressOption::kLineEdge);
+    style.UpdatePunctuationCompressConfig(
+        {U'）', PunctuationType::kClose, 0.f, 0.5f, 0.f});
+    paragraph.AddTextRun(&text_style, text);
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    LayoutRegion region(50.f, 100.f);
+    layout.Layout(&paragraph, &region, context);
+    ASSERT_EQ(region.GetLineCount(), 2u);
+    EXPECT_EQ(region.GetLine(0)->GetCharCount(), paragraph.GetCharCount() - 1);
+    EXPECT_EQ(region.GetLine(1)->GetCharCount(), 1u);
+    EXPECT_FLOAT_EQ(region.GetLine(1)->GetLineRight(), 5.f);
+  }
+}
+
+TEST_F(TextLayoutTest, PunctuationBoundaryAppendedRunUpdatesLineHeight) {
+  ParagraphImpl paragraph;
+  Style small;
+  small.SetTextSize(10.f);
+  Style large;
+  large.SetTextSize(20.f);
+  auto& style = paragraph.GetParagraphStyle();
+  style.AllowBreakAroundPunctuation(true);
+  style.SetPunctuationCompressOptions(PunctuationCompressOption::kLineEdge);
+  style.UpdatePunctuationCompressConfig(
+      {U'）', PunctuationType::kClose, 0.f, 0.5f, 0.f});
+  paragraph.AddTextRun(&small, "A");
+  paragraph.AddTextRun(&large, u8"）");
+  paragraph.AddTextRun(&small, "B");
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  LayoutRegion region(20.f, 100.f);
+  layout.Layout(&paragraph, &region, context);
+  ASSERT_EQ(region.GetLineCount(), 2u);
+  EXPECT_EQ(region.GetLine(0)->GetCharCount(), 2u);
+  EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), 20.f);
+  EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineHeight(), 20.f);
+  EXPECT_EQ(region.GetLine(1)->GetCharCount(), 1u);
+  EXPECT_FLOAT_EQ(region.GetLine(1)->GetLineHeight(), 10.f);
+}
+
+TEST_F(TextLayoutTest, PunctuationBoundaryIndentAndAlignment) {
+  for (const auto alignment : {ParagraphHorizontalAlignment::kLeft,
+                               ParagraphHorizontalAlignment::kCenter,
+                               ParagraphHorizontalAlignment::kRight}) {
+    SCOPED_TRACE(static_cast<int>(alignment));
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    auto& style = paragraph.GetParagraphStyle();
+    style.AllowBreakAroundPunctuation(true);
+    style.SetStartIndentInPx(3.f);
+    style.SetFirstLineIndentInPx(2.f);
+    style.SetEndIndentInPx(5.f);
+    style.SetHorizontalAlign(alignment);
+    style.SetPunctuationCompressOptions(PunctuationCompressOption::kLineEdge);
+    style.UpdatePunctuationCompressConfig(
+        {U'）', PunctuationType::kClose, 0.f, 0.5f, 0.f});
+    paragraph.AddTextRun(&text_style, u8"A）B");
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    LayoutRegion region(30.f, 100.f);
+    layout.Layout(&paragraph, &region, context);
+    ASSERT_EQ(region.GetLineCount(), 2u);
+    auto* line = region.GetLine(0);
+    // The first-line indent overrides the start indent: [2, 25], width 23.
+    const auto expected_left =
+        alignment == ParagraphHorizontalAlignment::kLeft
+            ? 2.f
+            : (alignment == ParagraphHorizontalAlignment::kCenter ? 6.f : 10.f);
+    EXPECT_EQ(line->GetCharCount(), 2u);
+    EXPECT_FLOAT_EQ(line->GetLineLeft(), expected_left);
+    EXPECT_FLOAT_EQ(line->GetLineRight(), expected_left + 15.f);
+  }
+}
+
+TEST_F(TextLayoutTest, PunctuationBoundaryLineEndStateResetsBetweenLayouts) {
+  ParagraphImpl paragraph;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  auto& style = paragraph.GetParagraphStyle();
+  style.AllowBreakAroundPunctuation(true);
+  style.SetPunctuationCompressOptions(PunctuationCompressOption::kLineEdge);
+  paragraph.AddTextRun(&text_style, u8"A）B");
+  TextLayout layout(GetFixedSizeMockShaper());
+  for (const auto ratio : {0.5f, 0.75f, 0.5f}) {
+    style.UpdatePunctuationCompressConfig(
+        {U'）', PunctuationType::kClose, 0.f, ratio, 0.f});
+    for (const auto width : {15.f, 30.f, 15.f}) {
+      SCOPED_TRACE(ratio);
+      SCOPED_TRACE(width);
+      TTTextContext context;
+      LayoutRegion region(width, 100.f);
+      layout.Layout(&paragraph, &region, context);
+      ASSERT_EQ(region.GetLineCount(), width == 30.f ? 1u : 2u);
+      EXPECT_EQ(region.GetLine(0)->GetCharCount(), width == 30.f ? 3u : 2u);
+      EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(),
+                      width == 30.f ? 30.f : 20.f - 10.f * ratio);
+    }
+  }
+}
+
+TEST_F(TextLayoutTest, PunctuationBoundaryLongCascadePreservesAllCharacters) {
+  for (const auto width : {25.f, 40.f}) {
+    SCOPED_TRACE(width);
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    auto& style = paragraph.GetParagraphStyle();
+    style.AllowBreakAroundPunctuation(true);
+    style.SetPunctuationCompressOptions(PunctuationCompressOption::kAll);
+    style.UpdatePunctuationCompressConfig(
+        {U'，', PunctuationType::kCenter, 0.75f, 0.f, 0.f});
+    paragraph.AddTextRun(&text_style, u8"A，，，，，，，，B");
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    LayoutRegion region(width, 100.f);
+    layout.Layout(&paragraph, &region, context);
+    ASSERT_EQ(region.GetLineCount(), width == 25.f ? 2u : 1u);
+    EXPECT_EQ(region.GetLine(0)->GetCharCount(), width == 25.f ? 7u : 10u);
+    EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), width);
+    if (width == 25.f) {
+      EXPECT_EQ(region.GetLine(1)->GetCharCount(), 3u);
+      EXPECT_FLOAT_EQ(region.GetLine(1)->GetLineRight(), 15.f);
+    }
+  }
+}
+
+TEST_F(TextLayoutTest, RebuildDrawerPieceKeepsLineEndCompression) {
+  ParagraphImpl paragraph;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  auto& paragraph_style = paragraph.GetParagraphStyle();
+  paragraph_style.SetPunctuationCompressOptions(
+      PunctuationCompressOption::kLineEdge);
+  paragraph_style.UpdatePunctuationCompressConfig(
+      {U'）', PunctuationType::kClose, 0.f, 0.5f, 0.f});
+  paragraph.AddTextRun(&text_style, u8"A）");
+
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  LayoutRegion region(30.f, 100.f);
+  layout.Layout(&paragraph, &region, context);
+
+  ASSERT_EQ(region.GetLineCount(), 1u);
+  auto* line = region.GetLine(0);
+  EXPECT_FLOAT_EQ(line->GetLineRight(), 15.f);
+  line->ModifyHorizontalAlignment(ParagraphHorizontalAlignment::kJustify);
+  EXPECT_FLOAT_EQ(line->GetLineRight(), 15.f);
+}
+
 }  // namespace tttext
 }  // namespace ttoffice

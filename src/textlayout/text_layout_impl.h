@@ -51,6 +51,14 @@ class TextLayoutImpl {
                                                 TTTextContext& context,
                                                 LayoutResult* result);
 
+  static float CalculatePunctuationCompression(
+      const ParagraphImpl& paragraph, const BaseRun& run,
+      const PunctuationCompressConfig& config, bool line_start, bool line_end);
+  static bool UpdatePunctuationCompression(TextLineImpl* line);
+  static void SetPunctuationCompression(BaseRun* run, float compression);
+  static bool UpdateLineEndPunctuation(TextLineImpl* line,
+                                       const LayoutPosition& pos);
+
   static bool CheckLineNeedRelayout(LayoutRegion* region, TextLineImpl* line,
                                     float new_height, float& next_line_top,
                                     bool force_height_check = false);

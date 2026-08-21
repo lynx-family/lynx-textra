@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <textra/paragraph.h>
+#include <textra/text_layout.h>
 
 #include "src/textlayout/paragraph_impl.h"
 #include "src/textlayout/run/base_run.h"
@@ -11,6 +12,15 @@
 #include "test_utils.h"
 
 using namespace ttoffice::tttext;
+
+namespace {
+class InspectableParagraphImpl : public ParagraphImpl {
+ public:
+  RunType GetRunType(uint32_t index) const {
+    return run_lst_[index]->GetType();
+  }
+};
+}  // namespace
 
 TEST(ParagraphTest, CreateParagraph) {
   auto paragraph = Paragraph::Create();
@@ -56,6 +66,46 @@ TEST(ParagraphTest, SetParagraphStyle) {
   paragraph->SetParagraphStyle(&new_style);
   EXPECT_EQ(paragraph->GetParagraphStyle().GetWriteDirection(),
             WriteDirection::kRTL);
+}
+
+TEST(ParagraphTest, PunctuationCompressStyleAndRunSplit) {
+  ParagraphStyle style;
+  style.SetPunctuationCompressOptions(PunctuationCompressOption::kAll |
+                                      PunctuationCompressOption::kLineEdge);
+  style.UpdatePunctuationCompressConfig({U'（', PunctuationType::kNone});
+  style.UpdatePunctuationCompressConfig(
+      {U'（', PunctuationType::kOpen, 0.5f, 0.25f, 0.4f});
+  style.UpdatePunctuationCompressConfig(
+      {U'）', PunctuationType::kClose, 0.5f, 0.25f, 0.4f});
+
+  InspectableParagraphImpl paragraph;
+  paragraph.SetParagraphStyle(&style);
+  paragraph.AddTextRun(nullptr, u8"a（b）c");
+  auto page = TestUtils::SimpleLayoutParagraphByWidth(&paragraph, 100.f);
+
+  EXPECT_EQ(paragraph.GetRunCount(), 5u);
+  EXPECT_EQ(paragraph.GetRunType(0), RunType::kTextRun);
+  EXPECT_EQ(paragraph.GetRunType(1), RunType::kPunctuationRun);
+  EXPECT_EQ(paragraph.GetRunType(2), RunType::kTextRun);
+  EXPECT_EQ(paragraph.GetRunType(3), RunType::kPunctuationRun);
+  EXPECT_EQ(paragraph.GetRunType(4), RunType::kTextRun);
+  EXPECT_EQ(
+      paragraph.GetParagraphStyle().GetPunctuationCompressOptions(),
+      PunctuationCompressOption::kAll | PunctuationCompressOption::kLineEdge);
+}
+
+TEST(ParagraphTest, PunctuationConfigWithoutRuleDoesNotSplitRun) {
+  ParagraphStyle style;
+  style.UpdatePunctuationCompressConfig(
+      {U'（', PunctuationType::kOpen, 0.5f, 0.25f, 0.4f});
+
+  InspectableParagraphImpl paragraph;
+  paragraph.SetParagraphStyle(&style);
+  paragraph.AddTextRun(nullptr, u8"a（b");
+  auto page = TestUtils::SimpleLayoutParagraphByWidth(&paragraph, 100.f);
+
+  EXPECT_EQ(paragraph.GetRunCount(), 1u);
+  EXPECT_EQ(paragraph.GetRunType(0), RunType::kTextRun);
 }
 
 TEST(ParagraphTest, SaveRestoreStyle) {
