@@ -64,10 +64,11 @@ class LayoutMetrics {
     max_descent_ *= ratio;
     // }
   }
+  float GetSupOffset() const { return GetSupOffset(GetHeight()); }
+  float GetSupOffset(float base) const { return -0.33 * base; }
 
-  float GetSupOffset() { return -0.33 * GetHeight(); }
-
-  float GetSubOffset() { return 0.2 * GetHeight(); }
+  float GetSubOffset() const { return GetSubOffset(GetHeight()); }
+  float GetSubOffset(float base) const { return 0.2 * base; }
 
  private:
   float max_ascent_ = 0;

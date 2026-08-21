@@ -11,6 +11,16 @@
 #include "test_src.h"
 #include "test_utils.h"
 
+TEST(ParagraphStyleTest, InlineVerticalAlignmentModeIsOptIn) {
+  ParagraphStyle style;
+  EXPECT_EQ(style.GetInlineVerticalAlignmentMode(),
+            InlineVerticalAlignmentMode::kLegacy);
+
+  style.SetInlineVerticalAlignmentMode(InlineVerticalAlignmentMode::kLineBox);
+  EXPECT_EQ(style.GetInlineVerticalAlignmentMode(),
+            InlineVerticalAlignmentMode::kLineBox);
+}
+
 TEST(ParagraphStyleTest, LineGapTest) {
   std::unique_ptr<Paragraph> paragraph = TTParagraph::Create();
   auto layout_page = ParagraphStyleTestClass::LineGapTest(

@@ -163,5 +163,35 @@ float LayoutMeasurer::CalcElementY(CharacterVerticalAlignment v_align,
   }
   return y;
 }
+
+CharacterVerticalAlignment LayoutMeasurer::ResolveCharacterVerticalAlignment(
+    const BaseRun* run) {
+  if (run->GetLayoutStyle().HasStyleAttribute(Style::VerticalAlignmentFlag)) {
+    return run->GetLayoutStyle().GetVerticalAlignment();
+  }
+  return run->GetParagraph()->GetDefaultStyleImpl().GetVerticalAlignment();
+}
+
+float LayoutMeasurer::CalcInlineObjectBaselineOffset(const BaseRun* run,
+                                                     float container_ascent,
+                                                     float container_descent) {
+  const auto vertical_alignment = ResolveCharacterVerticalAlignment(run);
+  const float baseline_offset =
+      vertical_alignment == CharacterVerticalAlignment::kTop ||
+              vertical_alignment == CharacterVerticalAlignment::kBottom
+          ? 0.f
+          : run->GetParagraph()->GetBaselineOffset(run->GetStartCharPos());
+  const float font_size = run->GetLayoutStyle().GetScaledTextSize();
+  const auto metrics = run->GetScaledMetrics();
+  if (vertical_alignment == CharacterVerticalAlignment::kSuperScript) {
+    return baseline_offset + metrics.GetSupOffset(font_size);
+  }
+  if (vertical_alignment == CharacterVerticalAlignment::kSubScript) {
+    return baseline_offset + metrics.GetSubOffset(font_size);
+  }
+  return baseline_offset +
+         CalcElementY(vertical_alignment, container_ascent, container_descent,
+                      metrics.GetMaxAscent(), metrics.GetMaxDescent());
+}
 }  // namespace tttext
 }  // namespace ttoffice

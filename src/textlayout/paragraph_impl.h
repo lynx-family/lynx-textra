@@ -158,6 +158,7 @@ class ParagraphImpl : public Paragraph {
   BoundaryType GetBoundaryTypeBefore(const LayoutPosition& position) const;
   BoundaryType GetBoundaryType(const LayoutPosition& position) const;
   void SetShaper(TTShaper* shaper) { shaper_ = shaper; }
+  float GetBaselineOffset(uint32_t char_pos) const;
   void ClearLayout() { formated_ = false; }
   RunDelegate* GetRunDelegateForChar(uint32_t char_index) const;
   void TransformLayoutStyleOnlyOnce();

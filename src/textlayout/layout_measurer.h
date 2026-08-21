@@ -52,6 +52,11 @@ class LayoutMeasurer {
   static float CalcElementY(CharacterVerticalAlignment v_align,
                             float container_ascent, float container_descent,
                             float element_ascent, float element_descent);
+  static CharacterVerticalAlignment ResolveCharacterVerticalAlignment(
+      const BaseRun* run);
+  static float CalcInlineObjectBaselineOffset(const BaseRun* run,
+                                              float container_ascent,
+                                              float container_descent);
 };
 }  // namespace tttext
 }  // namespace ttoffice

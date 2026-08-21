@@ -52,7 +52,8 @@ class TextLayoutImpl {
                                                 LayoutResult* result);
 
   static bool CheckLineNeedRelayout(LayoutRegion* region, TextLineImpl* line,
-                                    float new_height, float& next_line_top);
+                                    float new_height, float& next_line_top,
+                                    bool force_height_check = false);
 
   static LayoutPosition AddBreakableRunsToLine(const ParagraphImpl& paragraph,
                                                const LayoutPosition& position,
