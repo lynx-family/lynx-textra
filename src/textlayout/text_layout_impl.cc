@@ -35,6 +35,15 @@ LayoutResult TextLayoutImpl::LayoutEx(Paragraph* i_para, LayoutRegion* page,
   para->TransformLayoutStyleOnlyOnce();
   para->FormatRunList();
   auto& pos = context.GetPositionRef();
+  if (para->GetParagraphStyleImpl().IsPunctuationCompressionEnabled()) {
+    for (auto run_index = pos.GetRunIdx(); run_index < para->GetRunCount();
+         ++run_index) {
+      auto* run = para->GetRun(run_index);
+      if (run->IsCompressiblePunctuation()) {
+        run->ResetPunctuationCompression();
+      }
+    }
+  }
   std::unique_ptr<TextLineImpl> current_line = nullptr;
   if (page->GetPageWidth() <= 0 || page->GetPageHeight() <= 0) return result;
   while (pos.GetRunIdx() < para->GetRunCount() &&
@@ -44,17 +53,17 @@ LayoutResult TextLayoutImpl::LayoutEx(Paragraph* i_para, LayoutRegion* page,
     }
     pos = ProcessBreakableRunList(*para, pos, page, current_line.get(), context,
                                   &result);
-    if (pos.GetRunIdx() == para->GetRunCount() ||
-        result == LayoutResult::kBreakLine ||
-        result == LayoutResult::kBreakPage ||
-        result == LayoutResult::kBreakColumn) {
-      if (current_line != nullptr && !current_line->IsEmpty()) {
-        FinishLineLayout(page, std::move(current_line), context, &result);
-      }
-    } else if (result == LayoutResult::kRelayoutLine) {
+    if (result == LayoutResult::kRelayoutLine) {
       pos = current_line->GetStartLayoutPosition();
       current_line->ClearForRelayout();
       result = LayoutResult::kNormal;
+    } else if (pos.GetRunIdx() == para->GetRunCount() ||
+               result == LayoutResult::kBreakLine ||
+               result == LayoutResult::kBreakPage ||
+               result == LayoutResult::kBreakColumn) {
+      if (current_line != nullptr && !current_line->IsEmpty()) {
+        FinishLineLayout(page, std::move(current_line), context, &result);
+      }
     } else if (result == LayoutResult::kRelayoutPage) {
     }
   }
@@ -156,8 +165,152 @@ LayoutPosition TextLayoutImpl::ProcessBreakableRunList(
   TTASSERT(!line->IsLayouted());
   auto pos =
       AddBreakableRunsToLine(paragraph, position, line, page, context, result);
+  const bool line_completed =
+      *result == LayoutResult::kNormal || *result == LayoutResult::kBreakLine;
+  if (line_completed &&
+      paragraph.GetParagraphStyleImpl().IsPunctuationCompressionEnabled()) {
+    if (UpdatePunctuationCompression(line) ||
+        UpdateLineEndPunctuation(line, pos)) {
+      *result = LayoutResult::kRelayoutLine;
+    }
+  }
   return pos;
 }
+float TextLayoutImpl::CalculatePunctuationCompression(
+    const ParagraphImpl& paragraph, const BaseRun& run,
+    const PunctuationCompressConfig& config, bool line_start, bool line_end) {
+  const auto raw_width = run.GetRawWidth(0, run.GetCharCount());
+  if (config.type == PunctuationType::kNone) {
+    return 0;
+  }
+  const auto& style = paragraph.GetParagraphStyleImpl();
+  const auto type = config.type;
+  auto compression = [&](float ratio) {
+    const auto compression_ratio =
+        ratio == 0 ? config.default_compress_ratio : ratio;
+    return raw_width * compression_ratio;
+  };
+  if (style.HasPunctuationCompressOption(
+          PunctuationCompressOption::kLineEdge)) {
+    if (line_start && type == PunctuationType::kOpen) {
+      return compression(config.line_edge_compress_ratio);
+    }
+    if (line_end && type == PunctuationType::kClose) {
+      return compression(config.line_edge_compress_ratio);
+    }
+  }
+  if (style.HasPunctuationCompressOption(
+          PunctuationCompressOption::kAdjacent)) {
+    const auto run_index =
+        paragraph.CharPosToLayoutPosition(run.GetStartCharPos()).GetRunIdx();
+    TTASSERT(paragraph.GetRun(run_index) == &run);
+    // Paragraph adjacency stays stable when reflow changes line boundaries.
+    const auto* previous_run =
+        run_index > 0 ? paragraph.GetRun(run_index - 1) : nullptr;
+    const auto* next_run = paragraph.GetRun(run_index + 1);
+    if (type == PunctuationType::kClose && next_run != nullptr &&
+        next_run->IsCompressiblePunctuation()) {
+      return compression(config.adjacent_compress_ratio);
+    }
+    if (type == PunctuationType::kOpen && previous_run != nullptr &&
+        previous_run->IsCompressiblePunctuation()) {
+      return compression(config.adjacent_compress_ratio);
+    }
+  }
+  if (!style.HasPunctuationCompressOption(PunctuationCompressOption::kAll)) {
+    return 0;
+  }
+  return compression(config.default_compress_ratio);
+}
+
+bool TextLayoutImpl::UpdatePunctuationCompression(TextLineImpl* line) {
+  auto* paragraph = line->paragraph_;
+  bool changed = false;
+  for (const auto& range : line->range_lst_) {
+    const auto& run_ranges = range->run_range_lst_;
+    for (auto index = 0u; index < run_ranges.size(); ++index) {
+      const auto* range_run = run_ranges[index]->GetRun();
+      if (!range_run->IsCompressiblePunctuation()) {
+        continue;
+      }
+      auto* run = paragraph->GetRun(
+          paragraph->CharPosToLayoutPosition(range_run->GetStartCharPos())
+              .GetRunIdx());
+      TTASSERT(run == range_run);
+      const bool line_start = index == 0;
+      const auto* config =
+          paragraph->GetParagraphStyleImpl().FindPunctuationCompressConfig(
+              paragraph->GetContent().GetUnicode(run->GetStartCharPos()));
+      TTASSERT(config != nullptr);
+      // Apply ordinary compression here; defer line-end compression.
+      const auto compression = CalculatePunctuationCompression(
+          *paragraph, *run, *config, line_start, false);
+      if (FloatsLarger(compression, run->GetPunctuationCompression())) {
+        SetPunctuationCompression(run, compression);
+        changed = true;
+      }
+    }
+  }
+  return changed;
+}
+
+void TextLayoutImpl::SetPunctuationCompression(BaseRun* run,
+                                               float compression) {
+  const auto* paragraph = run->GetParagraph();
+  const auto* config =
+      paragraph->GetParagraphStyleImpl().FindPunctuationCompressConfig(
+          paragraph->GetContent().GetUnicode(run->GetStartCharPos()));
+  TTASSERT(config != nullptr);
+  float draw_offset = 0;
+  if (config->type == PunctuationType::kOpen) {
+    draw_offset = -compression;
+  } else if (config->type == PunctuationType::kCenter) {
+    draw_offset = -compression / 2;
+  }
+  run->SetPunctuationCompression(compression, draw_offset);
+}
+
+bool TextLayoutImpl::UpdateLineEndPunctuation(TextLineImpl* line,
+                                              const LayoutPosition& pos) {
+  auto* paragraph = line->paragraph_;
+  const auto& style = paragraph->GetParagraphStyleImpl();
+  auto calculate = [&](BaseRun* run, bool start, bool end) {
+    const auto* config = style.FindPunctuationCompressConfig(
+        paragraph->GetContent().GetUnicode(run->GetStartCharPos()));
+    TTASSERT(config != nullptr);
+    return CalculatePunctuationCompression(*paragraph, *run, *config, start,
+                                           end);
+  };
+  auto* range = line->GetCurrentRange();
+  auto* next = paragraph->GetRun(pos.GetRunIdx());
+  if (!range->Empty() && next != nullptr && next->IsCompressiblePunctuation() &&
+      paragraph->GetBoundaryTypeBefore(pos) != BoundaryType::kMustLineBreak) {
+    const auto old_next_compression = next->GetPunctuationCompression();
+    const auto next_compression = calculate(next, false, true);
+    const auto added_width =
+        next->GetWidth(0) + old_next_compression - next_compression;
+    if (!FloatsLarger(added_width, range->GetAvailableWidth()) &&
+        !FloatsEqual(next_compression, old_next_compression)) {
+      SetPunctuationCompression(next, next_compression);
+      return true;
+    }
+  }
+  for (const auto& line_range : line->range_lst_) {
+    if (line_range->Empty()) continue;
+    auto* tail = paragraph->GetRun(
+        paragraph
+            ->CharPosToLayoutPosition(
+                line_range->run_range_lst_.back()->GetRun()->GetStartCharPos())
+            .GetRunIdx());
+    if (!tail->IsCompressiblePunctuation()) continue;
+    const auto compression =
+        calculate(tail, line_range->run_range_lst_.size() == 1, true);
+    line_range->x_current_ += tail->GetPunctuationCompression() - compression;
+    SetPunctuationCompression(tail, compression);
+  }
+  return false;
+}
+
 bool TextLayoutImpl::CheckLineNeedRelayout(LayoutRegion* region,
                                            TextLineImpl* line, float new_height,
                                            float& next_line_top,
@@ -442,7 +595,7 @@ LayoutPosition TextLayoutImpl::BreakWordForWidth(
   if (break_run->GetCharCount() == 0) {
     return position;
   }
-  TTASSERT(break_run->GetType() == RunType::kTextRun);
+  TTASSERT(break_run->IsTextRun());
   if (paragraph.style_manager_->GetWordBreak(break_run->GetStartCharPos() +
                                              break_pos.GetCharIdx() - 1) ==
       WordBreakType::kBreakAll) {

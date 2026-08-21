@@ -84,7 +84,8 @@ class BaseRun {
   bool IsControlRun() const { return run_type_ >= RunType::kControlRun; }
   bool IsTextRun() const {
     return GetType() == RunType::kTextRun || GetType() == RunType::kSpaceRun ||
-           GetType() == RunType::kTabRun;
+           GetType() == RunType::kTabRun ||
+           GetType() == RunType::kPunctuationRun;
   }
   //  bool IsSpaceRun() const { return GetType() == RunType::kSpaceRun; };
   bool IsGhostRun() const {
@@ -116,6 +117,18 @@ class BaseRun {
   LayoutMetrics GetMetrics() const { return metrics_; }
   BoundaryType GetBoundaryType() const { return boundary_type_; }
   void SetBoundaryType(BoundaryType type) { boundary_type_ = type; }
+  bool IsCompressiblePunctuation() const {
+    return GetType() == RunType::kPunctuationRun;
+  }
+  void SetPunctuationRun() { run_type_ = RunType::kPunctuationRun; }
+  void SetPunctuationCompression(float compression, float draw_offset) {
+    punctuation_compression_ = compression;
+    punctuation_draw_offset_ = draw_offset;
+  }
+  float GetRawWidth(uint32_t char_start_in_run, uint32_t char_count) const;
+  void ResetPunctuationCompression() { SetPunctuationCompression(0, 0); }
+  float GetPunctuationCompression() const { return punctuation_compression_; }
+  float GetPunctuationDrawOffset() const { return punctuation_draw_offset_; }
   TTStringPiece GetGhostContent() const { return ghost_content_.ToPiece(); }
 
  public:
@@ -125,6 +138,8 @@ class BaseRun {
       this->start_char_pos_ = run.start_char_pos_;
       this->end_char_pos_ = run.end_char_pos_;
       this->boundary_type_ = run.boundary_type_;
+      this->punctuation_compression_ = run.punctuation_compression_;
+      this->punctuation_draw_offset_ = run.punctuation_draw_offset_;
     }
     return *this;
   }
@@ -186,6 +201,8 @@ class BaseRun {
   TTString ghost_content_;
   std::shared_ptr<RunDelegate> delegate_{nullptr};
   BoundaryType boundary_type_ = BoundaryType::kNone;
+  float punctuation_compression_{};
+  float punctuation_draw_offset_{};
 #ifdef TTTEXT_DEBUG
 
  public:

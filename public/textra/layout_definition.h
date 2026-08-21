@@ -136,9 +136,11 @@ enum class RunType : uint8_t {
   kGhostRun = 1,
   kSpaceRun = 2,
   kTabRun = 3,  // tab \t
-  kInlineObject = 1 << 2,
+  kPunctuationRun = 4,
+
+  kInlineObject = 1 << 3,
   kFloatObject = kInlineObject + 1,
-  kBlockStart = 1 << 3,
+  kBlockStart = 1 << 4,
   kBlockEnd = kBlockStart + 1,
   kControlRun = 1 << 7,
   kCRRun = kControlRun + 2,    // \n
@@ -196,6 +198,25 @@ enum LineBreakStrategy : uint8_t {
   kAvoidBreakAroundPunctuation = 1,
   kLineBreakStrategyDefault = 0xff,
 };
+enum class PunctuationType : uint8_t { kNone, kOpen, kClose, kCenter };
+enum class PunctuationCompressOption : uint8_t {
+  kNone = 0,
+  kAll = 1 << 0,
+  kLineEdge = 1 << 1,
+  kAdjacent = 1 << 2,
+};
+struct PunctuationCompressConfig {
+  char32_t unicode{};
+  PunctuationType type{PunctuationType::kNone};
+  float default_compress_ratio{};
+  float line_edge_compress_ratio{};
+  float adjacent_compress_ratio{};
+};
+constexpr PunctuationCompressOption operator|(PunctuationCompressOption lhs,
+                                              PunctuationCompressOption rhs) {
+  return static_cast<PunctuationCompressOption>(static_cast<uint8_t>(lhs) |
+                                                static_cast<uint8_t>(rhs));
+}
 enum FeatureOption : uint8_t {
   kLastLineCanOverflow,
   kSkipSpaceBeforeFirstLine,

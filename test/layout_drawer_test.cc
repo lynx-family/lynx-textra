@@ -256,6 +256,36 @@ TEST(LayoutDrawer, DrawTextRunPassesTextSkewToPainter) {
   drawer.DrawTextLine(text_line, 0, text_length);
 }
 
+TEST(LayoutDrawer, PunctuationCompressionOffsetsOpeningGlyph) {
+  ParagraphImpl paragraph;
+  Style style;
+  style.SetTextSize(10.f);
+  auto& paragraph_style = paragraph.GetParagraphStyle();
+  paragraph_style.SetPunctuationCompressOptions(
+      PunctuationCompressOption::kLineEdge);
+  paragraph_style.UpdatePunctuationCompressConfig(
+      {U'（', PunctuationType::kOpen, 0.f, 0.5f, 0.f});
+  paragraph.AddTextRun(&style, u8"（A");
+
+  TTTextContext context;
+  LayoutRegion region(20.f, 100.f);
+  TextLayout layout(TestUtils::getTestShaper());
+  layout.Layout(&paragraph, &region, context);
+
+  NiceMock<MockCanvasHelper> canvas_helper;
+  LayoutDrawer drawer(&canvas_helper);
+  ON_CALL(canvas_helper, CreatePainter()).WillByDefault(Invoke([]() {
+    return std::make_unique<Painter>();
+  }));
+  InSequence sequence;
+  EXPECT_CALL(canvas_helper,
+              DrawGlyphs(_, 1, _, nullptr, 0, FloatEq(-5.f), _, _, _, _));
+  EXPECT_CALL(canvas_helper,
+              DrawGlyphs(_, 1, _, nullptr, 0, FloatEq(5.f), _, _, _, _));
+
+  drawer.DrawLayoutPage(&region);
+}
+
 TEST(LayoutDrawer, DrawTextLine_ExclusiveEndDoesNotDrawNextDecoration) {
   // Arrange
   ParagraphImpl para;

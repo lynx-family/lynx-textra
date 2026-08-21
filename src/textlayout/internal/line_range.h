@@ -18,12 +18,14 @@ class BaseRun;
 class LayoutMeasurer;
 class RunRange;
 class TextLineImpl;
+class TextLayoutImpl;
 class BlockRegion;
 class ParagraphImpl;
 class LayoutDrawer;
 class LineRange {
   friend LayoutMeasurer;
   friend TextLineImpl;
+  friend TextLayoutImpl;
   friend LayoutDrawer;
 
  public:
