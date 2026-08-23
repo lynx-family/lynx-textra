@@ -87,6 +87,7 @@ bool TTShaper::Preload(ShaperType type) {
 
 void TTShaper::ClearFontCache() {
 #if defined(ENABLE_CTSHAPER) || defined(ENABLE_CTSHAPER_SKITY)
+  ShaperCoreText::ClearSafeFontCache();
   ShaperCoreTextSelfRendering::ClearSafeFontCache();
 #endif
 }

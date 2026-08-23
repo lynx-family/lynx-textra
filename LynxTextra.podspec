@@ -113,6 +113,7 @@ Pod::Spec.new do |s|
                                 "public/textra/tt_path.h",
                                 "public/textra/tttext_context.h",
                                 "src/ports/platform_helper.cc",
+                                "src/ports/shaper/coretext/safe_font_cache.h",
                                 "src/ports/shaper/coretext/shaper_core_text.h",
                                 "src/ports/shaper/coretext/shaper_core_text.mm",
                                 "src/ports/shaper/coretext/shaper_core_text_self_rendering.h",
