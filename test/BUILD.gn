@@ -7,6 +7,9 @@ import("//config.gni")
 group("test") {
   testonly = true
   deps = [ ":TextLayoutLiteTest" ]
+  if (is_mac) {
+    deps += [ ":CoreTextShapeCacheTest" ]
+  }
 }
 
 executable("TextLayoutLiteTest") {
@@ -35,6 +38,9 @@ executable("TextLayoutLiteTest") {
     "tt_shaper_test.cc",
     "tttext_context_test.cc",
   ]
+  if (is_mac) {
+    sources += [ "safe_font_cache_test.mm" ]
+  }
 
   include_dirs = [
     "//",
@@ -65,4 +71,46 @@ executable("TextLayoutLiteTest") {
     "-Wno-unused-function",
     "-Wno-unused-private-field",
   ]
+}
+
+# Focused cache tests do not depend on the Skity-backed image-test utilities,
+# so they can run on every host supported by the core textlayout target.
+executable("ShapeCacheTest") {
+  output_name = "ShapeCacheTest"
+  testonly = true
+  sources = [ "shape_cache_test.cc" ]
+
+  include_dirs = [
+    "//",
+    "//public",
+  ]
+
+  deps = [
+    "//src:textlayout",
+    "//third_party/googletest:gtest",
+    "//third_party/googletest:gtest_main",
+  ]
+}
+
+if (is_mac) {
+  # Keep scoped CoreText cache ownership tests independent from the Skity-backed
+  # image-test utilities used by TextLayoutLiteTest.
+  executable("CoreTextShapeCacheTest") {
+    output_name = "CoreTextShapeCacheTest"
+    testonly = true
+    sources = [ "safe_font_cache_test.mm" ]
+
+    include_dirs = [
+      "//",
+      "//public",
+    ]
+
+    deps = [
+      "//src:textlayout",
+      "//third_party/googletest:gtest",
+      "//third_party/googletest:gtest_main",
+    ]
+
+    frameworks = [ "CoreText.framework" ]
+  }
 }
