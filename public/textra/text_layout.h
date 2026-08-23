@@ -49,8 +49,8 @@ class L_EXPORT TextLayout {
  public:
   static bool Preload(ShaperType type);
 
-  // Clears all cached shaping results. New lookups cannot reuse results that
-  // were being computed when this method was called.
+  // Clears legacy process-wide shaping and platform-font caches. Scoped
+  // caches owned by live ShapeCacheScope instances are not affected.
   static void ClearShapeCache();
 
   LayoutResult Layout(Paragraph* para, LayoutRegion* page,
