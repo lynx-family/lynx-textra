@@ -5,8 +5,6 @@ system = platform.system().lower()
 machine = platform.machine().lower()
 machine = "x86_64" if machine == "amd64" else machine
 
-root_dir = os.getcwd()
-
 deps = {
     "tools_shared": {
         "type": "solution",
@@ -19,9 +17,7 @@ deps = {
         'type': 'git',
         'url': 'https://github.com/harfbuzz/harfbuzz',
         'commit': 'a070f9ebbe88dc71b248af9731dd49ec93f4e6e6',
-        'patches': [
-            os.path.join(root_dir, 'patches', 'harfbuzz', '*.patch')
-        ],
+        'patches': os.path.join(root_dir, 'patches', 'harfbuzz', '*.patch'),
         "ignore_in_git": True,
     },
     'third_party/icu': {
@@ -42,30 +38,35 @@ deps = {
         "commit": "705ceef0ec7ab825358e747c76bba6f964424023",
         "deps_file": "hab/DEPS",
         "ignore_in_git": True,
+        "condition": False,
     },
     "third_party/skity/third_party/libjpeg-turbo": {
         "type": "git",
         "url": "https://github.com/libjpeg-turbo/libjpeg-turbo.git",
         "ignore_in_git": True,
         "commit": "f29eda648547b36aa594c4116c7764a6c8a079b9",
+        "condition": False,
     },
     "third_party/skity/third_party/wuffs": {
         "type": "git",
         "url": "https://github.com/google/wuffs-mirror-release-c.git",
         "ignore_in_git": True,
         "commit": "a29749ebe0be57d2b19d8406475bd2326d0f1a85",
+        "condition": False,
     },
     "third_party/skity/third_party/libwebp": {
         "type": "git",
         "url": "https://github.com/webmproject/libwebp.git",
         "ignore_in_git": True,
-        "commit": "4fa21912338357f89e4fd51cf2368325b59e9bd9"
+        "commit": "4fa21912338357f89e4fd51cf2368325b59e9bd9",
+        "condition": False,
     },
     "third_party/skity/third_party/pugixml": {
         "type": "git",
         "url": "https://github.com/zeux/pugixml.git",
         "ignore_in_git": True,
         "commit": "ee86beb30e4973f5feffe3ce63bfa4fbadf72f38",
+        "condition": False,
     },
     'third_party/rapidjson': {
         'type': 'git',
@@ -128,7 +129,7 @@ deps = {
         "url": "https://github.com/lynx-family/buildroot.git",
         "commit": "79446975604356f28b44c4e67851b3c9aafa372f",
         "ignore_in_git": True,
-        "condition": system in ['linux', 'darwin', 'windows']
+        "condition": False
     },
     'third_party/libcxx': {
         "type": "git",
