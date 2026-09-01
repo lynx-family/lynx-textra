@@ -123,14 +123,19 @@ config("textlayout_internal") {
 }
 
 config("icu") {
-  include_dirs = [ "//third_party/icu/source/common" ]
+  include_dirs = []
   libs = []
-  defines = [
-    "USE_ICU",
-    "ICU_I18N_LIB=\"libicui18n.so\"",
-    "ICU_UC_LIB=\"libicuuc.so\"",
-    "ICU_DATA_FOLDER=\"/system/usr/icu\"",
-  ]
+  defines = [ "USE_ICU" ]
+  if (is_harmony) {
+    libs += [ "icu" ]
+  } else {
+    include_dirs += [ "//third_party/icu/source/common" ]
+    defines += [
+      "ICU_I18N_LIB=\"libicui18n.so\"",
+      "ICU_UC_LIB=\"libicuuc.so\"",
+      "ICU_DATA_FOLDER=\"/system/usr/icu\"",
+    ]
+  }
   if (boundary_analyst == "icu") {
     defines += [ "BOUNDARY_ANALYST_ICU" ]
   }
@@ -412,9 +417,12 @@ source_set("skshaper") {
   defines = []
   deps = []
   sources = []
-  if (is_android || is_harmony) {
+  if (is_android) {
     configs += [ ":icu" ]
     sources += [ "$prj_root/src/textlayout/utils/icu_wrapper.cc" ]
+  } else if (is_harmony) {
+    configs += [ ":icu" ]
+    sources += [ "$prj_root/src/textlayout/utils/icu_wrapper_static.cc" ]
   }
 
   sources += [
