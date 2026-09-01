@@ -14,6 +14,7 @@
 #include <native_drawing/drawing_text_run.h>
 #include <native_drawing/drawing_text_typography.h>
 #include <textra/i_typeface_helper.h>
+#include <textra/icu_wrapper.h>
 #include <textra/platform/ark_graphics/ag_typeface_helper.h>
 
 #include <cstdint>
@@ -182,6 +183,12 @@ ShaperArkGraphics::ShaperArkGraphics(
 ShaperArkGraphics::~ShaperArkGraphics() {
   OH_Drawing_DestroyTypographyStyle(typography_style_);
   OH_Drawing_DestroyFontCollection(shared_font_collection_);
+}
+void ShaperArkGraphics::ProcessBidirection(
+    const char32_t* text, uint32_t length, WriteDirection write_direction,
+    uint32_t* visual_map, uint32_t* logical_map, uint8_t* dir_vec) {
+  ICUWrapper::BidiInit(text, length, write_direction, dir_vec, visual_map,
+                       logical_map);
 }
 void ShaperArkGraphics::OnShapeText(const ShapeKey& key,
                                     ShapeResult* result) const {

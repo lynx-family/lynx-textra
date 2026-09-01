@@ -13,7 +13,6 @@
 #ifndef USE_LIBLINEBREAK
 #include "src/textlayout/utils/u_8_string.h"
 #ifdef USE_ICU
-#include "unicode/putil.h"
 #include "unicode/ubidi.h"
 #include "unicode/ubrk.h"
 #include "unicode/uchar.h"
