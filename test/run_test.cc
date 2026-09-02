@@ -170,6 +170,7 @@ TEST(BaseRun, GetTypeMethod) {
       {RunType::kGhostRun, &BaseRun::IsGhostRun},
       {RunType::kSpaceRun, &BaseRun::IsTextRun},
       {RunType::kTabRun, &BaseRun::IsTextRun},
+      {RunType::kPunctuationRun, &BaseRun::IsTextRun},
       {RunType::kInlineObject, &BaseRun::IsObjectRun},
       {RunType::kFloatObject, &BaseRun::IsObjectRun},
       {RunType::kBlockStart, &BaseRun::IsBlockRun},
@@ -231,6 +232,28 @@ TEST(BaseRun, GetWidthAddsTextSkewExtraWidth) {
   run.SetShapeResult(MakeShapeResult(2, 10.f, typeface), 2);
 
   EXPECT_FLOAT_EQ(run.GetWidth(0, 2), 25.f);
+}
+
+TEST(BaseRun, GetWidthIncludesPunctuationCompression) {
+  ParagraphImpl paragraph;
+  paragraph.GetParagraphStyle().SetPunctuationCompressOptions(
+      PunctuationCompressOption::kAll);
+  paragraph.AddTextRun(nullptr, u8"，");
+  Style style;
+  style.SetTextSkew(-0.25f);
+  TestableBaseRun run(&paragraph, style.GetImpl(), 0, 1, RunType::kTextRun);
+  PunctuationCompressConfig config{U'，', PunctuationType::kCenter, 0.5f, 0.f,
+                                   0.f};
+  run.SetPunctuationConfig(config);
+  config.default_compress_ratio = 0.25f;
+  auto typeface = std::make_shared<TestTypeface>(-20.f);
+  run.SetShapeResult(MakeShapeResult(1, 10.f, typeface), 1);
+
+  run.UpdatePunctuationCompression(false, false);
+
+  EXPECT_FLOAT_EQ(run.GetPunctuationCompression(), 5.f);
+  EXPECT_FLOAT_EQ(run.CalculatePunctuationCompressedWidth(false, false), 10.f);
+  EXPECT_FLOAT_EQ(run.GetWidth(0, 1), 10.f);
 }
 
 TEST(BaseRun, GetWidthAddsItalicExtraWidth) {

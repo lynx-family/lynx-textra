@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <iterator>
 #include <limits>
 #include <utility>
 
@@ -692,7 +693,8 @@ std::vector<RectF> TextLineImpl::GetCharRangeBounds(CharPos start_char_pos,
         GetDrawerPieceCharTightLeftAndRight(drawer.get(),
                                             left_char_index + char_offset,
                                             &tight_left, &tight_right);
-        current_left += tight_left;
+        current_left +=
+            tight_left + drawer->GetRun()->GetPunctuationDrawOffset();
       }
       current_top = drawer_top;
       current_bottom = drawer_bottom;
@@ -714,7 +716,8 @@ std::vector<RectF> TextLineImpl::GetCharRangeBounds(CharPos start_char_pos,
 
       float right_char_width = drawer->GetWidthInRange(
           right_char_index - drawer_start + char_offset, 1);
-      current_right += tight_right - right_char_width;
+      current_right += tight_right - right_char_width +
+                       drawer->GetRun()->GetPunctuationDrawOffset();
     }
     if (!right_reached) {
       bounding_rects.emplace_back(RectF::MakeLTRB(

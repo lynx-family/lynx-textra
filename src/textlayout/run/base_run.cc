@@ -38,7 +38,83 @@ const char** BaseRun::SpaceList() {
   return list;
 }
 
+float BaseRun::CalculatePunctuationCompression(bool line_start,
+                                               bool line_end) const {
+  const auto raw_width = GetRawWidth(0, GetCharCount());
+  if (punctuation_config_.type == PunctuationType::kNone) {
+    return 0;
+  }
+  const auto& style = paragraph_->GetParagraphStyleImpl();
+  const auto type = punctuation_config_.type;
+  auto compression = [&](float ratio) {
+    const auto compression_ratio =
+        ratio == 0 ? punctuation_config_.default_compress_ratio : ratio;
+    return raw_width * compression_ratio;
+  };
+  if (style.HasPunctuationCompressOption(
+          PunctuationCompressOption::kLineEdge)) {
+    if (line_start && type == PunctuationType::kOpen) {
+      return compression(punctuation_config_.line_edge_compress_ratio);
+    }
+    if (line_end && type == PunctuationType::kClose) {
+      return compression(punctuation_config_.line_edge_compress_ratio);
+    }
+  }
+  if (style.HasPunctuationCompressOption(
+          PunctuationCompressOption::kAdjacent)) {
+    const auto run_index =
+        paragraph_->CharPosToLayoutPosition(GetStartCharPos()).GetRunIdx();
+    TTASSERT(paragraph_->GetRun(run_index) == this);
+    const auto* previous_run =
+        run_index > 0 ? paragraph_->GetRun(run_index - 1) : nullptr;
+    const auto* next_run = paragraph_->GetRun(run_index + 1);
+    if (type == PunctuationType::kClose && next_run != nullptr &&
+        next_run->IsCompressiblePunctuation()) {
+      return compression(punctuation_config_.adjacent_compress_ratio);
+    }
+    if (type == PunctuationType::kOpen && previous_run != nullptr &&
+        previous_run->IsCompressiblePunctuation()) {
+      return compression(punctuation_config_.adjacent_compress_ratio);
+    }
+  }
+  if (!style.HasPunctuationCompressOption(PunctuationCompressOption::kAll)) {
+    return 0;
+  }
+  return compression(punctuation_config_.default_compress_ratio);
+}
+
+float BaseRun::CalculatePunctuationCompressedWidth(bool line_start,
+                                                   bool line_end) const {
+  return GetRawWidth(0, GetCharCount()) + std::abs(GetSkewExtraWidth()) -
+         CalculatePunctuationCompression(line_start, line_end);
+}
+
+void BaseRun::UpdatePunctuationCompression(bool line_start, bool line_end) {
+  if (!IsCompressiblePunctuation()) return;
+  punctuation_compression_ =
+      CalculatePunctuationCompression(line_start, line_end);
+}
+
+float BaseRun::GetPunctuationDrawOffset() const {
+  if (punctuation_config_.type == PunctuationType::kOpen) {
+    return -punctuation_compression_;
+  }
+  if (punctuation_config_.type == PunctuationType::kCenter) {
+    return -punctuation_compression_ / 2;
+  }
+  return 0;
+}
+
 float BaseRun::GetWidth(uint32_t char_start_in_run, uint32_t char_count) const {
+  return GetRawWidth(char_start_in_run, char_count) -
+         (char_start_in_run == 0 && char_count == GetCharCount()
+              ? GetPunctuationCompression()
+              : 0) +
+         std::abs(GetSkewExtraWidth());
+}
+
+float BaseRun::GetRawWidth(uint32_t char_start_in_run,
+                           uint32_t char_count) const {
   if (GetType() == RunType::kInlineObject ||
       GetType() == RunType::kFloatObject) {
     TTASSERT(delegate_ != nullptr);
@@ -50,8 +126,7 @@ float BaseRun::GetWidth(uint32_t char_start_in_run, uint32_t char_count) const {
   TTASSERT(char_start_in_run < GetCharCount() && char_count <= GetCharCount());
   auto letter_spacing = layout_style_.GetLetterSpacing();
   return shape_result_.MeasureWidth(char_start_in_run, char_count,
-                                    letter_spacing) +
-         std::abs(GetSkewExtraWidth());
+                                    letter_spacing);
 }
 float BaseRun::MeasureRunByWidth(uint32_t& break_pos_in_run,
                                  float max_width) const {

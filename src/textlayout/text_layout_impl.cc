@@ -321,6 +321,19 @@ float TextLayoutImpl::AddWordListToRunRange(LineRange* range,
   const bool use_exact_text_line_box =
       UsesExactTextLineBox(paragraph.GetParagraphStyleImpl());
   float max_desired_height = LAYOUT_MIN_UNITS;
+  const bool range_empty = range->Empty();
+  auto* line_start_run = paragraph.GetRun(start_pos.GetRunIdx());
+  const auto line_end_run_idx =
+      end_pos.GetCharIdx() == 0 ? end_pos.GetRunIdx() - 1 : end_pos.GetRunIdx();
+  auto* line_end_run = paragraph.GetRun(line_end_run_idx);
+  if (line_start_run->IsCompressiblePunctuation()) {
+    line_start_run->UpdatePunctuationCompression(
+        range_empty, line_start_run == line_end_run);
+  }
+  if (line_end_run != line_start_run &&
+      line_end_run->IsCompressiblePunctuation()) {
+    line_end_run->UpdatePunctuationCompression(false, true);
+  }
   for (auto pos = start_pos; pos < end_pos; pos.NextRun()) {
     auto* run = paragraph.GetRun(pos.GetRunIdx());
     auto desired_height = TryAddRun(*metrics, run);
@@ -359,6 +372,18 @@ LayoutPosition TextLayoutImpl::FindBreakPosInWord(
       }
       *max_width -= width;
       break_pos_in_run = break_run->GetCharCount();
+    } else if (break_run->IsCompressiblePunctuation()) {
+      TTASSERT(break_pos_in_run == 0 && break_run->GetCharCount() == 1);
+      const bool line_start = break_pos == position;
+      const auto width =
+          break_run->CalculatePunctuationCompressedWidth(line_start, false);
+      if (FloatsLarger(width, *max_width)) {
+        const auto edge_width =
+            break_run->CalculatePunctuationCompressedWidth(line_start, true);
+        if (FloatsLarger(edge_width, *max_width)) break;
+      }
+      *max_width -= width;
+      break_pos_in_run = 1;
     } else {
       const auto width =
           break_run->MeasureRunByWidth(break_pos_in_run, *max_width);
@@ -442,7 +467,7 @@ LayoutPosition TextLayoutImpl::BreakWordForWidth(
   if (break_run->GetCharCount() == 0) {
     return position;
   }
-  TTASSERT(break_run->GetType() == RunType::kTextRun);
+  TTASSERT(break_run->IsTextRun());
   if (paragraph.style_manager_->GetWordBreak(break_run->GetStartCharPos() +
                                              break_pos.GetCharIdx() - 1) ==
       WordBreakType::kBreakAll) {

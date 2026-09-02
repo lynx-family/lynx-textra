@@ -298,8 +298,9 @@ void LayoutDrawer::DrawDrawerPiece(const TextLine* line,
         result.CharToGlyph(char_start_in_piece + piece_start) - glyph_start;
     DrawTextRun(
         run, piece_start + char_start_in_piece, piece_start + char_end_in_piece,
-        run_range->GetXOffset(), y, pos_x.data() + draw_glyph_offset,
-        pos_y.data() + draw_glyph_offset, background_rect.ToArrayLTWH().data());
+        run_range->GetXOffset() + run->GetPunctuationDrawOffset(), y,
+        pos_x.data() + draw_glyph_offset, pos_y.data() + draw_glyph_offset,
+        background_rect.ToArrayLTWH().data());
     background_rect.SetLeft(background_rect.GetRight());
     // TODO(hfuttyh) need to implement
     // if (run_range->GetHyphnateRun()) {
