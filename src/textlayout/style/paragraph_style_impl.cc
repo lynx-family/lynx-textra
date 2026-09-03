@@ -52,6 +52,8 @@ ParagraphStyleImpl& ParagraphStyleImpl::operator=(
   write_direction_ = paragraph_style.write_direction_;
   ellipsis_ = paragraph_style.ellipsis_;
   ellipsis_delegate_ = paragraph_style.ellipsis_delegate_;
+  ellipsis_uses_default_foreground_ =
+      paragraph_style.ellipsis_uses_default_foreground_;
   max_lines_ = paragraph_style.max_lines_;
   line_height_override_ = paragraph_style.line_height_override_;
   half_leading_ = paragraph_style.half_leading_;
@@ -241,6 +243,12 @@ const std::u32string& ParagraphStyle::GetEllipsis() const {
 const std::shared_ptr<RunDelegate>& ParagraphStyle::GetEllipsisDelegate()
     const {
   return impl_->GetEllipsisDelegate();
+}
+void ParagraphStyle::SetEllipsisUsesDefaultForeground(bool enabled) {
+  impl_->SetEllipsisUsesDefaultForeground(enabled);
+}
+bool ParagraphStyle::EllipsisUsesDefaultForeground() const {
+  return impl_->EllipsisUsesDefaultForeground();
 }
 uint32_t ParagraphStyle::GetMaxLines() const { return impl_->GetMaxLines(); }
 void ParagraphStyle::SetMaxLines(uint32_t max_line) {

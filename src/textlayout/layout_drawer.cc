@@ -334,7 +334,7 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
     Painter* painter = nullptr;
     auto piece_end = char_end_pos;
     StyleRange style_range;
-    if (style_manager != nullptr) {
+    if (style_manager != nullptr && run->GetType() != RunType::kGhostRun) {
       style_manager->GetStyleRange(
           &style_range, run->GetStartCharPos() + piece_start,
           Style::ForegroundColorFlag | Style::ForegroundPainterFlag |

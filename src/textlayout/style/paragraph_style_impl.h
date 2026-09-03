@@ -138,6 +138,12 @@ class ParagraphStyleImpl {
   const std::shared_ptr<RunDelegate>& GetEllipsisDelegate() const {
     return ellipsis_delegate_;
   }
+  void SetEllipsisUsesDefaultForeground(bool enabled) {
+    ellipsis_uses_default_foreground_ = enabled;
+  }
+  bool EllipsisUsesDefaultForeground() const {
+    return ellipsis_uses_default_foreground_;
+  }
   uint32_t GetMaxLines() const { return max_lines_; }
   void SetMaxLines(uint32_t max_line) {
     max_lines_ =
@@ -178,6 +184,7 @@ class ParagraphStyleImpl {
   WriteDirection write_direction_;
   std::u32string ellipsis_;
   std::shared_ptr<RunDelegate> ellipsis_delegate_;
+  bool ellipsis_uses_default_foreground_{false};
   uint32_t max_lines_;
   bool line_height_override_;
   bool half_leading_;
