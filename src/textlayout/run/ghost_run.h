@@ -31,7 +31,8 @@ class GhostRun : public BaseRun {
     if (!layout_style_.HasStyleAttribute(Style::TextScaleFlag)) {
       layout_style_.SetTextScale(StyleImpl::DefaultStyle().GetTextScale());
     }
-    if (!layout_style_.HasStyleAttribute(Style::ForegroundPainterFlag)) {
+    if (!layout_style_.HasStyleAttribute(Style::ForegroundColorFlag) &&
+        !layout_style_.HasStyleAttribute(Style::ForegroundPainterFlag)) {
       layout_style_.SetForegroundColor(
           StyleImpl::DefaultStyle().GetForegroundColor());
     }

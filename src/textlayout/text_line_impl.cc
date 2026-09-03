@@ -533,7 +533,11 @@ void TextLineImpl::StripByEllipsis(const char32_t* ellipsis) {
       return;
     }
     auto font = run->shape_result_.FontByCharId(0);
-    auto run_style = run->GetLayoutStyle();
+    StyleImpl run_style = run->GetLayoutStyle();
+    if (para_style.EllipsisUsesDefaultForeground()) {
+      const auto& default_style = para_style.GetDefaultStyleImpl();
+      run_style.SetForegroundColor(default_style.GetForegroundColor());
+    }
     std::unique_ptr<BaseRun> ellipsis_run;
     if (ellipsis != nullptr && ellipsis_len > 0) {
       ellipsis_run = std::make_unique<GhostRun>(paragraph_, run_style, 0,

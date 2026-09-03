@@ -476,6 +476,17 @@ class L_EXPORT ParagraphStyle {
   const std::shared_ptr<RunDelegate>& GetEllipsisDelegate() const;
 
   /**
+   * @brief Uses the paragraph default foreground for a text-based ellipsis.
+   *
+   * The ellipsis keeps the font, size, shaping, baseline, decoration, and
+   * other layout properties of the truncated tail run. When enabled, only
+   * its foreground color comes from the paragraph default style.
+   * This setting does not apply to delegate-based ellipsis.
+   */
+  void SetEllipsisUsesDefaultForeground(bool enabled);
+  bool EllipsisUsesDefaultForeground() const;
+
+  /**
    * @brief Maximum number of lines before truncation.
    *
    * Controls text truncation by limiting the number of lines that can
