@@ -565,6 +565,10 @@ class L_EXPORT ParagraphStyle {
    */
   void AllowBreakAroundPunctuation(bool allow);
 
+  PunctuationCompressOption GetPunctuationCompressOptions() const;
+  void SetPunctuationCompressOptions(PunctuationCompressOption options);
+  void UpdatePunctuationCompressConfig(const PunctuationCompressConfig& config);
+
  public:
   L_HIDDEN ParagraphStyleImpl& GetImpl();
   L_HIDDEN const ParagraphStyleImpl& GetImpl() const;

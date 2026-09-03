@@ -84,7 +84,8 @@ class BaseRun {
   bool IsControlRun() const { return run_type_ >= RunType::kControlRun; }
   bool IsTextRun() const {
     return GetType() == RunType::kTextRun || GetType() == RunType::kSpaceRun ||
-           GetType() == RunType::kTabRun;
+           GetType() == RunType::kTabRun ||
+           GetType() == RunType::kPunctuationRun;
   }
   //  bool IsSpaceRun() const { return GetType() == RunType::kSpaceRun; };
   bool IsGhostRun() const {
@@ -116,6 +117,19 @@ class BaseRun {
   LayoutMetrics GetMetrics() const { return metrics_; }
   BoundaryType GetBoundaryType() const { return boundary_type_; }
   void SetBoundaryType(BoundaryType type) { boundary_type_ = type; }
+  bool IsCompressiblePunctuation() const {
+    return GetType() == RunType::kPunctuationRun;
+  }
+  void SetPunctuationConfig(const PunctuationCompressConfig& config) {
+    TTASSERT(config.type != PunctuationType::kNone);
+    punctuation_config_ = config;
+    run_type_ = RunType::kPunctuationRun;
+  }
+  float CalculatePunctuationCompressedWidth(bool line_start,
+                                            bool line_end) const;
+  void UpdatePunctuationCompression(bool line_start, bool line_end);
+  float GetPunctuationCompression() const { return punctuation_compression_; }
+  float GetPunctuationDrawOffset() const;
   TTStringPiece GetGhostContent() const { return ghost_content_.ToPiece(); }
 
  public:
@@ -125,6 +139,8 @@ class BaseRun {
       this->start_char_pos_ = run.start_char_pos_;
       this->end_char_pos_ = run.end_char_pos_;
       this->boundary_type_ = run.boundary_type_;
+      this->punctuation_config_ = run.punctuation_config_;
+      this->punctuation_compression_ = run.punctuation_compression_;
     }
     return *this;
   }
@@ -170,6 +186,8 @@ class BaseRun {
   LayoutMetrics GetScaledMetrics() const { return scaled_metrics_; }
 
  private:
+  float CalculatePunctuationCompression(bool line_start, bool line_end) const;
+  float GetRawWidth(uint32_t char_start_in_run, uint32_t char_count) const;
   LayoutMetrics CalculateLayoutMetrics(uint32_t start_char, uint32_t char_count,
                                        float font_size,
                                        bool align_with_bbox) const;
@@ -186,6 +204,8 @@ class BaseRun {
   TTString ghost_content_;
   std::shared_ptr<RunDelegate> delegate_{nullptr};
   BoundaryType boundary_type_ = BoundaryType::kNone;
+  PunctuationCompressConfig punctuation_config_{};
+  float punctuation_compression_{};
 #ifdef TTTEXT_DEBUG
 
  public:

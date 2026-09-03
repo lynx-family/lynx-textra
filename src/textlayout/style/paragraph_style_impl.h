@@ -12,6 +12,7 @@
 #include <limits>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 #include "src/textlayout/style_attributes.h"
@@ -166,6 +167,30 @@ class ParagraphStyleImpl {
           line_break_strategy_ & (0xff ^ kAvoidBreakAroundPunctuation));
     }
   }
+  PunctuationCompressOption GetPunctuationCompressOptions() const {
+    return punctuation_compress_options_;
+  }
+  void SetPunctuationCompressOptions(PunctuationCompressOption options) {
+    punctuation_compress_options_ = options;
+  }
+  bool HasPunctuationCompressOption(PunctuationCompressOption option) const {
+    return (static_cast<uint8_t>(punctuation_compress_options_) &
+            static_cast<uint8_t>(option)) != 0;
+  }
+  bool IsPunctuationCompressionEnabled() const {
+    return punctuation_compress_options_ != PunctuationCompressOption::kNone &&
+           !punctuation_compress_configs_.empty();
+  }
+  void UpdatePunctuationCompressConfig(
+      const PunctuationCompressConfig& config) {
+    punctuation_compress_configs_.insert_or_assign(config.unicode, config);
+  }
+  const PunctuationCompressConfig* FindPunctuationCompressConfig(
+      char32_t unicode) const {
+    const auto iter = punctuation_compress_configs_.find(unicode);
+    return iter != punctuation_compress_configs_.end() ? &iter->second
+                                                       : nullptr;
+  }
 
  public:
   ParagraphHorizontalAlignment horizontal_alignment_;
@@ -185,6 +210,9 @@ class ParagraphStyleImpl {
   InlineVerticalAlignmentMode inline_vertical_alignment_mode_;
   OverflowWrap overflow_wrap_;
   LineBreakStrategy line_break_strategy_;
+  PunctuationCompressOption punctuation_compress_options_;
+  std::unordered_map<char32_t, PunctuationCompressConfig>
+      punctuation_compress_configs_;
 };
 }  // namespace tttext
 }  // namespace ttoffice

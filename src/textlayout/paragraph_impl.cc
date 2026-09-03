@@ -171,7 +171,21 @@ void ParagraphImpl::FormatRunList() {
     resolved_write_direction_ = ResolveWriteDirection(
         paragraph_style_.GetWriteDirection(), bidi_level_);
 
+    const bool enable_punctuation_compression =
+        paragraph_style_.IsPunctuationCompressionEnabled();
     bool need_split = false;
+    if (enable_punctuation_compression) {
+      for (auto k = 0u; k < GetCharCount(); k++) {
+        const auto* config =
+            paragraph_style_.FindPunctuationCompressConfig(u32_content[k]);
+        if (config == nullptr || config->type == PunctuationType::kNone) {
+          continue;
+        }
+        if (k > 0) must_split_run_pos[k - 1] = true;
+        must_split_run_pos[k] = true;
+        need_split = true;
+      }
+    }
     for (auto k = 0u; k + 1 < GetCharCount(); k++) {
       auto ch = u32_content[k];
       auto next_ch32 = k + 1 < GetCharCount() ? u32_content[k + 1] : 0;
@@ -229,8 +243,18 @@ void ParagraphImpl::FormatRunList() {
           run_iter == run_lst_.begin() ? run_lst_.end() : run_iter - 1;
       if (next_run == run_lst_.end())
         (*run_iter)->SetBoundaryType(BoundaryType::kLineBreakable);
+      if (enable_punctuation_compression &&
+          (*run_iter)->GetType() == RunType::kTextRun &&
+          (*run_iter)->GetCharCount() == 1) {
+        const auto* config = paragraph_style_.FindPunctuationCompressConfig(
+            u32_content[(*run_iter)->GetStartCharPos()]);
+        if (config != nullptr && config->type != PunctuationType::kNone) {
+          (*run_iter)->SetPunctuationConfig(*config);
+        }
+      }
       switch ((*run_iter)->GetType()) {
         case RunType::kTextRun:
+        case RunType::kPunctuationRun:
           TTASSERT((*run_iter)->GetCharCount() > 0);
           TTASSERT((*run_iter)->GetEndCharPos() >= 1);
           (*run_iter)->SetBoundaryType(boundary_analyst_->GetBoundaryType(
@@ -289,6 +313,9 @@ void ParagraphImpl::FormatRunList() {
   }
   for (auto& run : run_lst_) {
     run->Layout();
+    if (run->IsCompressiblePunctuation()) {
+      run->UpdatePunctuationCompression(false, false);
+    }
   }
   TTASSERT(!run_lst_.empty());
   formated_ = true;

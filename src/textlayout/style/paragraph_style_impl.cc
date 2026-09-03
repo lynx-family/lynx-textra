@@ -33,7 +33,8 @@ ParagraphStyleImpl::ParagraphStyleImpl()
       enable_text_bounds_(false),
       inline_vertical_alignment_mode_(InlineVerticalAlignmentMode::kLegacy),
       overflow_wrap_(OverflowWrap::kAnywhere),
-      line_break_strategy_(kLineBreakStrategyDefault) {}
+      line_break_strategy_(kLineBreakStrategyDefault),
+      punctuation_compress_options_(PunctuationCompressOption::kNone) {}
 ParagraphStyleImpl::ParagraphStyleImpl(
     const ParagraphStyleImpl& paragraph_style)
     : ParagraphStyleImpl() {
@@ -60,6 +61,8 @@ ParagraphStyleImpl& ParagraphStyleImpl::operator=(
       paragraph_style.inline_vertical_alignment_mode_;
   overflow_wrap_ = paragraph_style.overflow_wrap_;
   line_break_strategy_ = paragraph_style.line_break_strategy_;
+  punctuation_compress_options_ = paragraph_style.punctuation_compress_options_;
+  punctuation_compress_configs_ = paragraph_style.punctuation_compress_configs_;
   return *this;
 }
 ParagraphStyleImpl::~ParagraphStyleImpl() = default;
@@ -268,6 +271,18 @@ void ParagraphStyle::SetOverflowWrap(OverflowWrap overflow_wrap) {
 }
 void ParagraphStyle::AllowBreakAroundPunctuation(bool allow) {
   impl_->AllowBreakAroundPunctuation(allow);
+}
+PunctuationCompressOption ParagraphStyle::GetPunctuationCompressOptions()
+    const {
+  return impl_->GetPunctuationCompressOptions();
+}
+void ParagraphStyle::SetPunctuationCompressOptions(
+    PunctuationCompressOption options) {
+  impl_->SetPunctuationCompressOptions(options);
+}
+void ParagraphStyle::UpdatePunctuationCompressConfig(
+    const PunctuationCompressConfig& config) {
+  impl_->UpdatePunctuationCompressConfig(config);
 }
 ParagraphStyleImpl& ParagraphStyle::GetImpl() { return *impl_; }
 const ParagraphStyleImpl& ParagraphStyle::GetImpl() const { return *impl_; }

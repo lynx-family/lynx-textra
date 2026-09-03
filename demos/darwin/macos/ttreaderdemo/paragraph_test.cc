@@ -137,6 +137,8 @@ ParagraphTest::GetTestCases() {
           {"TestTextShadow", &ParagraphTest::TestTextShadow},
           {"TestHalfLeading", &ParagraphTest::TestHalfLeading},
           {"TestDominateBaseline", &ParagraphTest::TestDominateBaseline},
+          {"TestPunctuationCompression",
+           &ParagraphTest::TestPunctuationCompression},
       };
   return kTestCases;
 }
@@ -1608,6 +1610,96 @@ void ParagraphTest::TestCJKBreak(ICanvasHelper* canvas, float width) const {
                    "中文しばらくしてしばらくしてしばらくしてしばらくして");
   DrawParagraph(canvas, *para, width, LayoutMode::kAtMost,
                 LayoutMode::kIndefinite);
+}
+
+void ParagraphTest::TestPunctuationCompression(ICanvasHelper* canvas,
+                                               float width) const {
+  struct DemoCase {
+    const char* disabled_label;
+    const char* enabled_label;
+    const char* text;
+    PunctuationCompressOption options;
+    ParagraphHorizontalAlignment alignment;
+    float row_height;
+  };
+  const DemoCase kCases[] = {
+      {"行首压缩：关闭", "行首压缩：开启",
+       "清晨，我们来到湖边。\n（远山仍笼在薄雾里。）\n一阵风吹过水面。",
+       PunctuationCompressOption::kLineEdge,
+       ParagraphHorizontalAlignment::kLeft, 130.f},
+      {"行尾压缩：关闭（Justify）", "行尾压缩：开启（Justify）",
+       "今天的阳光格外灿烂。我们决定去公园散步顺便买一束花。",
+       PunctuationCompressOption::kLineEdge,
+       ParagraphHorizontalAlignment::kJustify, 110.f},
+      {"邻近压缩：关闭", "邻近压缩：开启",
+       "主持人追问：“真的确定吗？！”他笑着回答：“当然！！”",
+       PunctuationCompressOption::kAdjacent,
+       ParagraphHorizontalAlignment::kLeft, 130.f},
+  };
+  const std::vector<PunctuationCompressConfig> kConfigs = {
+      {U'（', PunctuationType::kOpen, 0.f, 0.5f, 0.5f},
+      {U'《', PunctuationType::kOpen, 0.f, 0.5f, 0.5f},
+      {U'）', PunctuationType::kClose, 0.f, 0.5f, 0.5f},
+      {U'》', PunctuationType::kClose, 0.f, 0.5f, 0.5f},
+      {U'，', PunctuationType::kClose, 0.f, 0.5f, 0.5f},
+      {U'。', PunctuationType::kClose, 0.f, 0.5f, 0.5f},
+      {U'！', PunctuationType::kClose, 0.f, 0.5f, 0.5f},
+      {U'？', PunctuationType::kClose, 0.f, 0.5f, 0.5f},
+      {U'：', PunctuationType::kClose, 0.f, 0.5f, 0.5f},
+      {U'“', PunctuationType::kOpen, 0.f, 0.5f, 0.5},
+      {U'”', PunctuationType::kClose, 0.f, 0.5f, 0.5f},
+  };
+
+  const bool draw_page_bound = draw_page_bound_;
+  const bool draw_layouted_bound = draw_layouted_bound_;
+  draw_page_bound_ = false;
+  draw_layouted_bound_ = true;
+
+  canvas->Save();
+  constexpr float kColumnWidth = 190.f;
+  constexpr float kColumnGap = 24.f;
+  canvas->Translate((width - 2 * kColumnWidth - kColumnGap) / 2, 0);
+  for (const auto& test_case : kCases) {
+    const auto draw_sample = [&](const char* label,
+                                 PunctuationCompressOption options,
+                                 bool enabled) {
+      FontDescriptor font_descriptor;
+      font_descriptor.font_family_list_.emplace_back("NotoSansSC");
+      Style label_style;
+      label_style.SetFontDescriptor(font_descriptor);
+      label_style.SetTextSize(13.f);
+      label_style.SetForegroundColor(
+          TTColor(enabled ? 0xFF168A45 : 0xFF777777));
+      Style sample_style;
+      sample_style.SetFontDescriptor(font_descriptor);
+      sample_style.SetTextSize(18.f);
+
+      auto paragraph = Paragraph::Create();
+      auto& paragraph_style = paragraph->GetParagraphStyle();
+      paragraph_style.SetHorizontalAlign(test_case.alignment);
+      paragraph_style.SetPunctuationCompressOptions(options);
+      for (const auto& config : kConfigs) {
+        paragraph_style.UpdatePunctuationCompressConfig(config);
+      }
+      paragraph->AddTextRun(&label_style, label);
+      paragraph->AddTextRun(&label_style, "\n");
+      paragraph->AddTextRun(&sample_style, test_case.text);
+      DrawParagraph(canvas, *paragraph, kColumnWidth, LayoutMode::kDefinite,
+                    LayoutMode::kIndefinite);
+    };
+
+    canvas->Save();
+    draw_sample(test_case.disabled_label, PunctuationCompressOption::kNone,
+                false);
+    canvas->Translate(kColumnWidth + kColumnGap, 0);
+    draw_sample(test_case.enabled_label, test_case.options, true);
+    canvas->Restore();
+    canvas->Translate(0, test_case.row_height);
+  }
+  canvas->Restore();
+
+  draw_page_bound_ = draw_page_bound;
+  draw_layouted_bound_ = draw_layouted_bound;
 }
 
 void ParagraphTest::TestAlignWithBBox(ICanvasHelper* canvas,
