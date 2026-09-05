@@ -331,6 +331,12 @@ float TextLayoutImpl::AddWordListToRunRange(LineRange* range,
           paragraph.style_manager_->GetBaselineOffset(run->GetStartCharPos());
       run_metrics.ApplyBaselineOffset(baseline_offset);
       metrics->UpdateMax(run_metrics);
+      if (use_exact_text_line_box && run->IsTextRun() &&
+          baseline_offset != 0.f &&
+          LayoutMeasurer::ResolveCharacterVerticalAlignment(run) ==
+              CharacterVerticalAlignment::kBaseLine) {
+        max_desired_height = std::max(max_desired_height, metrics->GetHeight());
+      }
     }
     auto end_char_in_run = pos.GetRunIdx() == end_pos.GetRunIdx()
                                ? end_pos.GetCharIdx()
