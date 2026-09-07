@@ -270,27 +270,29 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
         ohos_shaping_funcs_->GetRunGlyphAdvances_(run, 0, glyph_cnt);
     auto position_array =
         ohos_shaping_funcs_->GetRunPositions_(run, 0, glyph_cnt);
-    auto indices_array =
-        ohos_shaping_funcs_->GetRunStringIndices_(run, 0, glyph_cnt);
     auto font = ohos_shaping_funcs_->GetRunFont_(run);
     auto tf_helper = std::make_shared<AGTypefaceHelper>(font);
 
     for (auto j = 0; j < static_cast<int32_t>(glyph_cnt); j++) {
-      shaping_result.ct_glyphs_[glyph_idx + j] =
+      // ShapeKey contains one text direction. Reverse the full visual glyph
+      // sequence for RTL, including any runs split by font fallback.
+      auto logical_idx =
+          key.rtl_ ? glyph_count - 1 - (glyph_idx + j) : glyph_idx + j;
+      shaping_result.ct_glyphs_[logical_idx] =
           ohos_shaping_funcs_->GetRunGlyphsByIndex_(glyph_array, j);
       auto pos =
           ohos_shaping_funcs_->GetRunPositionsByIndex_(position_array, j);
-      auto& ppos = shaping_result.ct_position_[glyph_idx + j];
+      auto& ppos = shaping_result.ct_position_[logical_idx];
       OH_Drawing_PointGetX(pos, &ppos[0]);
       OH_Drawing_PointGetY(pos, &ppos[1]);
       auto adv =
           ohos_shaping_funcs_->GetRunGlyphAdvanceByIndex_(advance_array, j);
-      auto& aadv = shaping_result.ct_advances_[glyph_idx + j];
+      auto& aadv = shaping_result.ct_advances_[logical_idx];
       OH_Drawing_PointGetX(adv, &aadv[0]);
-      shaping_result.typeface_[glyph_idx + j] = tf_helper;
+      OH_Drawing_PointGetY(adv, &aadv[1]);
+      shaping_result.typeface_[logical_idx] = tf_helper;
     }
     glyph_idx += glyph_cnt;
-    ohos_shaping_funcs_->DestroyRunStringIndices_(indices_array);
     ohos_shaping_funcs_->DestroyRunPositions_(position_array);
     ohos_shaping_funcs_->DestroyRunGlyphs_(glyph_array);
   }
@@ -298,6 +300,9 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
   const auto text_length = static_cast<uint32_t>(key.text_.length());
   TTString string(key.text_.c_str(), text_length);
 
+  // This API uses logical glyph indices, unlike
+  // GetRunGlyphs/Positions/Advances. Populate character indices directly in
+  // logical order, without reversing.
   for (auto i = 0u; i < glyph_count; i++) {
     auto* char_range =
         ohos_shaping_funcs_
