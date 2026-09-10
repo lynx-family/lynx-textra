@@ -227,7 +227,7 @@ bool IsCJKPunctuation(char32_t code) {
 
 bool IsSpaceChar(char32_t code) {
   return code == ' ' || code == '\r' || code == '\n' || code == '\t' ||
-         code == 0x3000;
+         code == 0x2003 || code == 0x3000;
 }
 }  // namespace base
 }  // namespace ttoffice
