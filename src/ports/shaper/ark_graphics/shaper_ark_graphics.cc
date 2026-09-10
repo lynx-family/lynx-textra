@@ -322,6 +322,12 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
   OH_Drawing_DestroyTypography(typo);
   OH_Drawing_DestroyTypographyHandler(typography_handler);
 
+  // Typography may return no glyphs for whitespace such as U+2004.
+  if (glyph_count == 0) {
+    ShapingTextWithLowAPILevel(key, result);
+    return;
+  }
+
   shaping_result.text_length_ = static_cast<uint32_t>(key.text_.length());
   result->AppendPlatformShapingResult(shaping_result);
 }
