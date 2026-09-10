@@ -98,6 +98,12 @@ class TypefaceCoreText : public ITypefaceHelper {
   // CGFont.
 
   void OnCreateFontInfo(FontInfo* info, float font_size) const override {
+    if (font_size == CTFontGetSize(font_ref_)) {
+      *info =
+          FontInfo{static_cast<float>(-CTFontGetAscent(font_ref_)),
+                   static_cast<float>(CTFontGetDescent(font_ref_)), font_size};
+      return;
+    }
     auto baseCGFont = CTFontCopyGraphicsFont(font_ref_, nullptr);
     // The last parameter (CTFontDescriptorRef attributes) *must* be nullptr.
     // If non-nullptr then with fonts with variation axes, the copy will fail in
