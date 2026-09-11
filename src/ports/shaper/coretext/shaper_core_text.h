@@ -10,11 +10,9 @@
 #include <textra/text_layout.h>
 
 #include <cstddef>
-#include <list>
-#include <mutex>
-#include <unordered_map>
 #include <vector>
 
+#include "src/ports/shaper/coretext/safe_font_cache.h"
 #include "src/textlayout/tt_shaper.h"
 
 namespace ttoffice {
@@ -34,6 +32,7 @@ class ShaperCoreText : public TTShaper {
   void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
   static void SetSafeFontCacheMaxEntries(size_t max_entries);
   static size_t GetSafeFontCacheMaxEntries();
+  static void ClearSafeFontCache();
 
  private:
   struct CachedSafeFontKey {
@@ -62,19 +61,8 @@ class ShaperCoreText : public TTShaper {
     }
   };
 
-  struct CachedSafeFontEntry {
-    CTFontRef safe_font_ = nullptr;
-    std::list<CachedSafeFontKey>::iterator lru_it_;
-  };
-
-  struct SafeFontCacheState {
-    std::unordered_map<CachedSafeFontKey, CachedSafeFontEntry,
-                       CachedSafeFontKey::Hasher>
-        cache_;
-    std::list<CachedSafeFontKey> lru_;
-    std::mutex mutex_;
-    size_t max_entries_ = 256;
-  };
+  using SafeFontCacheType =
+      SafeFontCache<CachedSafeFontKey, CachedSafeFontKey::Hasher>;
 
   CFAttributedStringRef GenerateAttributeString(const char16_t* content,
                                                 uint32_t length,
@@ -84,8 +72,7 @@ class ShaperCoreText : public TTShaper {
   CTFontRef CreateSafeFontUnified(CTFontRef existing_font) const;
   CTFontRef GetOrCreateSafeFont(const FontDescriptor& fd, float text_size,
                                 bool fake_bold, bool fake_italic) const;
-  static SafeFontCacheState& GetSafeFontCacheState();
-  static void TrimSafeFontCacheLocked(SafeFontCacheState& state);
+  static SafeFontCacheType& GetGlobalSafeFontCache();
 
  private:
   mutable std::vector<TypefaceRef> ct_font_lst_;

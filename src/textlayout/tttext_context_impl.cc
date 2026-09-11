@@ -60,6 +60,10 @@ void TTTextContext::SetEnableSystemFontAdjust(bool enable_system_font_adjust) {
   impl_->enable_system_font_adjust_ = enable_system_font_adjust;
 }
 
+void TTTextContext::SetShapeCacheScope(std::shared_ptr<ShapeCacheScope> scope) {
+  impl_->shape_cache_scope_ = std::move(scope);
+}
+
 void TTTextContext::EnableFeature(FeatureOption feature_option, bool value) {
   switch (feature_option) {
     case kLastLineCanOverflow:

@@ -27,10 +27,8 @@ bool TextLayout::Preload(ShaperType type) { return TTShaper::Preload(type); }
 
 void TextLayout::ClearShapeCache() {
   ShapeCache::GetInstance().Clear();
-  // Shaped results are not the only per-session font state: the self-rendering
-  // CoreText shaper keeps a process-wide safe-font cache whose CTFontRef
-  // entries pin the whole in-memory font file. Drop it here as well, otherwise
-  // clearing the shape cache reclaims almost nothing.
+  // Keep this legacy API process-wide only. Live ShapeCacheScope instances own
+  // and clear their platform-font entries independently.
   TTShaper::ClearFontCache();
 }
 

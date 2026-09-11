@@ -9,6 +9,7 @@
 #include "src/textlayout/layout_position.h"
 namespace ttoffice {
 namespace tttext {
+class ShapeCacheScope;
 class TTTextContextImpl {
  public:
   TTTextContextImpl();
@@ -22,11 +23,15 @@ class TTTextContextImpl {
   }
   bool IsEnableSystemFontAdjust() const { return enable_system_font_adjust_; }
   bool IsShapeCacheDisabled() const { return disable_shape_cache_; }
+  const std::shared_ptr<ShapeCacheScope>& GetShapeCacheScope() const {
+    return shape_cache_scope_;
+  }
   bool IsTrimLineTailSpace() const { return trim_line_tail_space_; }
 
  private:
   friend class TTTextContext;
   std::unique_ptr<LayoutPosition> position_;
+  std::shared_ptr<ShapeCacheScope> shape_cache_scope_;
   bool last_line_can_overflow_;
   bool skip_spacing_before_first_line_;
   bool trim_line_tail_space_;
