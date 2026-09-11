@@ -39,6 +39,15 @@ const char** BaseRun::SpaceList() {
 }
 
 float BaseRun::GetWidth(uint32_t char_start_in_run, uint32_t char_count) const {
+  return GetRawWidth(char_start_in_run, char_count) -
+         (char_start_in_run == 0 && char_count == GetCharCount()
+              ? GetPunctuationCompression()
+              : 0) +
+         std::abs(GetSkewExtraWidth());
+}
+
+float BaseRun::GetRawWidth(uint32_t char_start_in_run,
+                           uint32_t char_count) const {
   if (GetType() == RunType::kInlineObject ||
       GetType() == RunType::kFloatObject) {
     TTASSERT(delegate_ != nullptr);
@@ -50,8 +59,7 @@ float BaseRun::GetWidth(uint32_t char_start_in_run, uint32_t char_count) const {
   TTASSERT(char_start_in_run < GetCharCount() && char_count <= GetCharCount());
   auto letter_spacing = layout_style_.GetLetterSpacing();
   return shape_result_.MeasureWidth(char_start_in_run, char_count,
-                                    letter_spacing) +
-         std::abs(GetSkewExtraWidth());
+                                    letter_spacing);
 }
 float BaseRun::MeasureRunByWidth(uint32_t& break_pos_in_run,
                                  float max_width) const {
@@ -62,7 +70,8 @@ float BaseRun::MeasureRunByWidth(uint32_t& break_pos_in_run,
   auto& idx = break_pos_in_run;
   uint32_t prev_glyph_id = -1;
   auto letter_spacing = layout_style_.GetLetterSpacing();
-  const auto skew_extra_width = std::abs(GetSkewExtraWidth());
+  const auto width_adjustment =
+      std::abs(GetSkewExtraWidth()) - GetPunctuationCompression();
   while (idx < GetCharCount()) {
     TTASSERT(idx < shape_result_.CharCount());
     auto glyph_id = shape_result_.CharToGlyph(idx);
@@ -70,9 +79,9 @@ float BaseRun::MeasureRunByWidth(uint32_t& break_pos_in_run,
     if (glyph_id != prev_glyph_id) {
       const auto ww = shape_result_.Advances(glyph_id)[0] + letter_spacing;
       const auto next_advance_width = advance_width + ww;
-      if (FloatsLarger(next_advance_width + skew_extra_width, max_width)) break;
+      if (FloatsLarger(next_advance_width + width_adjustment, max_width)) break;
       advance_width = next_advance_width;
-      width = advance_width + skew_extra_width;
+      width = advance_width + width_adjustment;
     }
     idx++;
     prev_glyph_id = glyph_id;
