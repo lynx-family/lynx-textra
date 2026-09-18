@@ -520,6 +520,9 @@ float ParagraphImpl::GetMinIntrinsicWidth() const {
 
 std::pair<uint32_t, uint32_t> ParagraphImpl::GetWordBoundary(
     uint32_t offset) const {
+  if (offset >= GetCharCount()) {
+    return {0, 0};
+  }
   uint32_t start =
       boundary_analyst_->FindPrevBoundary(offset, BoundaryType::kWord);
   uint32_t end =
