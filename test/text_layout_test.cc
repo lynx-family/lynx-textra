@@ -760,6 +760,32 @@ TEST_F(TextLayoutTest, ExactLineBoxOnlyExpandsInlineObjectLine) {
             region->GetLine(2)->GetLineTop());
 }
 
+TEST_F(TextLayoutTest, ExactLineBoxExpandsForShiftedInlineText) {
+  Style text_style;
+  text_style.SetTextSize(12.f);
+  Style shifted_style = text_style;
+  shifted_style.SetBaselineOffset(-20.f);
+
+  ParagraphStyle para_style;
+  para_style.SetDefaultStyle(text_style);
+  para_style.SetLineHeightInPx(28.f, RulerType::kExact);
+  para_style.SetInlineVerticalAlignmentMode(
+      InlineVerticalAlignmentMode::kLineBox);
+  auto para = std::make_unique<ParagraphImpl>();
+  para->SetParagraphStyle(&para_style);
+  para->AddTextRun(&text_style, "A");
+  para->AddTextRun(&shifted_style, "B");
+  para->AddTextRun(&text_style, "C");
+
+  TTTextContext context;
+  TextLayout layout(GetFixedSizeMockShaper());
+  auto region = std::make_unique<LayoutRegion>(100.f, 100.f);
+  layout.Layout(para.get(), region.get(), context);
+
+  ASSERT_EQ(region->GetLineCount(), 1u);
+  EXPECT_FLOAT_EQ(region->GetLine(0)->GetLineHeight(), 32.f);
+}
+
 TEST_F(TextLayoutTest, ExactLineBoxKeepsInlineObjectOutOfTextMetrics) {
   auto para = std::make_unique<ParagraphImpl>();
   ParagraphStyle para_style;
