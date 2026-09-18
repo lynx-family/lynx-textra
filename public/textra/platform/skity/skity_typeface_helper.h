@@ -61,6 +61,8 @@ class SkityTypefaceHelper : public tttext::ITypefaceHelper {
     skity::Rect* rect = new skity::Rect[glyph_count];
     font.GetWidths(glyphs, glyph_count, nullptr, rect);
     auto r = 0.f;
+    rect_ltrb[1] = rect[0].Top();
+    rect_ltrb[3] = rect[0].Bottom();
     for (auto k = 0u; k < glyph_count; k++) {
       rect_ltrb[1] = std::fmin(rect_ltrb[1], rect[k].Top());
       rect_ltrb[3] = std::fmax(rect_ltrb[3], rect[k].Bottom());
