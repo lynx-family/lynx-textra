@@ -181,6 +181,7 @@ textlayout_public_headers = [
   "$prj_root/public/textra/paragraph.h",
   "$prj_root/public/textra/paragraph_style.h",
   "$prj_root/public/textra/run_delegate.h",
+  "$prj_root/public/textra/shape_cache_scope.h",
   "$prj_root/public/textra/style.h",
   "$prj_root/public/textra/text_layout.h",
   "$prj_root/public/textra/text_line.h",
@@ -249,7 +250,11 @@ source_set("textlayout") {
     "$prj_root/src/textlayout/run/ghost_run.h",
     "$prj_root/src/textlayout/run/layout_metrics.h",
     "$prj_root/src/textlayout/run/object_run.h",
+    "$prj_root/src/textlayout/shape_cache.cc",
     "$prj_root/src/textlayout/shape_cache.h",
+    "$prj_root/src/textlayout/shape_cache_scope.cc",
+    "$prj_root/src/textlayout/shape_cache_scope_internal.h",
+    "$prj_root/src/textlayout/shape_cache_utils.h",
     "$prj_root/src/textlayout/style/paragraph_style_impl.cc",
     "$prj_root/src/textlayout/style/paragraph_style_impl.h",
     "$prj_root/src/textlayout/style/style_impl.cc",
@@ -306,6 +311,7 @@ source_set("textlayout") {
     ]
 
     sources += [
+      "$prj_root/src/ports/shaper/coretext/safe_font_cache.h",
       "$prj_root/src/ports/shaper/coretext/shaper_core_text.h",
       "$prj_root/src/ports/shaper/coretext/shaper_core_text.mm",
       "$prj_root/src/ports/shaper/coretext/shaper_core_text_self_rendering.h",

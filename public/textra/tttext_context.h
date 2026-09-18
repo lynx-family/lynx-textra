@@ -15,6 +15,7 @@ namespace ttoffice {
 namespace tttext {
 class LayoutRegion;
 class LayoutPosition;
+class ShapeCacheScope;
 class TextLayoutImpl;
 class TTTextContextImpl;
 /**
@@ -64,6 +65,7 @@ class L_EXPORT TTTextContext {
    */
   bool IsEnableSystemFontAdjust() const;
   void SetEnableSystemFontAdjust(bool enable_system_font_adjust);
+  void SetShapeCacheScope(std::shared_ptr<ShapeCacheScope> scope);
 
   void EnableFeature(FeatureOption feature_option, bool value);
 
