@@ -299,6 +299,7 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
   delete[] families;
   const auto text_length = static_cast<uint32_t>(key.text_.length());
   TTString string(key.text_.c_str(), text_length);
+  uint32_t shaped_end = 0;
 
   // This API uses logical glyph indices, unlike
   // GetRunGlyphs/Positions/Advances. Populate character indices directly in
@@ -314,6 +315,11 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
     auto u8_start = OH_Drawing_GetStartFromRange(char_range);
     auto char_start = string.Utf8PosToCharPos(static_cast<uint32_t>(u8_start));
     shaping_result.ct_indices_[i] = char_start;
+    auto char_end = string.Utf8PosToCharPos(
+        static_cast<uint32_t>(OH_Drawing_GetEndFromRange(char_range)));
+    if (char_end > shaped_end) {
+      shaped_end = char_end;
+    }
     ohos_shaping_funcs_->ReleaseRangeBuffer_(char_range);
   }
 
@@ -328,7 +334,23 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
     return;
   }
 
-  shaping_result.text_length_ = static_cast<uint32_t>(key.text_.length());
+  // Give omitted trailing whitespace its own zero-width glyph so trimming
+  // cannot remove the preceding glyph.
+  auto trailing_start = text_length;
+  while (trailing_start > shaped_end &&
+         base::IsSpaceChar(key.text_[trailing_start - 1])) {
+    --trailing_start;
+  }
+  auto typeface = shaping_result.typeface_.back();
+  for (auto ch = trailing_start; ch < text_length; ch++) {
+    shaping_result.ct_glyphs_.push_back(0);
+    shaping_result.ct_advances_.push_back({0, 0});
+    shaping_result.ct_position_.push_back({0, 0});
+    shaping_result.ct_indices_.push_back(ch);
+    shaping_result.typeface_.push_back(typeface);
+  }
+
+  shaping_result.text_length_ = text_length;
   result->AppendPlatformShapingResult(shaping_result);
 }
 
