@@ -14,6 +14,17 @@
 using namespace ttoffice::tttext;
 
 namespace {
+constexpr float kIntrinsicTestGlyphWidth = 10.f;
+
+std::unique_ptr<Paragraph> CreateFormattedParagraph(const char* text) {
+  auto paragraph = Paragraph::Create();
+  Style style;
+  style.SetTextSize(kIntrinsicTestGlyphWidth);
+  paragraph->AddTextRun(&style, text);
+  TestUtils::SimpleLayoutParagraphByWidth(paragraph.get(), 1000.f);
+  return paragraph;
+}
+
 class InspectableParagraphImpl : public ParagraphImpl {
  public:
   RunType GetRunType(uint32_t index) const {
@@ -187,4 +198,107 @@ TEST(ParagraphTest, AddGhostShapeRun) {
   paragraph->AddGhostShapeRun(nullptr, shape);
   EXPECT_EQ(paragraph->GetCharCount(), 0u);
   EXPECT_EQ(paragraph->GetRunCount(), 1u);
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthUsesHardBreaks) {
+  auto paragraph = CreateFormattedParagraph("ab\ncdef");
+
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 40.f);
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthBreaksBetweenCJKCharacters) {
+  auto paragraph = CreateFormattedParagraph(u8"中文文本");
+
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 10.f);
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthKeepsLongEnglishWord) {
+  auto paragraph = CreateFormattedParagraph("short elephant");
+
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 80.f);
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthTrimsBreakableSpaces) {
+  auto paragraph = CreateFormattedParagraph("aa    bbb");
+
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 30.f);
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthTrimsSpacesAfterMultibyteCharacters) {
+  auto paragraph = CreateFormattedParagraph(u8"中 ");
+
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 10.f);
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthTrimsUnicodeSpaces) {
+  for (const auto* text : {u8"a\u2003", u8"a\u3000"}) {
+    auto paragraph = CreateFormattedParagraph(text);
+
+    EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 10.f);
+  }
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthTrimsSpacesAcrossRuns) {
+  auto paragraph = Paragraph::Create();
+  Style first_style;
+  first_style.SetTextSize(kIntrinsicTestGlyphWidth);
+  Style second_style;
+  second_style.SetTextSize(kIntrinsicTestGlyphWidth + 1.f);
+  paragraph->AddTextRun(&first_style, "hello ");
+  paragraph->AddTextRun(&second_style, " ");
+  TestUtils::SimpleLayoutParagraphByWidth(paragraph.get(), 1000.f);
+
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 50.f);
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthRespectsBreakAll) {
+  auto paragraph = Paragraph::Create();
+  Style style;
+  style.SetTextSize(kIntrinsicTestGlyphWidth);
+  style.SetWordBreak(WordBreakType::kBreakAll);
+  paragraph->AddTextRun(&style, "elephant");
+  TestUtils::SimpleLayoutParagraphByWidth(paragraph.get(), 1000.f);
+
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 10.f);
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthRespectsWordBreakStyleRanges) {
+  auto paragraph = Paragraph::Create();
+  Style style;
+  style.SetTextSize(kIntrinsicTestGlyphWidth);
+  paragraph->AddTextRun(&style, "elephant");
+  Style break_all;
+  break_all.SetWordBreak(WordBreakType::kBreakAll);
+  paragraph->ApplyStyleInRange(break_all, 0, 3);
+  TestUtils::SimpleLayoutParagraphByWidth(paragraph.get(), 1000.f);
+
+  // The first three characters can break individually; "phant" stays whole.
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 50.f);
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthFindsBreakAllAfterNormalText) {
+  auto paragraph = Paragraph::Create();
+  Style style;
+  style.SetTextSize(kIntrinsicTestGlyphWidth);
+  paragraph->AddTextRun(&style, "elephant");
+  Style break_all;
+  break_all.SetWordBreak(WordBreakType::kBreakAll);
+  paragraph->ApplyStyleInRange(break_all, 3, 3);
+  TestUtils::SimpleLayoutParagraphByWidth(paragraph.get(), 1000.f);
+
+  // The first break-all opportunity follows "elep".
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 40.f);
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthIncludesPlaceholder) {
+  auto paragraph = Paragraph::Create();
+  Style style;
+  style.SetTextSize(kIntrinsicTestGlyphWidth);
+  paragraph->AddTextRun(&style, "aa");
+  paragraph->AddShapeRun(&style, std::make_shared<TestShape>(45.f, 10.f),
+                         false);
+  paragraph->AddTextRun(&style, "bbb");
+  TestUtils::SimpleLayoutParagraphByWidth(paragraph.get(), 1000.f);
+
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 45.f);
 }
