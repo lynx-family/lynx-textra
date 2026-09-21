@@ -514,8 +514,67 @@ float ParagraphImpl::GetMaxIntrinsicWidth() const {
 }
 float ParagraphImpl::GetMinIntrinsicWidth() const {
   if (!formated_) return 0;
-  TTASSERT(false);
-  return 0;
+  float min_intrinsic_width = 0;
+  float unit_width = 0;
+  float trailing_space_width = 0;
+  const auto append_text_piece = [&](const BaseRun* run, uint32_t start,
+                                     uint32_t end, bool end_unit) {
+    auto trimmed_end = end;
+    while (trimmed_end > start &&
+           base::IsSpaceChar(
+               content_.GetUnicode(run->GetStartCharPos() + trimmed_end - 1))) {
+      --trimmed_end;
+    }
+    if (trimmed_end > start) {
+      unit_width += trailing_space_width;
+      trailing_space_width = 0;
+      unit_width += run->GetWidth(start, trimmed_end - start);
+    }
+    if (trimmed_end < end && !end_unit) {
+      trailing_space_width += run->GetWidth(trimmed_end, end - trimmed_end);
+    }
+    if (end_unit) trailing_space_width = 0;
+  };
+  for (const auto& run_ptr : run_lst_) {
+    const auto* run = run_ptr.get();
+    if (run->IsObjectRun()) {
+      min_intrinsic_width = std::fmax(min_intrinsic_width, unit_width);
+      min_intrinsic_width = std::fmax(min_intrinsic_width, run->GetWidth(0));
+      unit_width = 0;
+      trailing_space_width = 0;
+      continue;
+    }
+
+    uint32_t piece_start = 0;
+    for (auto char_pos = run->GetStartCharPos();
+         char_pos < run->GetEndCharPos(); ++char_pos) {
+      const auto boundary_type = boundary_analyst_->GetBoundaryType(char_pos);
+      const bool is_line_break = boundary_type >= BoundaryType::kLineBreakable;
+      const bool is_break_all =
+          boundary_type >= BoundaryType::kGraphme &&
+          style_manager_->GetWordBreak(char_pos) == WordBreakType::kBreakAll;
+      if (!is_line_break && !is_break_all) {
+        continue;
+      }
+
+      const auto piece_end = char_pos - run->GetStartCharPos() + 1;
+      append_text_piece(run, piece_start, piece_end, true);
+      min_intrinsic_width = std::fmax(min_intrinsic_width, unit_width);
+      unit_width = 0;
+      piece_start = piece_end;
+    }
+
+    if (piece_start < run->GetCharCount()) {
+      append_text_piece(run, piece_start, run->GetCharCount(),
+                        run->GetBoundaryType() >= BoundaryType::kLineBreakable);
+    }
+    if (run->GetBoundaryType() >= BoundaryType::kLineBreakable) {
+      min_intrinsic_width = std::fmax(min_intrinsic_width, unit_width);
+      unit_width = 0;
+      trailing_space_width = 0;
+    }
+  }
+  return std::fmax(min_intrinsic_width, unit_width);
 }
 
 std::pair<uint32_t, uint32_t> ParagraphImpl::GetWordBoundary(
