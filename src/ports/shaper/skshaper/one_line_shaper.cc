@@ -349,76 +349,12 @@ TextRange OneLineShaper::normalizeTextRange(GlyphRange glyphRange) {
 void OneLineShaper::buildProtectedTextRanges() {
   fProtectedTextRanges.clear();
   for (TextIndex i = 0; i < len_;) {
-    const Unichar codepoint = content_[i];
-    if (IsEmojiRegionalIndicator(codepoint) && i + 1 < len_ &&
-        IsEmojiRegionalIndicator(content_[i + 1])) {
-      AddProtectedRange(&fProtectedTextRanges, i, i + 2);
-      i += 2;
-      continue;
+    const TextIndex end = FindGraphemeClusterEnd(
+        i, len_, [this](uint32_t idx) { return content_[idx]; });
+    if (end > i + 1) {
+      AddProtectedRange(&fProtectedTextRanges, i, end);
     }
-
-    if (IsEmojiKeycapSequence(content_, i, len_)) {
-      AddProtectedRange(&fProtectedTextRanges, i, i + 3);
-      i += 3;
-      continue;
-    }
-
-    if (IsEmojiBaseForFallback(codepoint)) {
-      TextIndex end = i + 1;
-      while (end < len_) {
-        const Unichar next = content_[end];
-        if (IsVariationSelector(next) || IsEmojiModifier(next) ||
-            IsEmojiTagCharacter(next)) {
-          ++end;
-          continue;
-        }
-        if (IsZeroWidthJoiner(next) && end + 1 < len_ &&
-            IsEmojiBaseForFallback(content_[end + 1])) {
-          end += 2;
-          continue;
-        }
-        break;
-      }
-      if (end > i + 1) {
-        AddProtectedRange(&fProtectedTextRanges, i, end);
-      }
-      i = end;
-      continue;
-    }
-
-    if (IsDevanagari(codepoint)) {
-      TextIndex end = i + 1;
-      bool has_cluster_link = false;
-      while (end < len_) {
-        const Unichar next = content_[end];
-        if (IsDevanagariMarkOrJoiner(next)) {
-          has_cluster_link = true;
-          ++end;
-          if (IsDevanagariVirama(next)) {
-            while (end < len_ && (IsZeroWidthNonJoiner(content_[end]) ||
-                                  IsZeroWidthJoiner(content_[end]))) {
-              ++end;
-            }
-            if (end < len_ && IsDevanagariConsonant(content_[end])) {
-              ++end;
-            }
-          }
-          continue;
-        }
-        if (IsDevanagariTrailingSign(next)) {
-          ++end;
-          continue;
-        }
-        break;
-      }
-      if (has_cluster_link || end > i + 1) {
-        AddProtectedRange(&fProtectedTextRanges, i, end);
-      }
-      i = end;
-      continue;
-    }
-
-    ++i;
+    i = end;
   }
 }
 
