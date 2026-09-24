@@ -68,6 +68,7 @@ class L_EXPORT Paragraph {
   // This method is used after layout and can not recognise ideographic words.
   virtual std::pair<uint32_t, uint32_t> GetWordBoundary(
       uint32_t offset) const = 0;
+
   /**
    * @brief Query character style by char index
    * @param char_idx the index of character in paragraph
@@ -75,6 +76,14 @@ class L_EXPORT Paragraph {
    */
   virtual void QueryStyle(uint32_t char_idx, Style* style) = 0;
   virtual WriteDirection GetResolvedWriteDirection() const = 0;
+
+  /**
+   * @brief Query the grapheme cluster containing a char.
+   * @param offset the index of a codepoint in paragraph
+   * @return {0, 0} when `offset` is out of range
+   */
+  virtual std::pair<uint32_t, uint32_t> GetGraphemeBoundary(
+      uint32_t offset) const = 0;
 
  public:
   static std::unique_ptr<Paragraph> Create();

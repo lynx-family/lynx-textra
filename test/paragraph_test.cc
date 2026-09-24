@@ -31,6 +31,25 @@ class InspectableParagraphImpl : public ParagraphImpl {
     return run_lst_[index]->GetType();
   }
 };
+
+// Checks that the grapheme clusters of `paragraph` tile [0, GetCharCount())
+// exactly, and that every offset inside a cluster reports the same range.
+void ExpectGraphemeClustersTile(const Paragraph& paragraph) {
+  const uint32_t char_count = paragraph.GetCharCount();
+  uint32_t start = 0;
+  while (start < char_count) {
+    const auto range = paragraph.GetGraphemeBoundary(start);
+    EXPECT_EQ(range.first, start);
+    ASSERT_GT(range.second, start);
+    ASSERT_LE(range.second, char_count);
+    for (uint32_t offset = start; offset < range.second; ++offset) {
+      EXPECT_EQ(paragraph.GetGraphemeBoundary(offset), range) << offset;
+    }
+    start = range.second;
+  }
+  EXPECT_EQ(start, char_count);
+  EXPECT_EQ(paragraph.GetGraphemeBoundary(char_count), std::make_pair(0u, 0u));
+}
 }  // namespace
 
 TEST(ParagraphTest, CreateParagraph) {
@@ -170,6 +189,199 @@ TEST(ParagraphTest, GetContentString_SpecialCharacters) {
   EXPECT_EQ(paragraph->GetContentString(13, 2), std::string("中文"));
   paragraph->AddTextRun(nullptr, "😊");
   EXPECT_EQ(paragraph->GetContentString(15, 1), std::string("😊"));
+}
+
+TEST(ParagraphTest, GetGraphemeBoundary_Ascii) {
+  auto paragraph = Paragraph::Create();
+  paragraph->AddTextRun(nullptr, "hello");
+  ASSERT_EQ(paragraph->GetCharCount(), 5u);
+  for (uint32_t i = 0; i < paragraph->GetCharCount(); ++i) {
+    EXPECT_EQ(paragraph->GetGraphemeBoundary(i), std::make_pair(i, i + 1));
+  }
+  ExpectGraphemeClustersTile(*paragraph);
+}
+
+TEST(ParagraphTest, GetGraphemeBoundary_EmojiAndKeycap) {
+  // No layout is performed: the boundary is resolved from the content only.
+  auto paragraph = Paragraph::Create();
+  // Two flags, each made of a pair of regional indicators.
+  paragraph->AddTextRun(nullptr, "\U0001F1E8\U0001F1F3\U0001F1E8\U0001F1F3");
+  // Emoji base followed by an emoji modifier.
+  paragraph->AddTextRun(nullptr, "\U0001F44D\U0001F3FB");
+  // Emoji base followed by a variation selector, a zero width joiner and
+  // another emoji base.
+  paragraph->AddTextRun(nullptr, "\U0001F3F3\uFE0F\u200D\U0001F308");
+  // Keycap sequence: keycap base + U+FE0F + U+20E3.
+  paragraph->AddTextRun(nullptr, "1\uFE0F\u20E3");
+  ASSERT_EQ(paragraph->GetCharCount(), 13u);
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(0), std::make_pair(0u, 2u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(1), std::make_pair(0u, 2u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(2), std::make_pair(2u, 4u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(3), std::make_pair(2u, 4u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(4), std::make_pair(4u, 6u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(5), std::make_pair(4u, 6u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(6), std::make_pair(6u, 10u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(9), std::make_pair(6u, 10u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(10), std::make_pair(10u, 13u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(12), std::make_pair(10u, 13u));
+  ExpectGraphemeClustersTile(*paragraph);
+}
+
+TEST(ParagraphTest, GetGraphemeBoundary_MixedContent) {
+  auto paragraph = Paragraph::Create();
+  paragraph->AddTextRun(nullptr, "a\U0001F44D\U0001F3FBb");
+  // Devanagari: consonant + virama + consonant + dependent vowel sign.
+  paragraph->AddTextRun(nullptr, "क्षि");
+  paragraph->AddTextRun(nullptr, "e\u0301");
+  ASSERT_EQ(paragraph->GetCharCount(), 10u);
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(0), std::make_pair(0u, 1u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(1), std::make_pair(1u, 3u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(2), std::make_pair(1u, 3u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(3), std::make_pair(3u, 4u));
+  // The whole Devanagari sequence is a single cluster.
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(4), std::make_pair(4u, 8u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(7), std::make_pair(4u, 8u));
+  // A combining mark stays with the character it is attached to.
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(8), std::make_pair(8u, 10u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(9), std::make_pair(8u, 10u));
+  ExpectGraphemeClustersTile(*paragraph);
+}
+
+TEST(ParagraphTest, GetGraphemeBoundary_CombiningMarks) {
+  // A mark used to be split from its base, which let the shaper hand it to the
+  // fallback font on its own.
+  auto paragraph = Paragraph::Create();
+  // Latin base with two stacked marks.
+  paragraph->AddTextRun(nullptr, "e\u0323\u0301");
+  // Thai consonant with a tone mark.
+  paragraph->AddTextRun(nullptr, "\u0E01\u0E48");
+  // Hebrew letter with a point.
+  paragraph->AddTextRun(nullptr, "\u05D0\u05B7");
+  ASSERT_EQ(paragraph->GetCharCount(), 7u);
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(0), std::make_pair(0u, 3u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(2), std::make_pair(0u, 3u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(3), std::make_pair(3u, 5u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(5), std::make_pair(5u, 7u));
+  // A mark with nothing in front of it is a cluster of its own.
+  auto standalone = Paragraph::Create();
+  standalone->AddTextRun(nullptr, "\u0301ab");
+  EXPECT_EQ(standalone->GetGraphemeBoundary(0), std::make_pair(0u, 1u));
+  EXPECT_EQ(standalone->GetGraphemeBoundary(1), std::make_pair(1u, 2u));
+  ExpectGraphemeClustersTile(*standalone);
+}
+
+TEST(ParagraphTest, GetGraphemeBoundary_AfterLayoutUsesRenderedPieces) {
+  // Laid out with a real font: the range describes what the shaper produced.
+  // ASCII stays one cluster per character, and both the combining mark and the
+  // flag stay with what precedes them, because the font rendered them as part
+  // of the same piece.
+  auto paragraph = Paragraph::Create();
+  paragraph->AddTextRun(nullptr, "abc");
+  paragraph->AddTextRun(nullptr, "e\u0301");
+  paragraph->AddTextRun(nullptr, "\U0001F1E8\U0001F1F3");
+  ASSERT_EQ(paragraph->GetCharCount(), 7u);
+  TTTextContext context;
+  TextLayout layout(TestUtils::getRealShaper());
+  auto region = std::make_unique<LayoutRegion>(400.f, 400.f);
+  layout.Layout(paragraph.get(), region.get(), context);
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(0), std::make_pair(0u, 1u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(2), std::make_pair(2u, 3u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(3), std::make_pair(3u, 5u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(4), std::make_pair(3u, 5u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(5), std::make_pair(5u, 7u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(6), std::make_pair(5u, 7u));
+  ExpectGraphemeClustersTile(*paragraph);
+}
+
+TEST(ParagraphTest, GetGraphemeBoundary_SplitsWhereFontHasNoGlyph) {
+  // None of the fonts available here covers Devanagari, so the conjunct is
+  // rendered as one placeholder glyph per character. It is reported the way it
+  // is drawn: as four clusters, not one.
+  auto paragraph = Paragraph::Create();
+  paragraph->AddTextRun(nullptr, "\u0915\u094D\u0937\u093F");
+  ASSERT_EQ(paragraph->GetCharCount(), 4u);
+  TTTextContext context;
+  TextLayout layout(TestUtils::getRealShaper());
+  auto region = std::make_unique<LayoutRegion>(400.f, 400.f);
+  layout.Layout(paragraph.get(), region.get(), context);
+  for (uint32_t offset = 0; offset < 4; ++offset) {
+    EXPECT_EQ(paragraph->GetGraphemeBoundary(offset),
+              std::make_pair(offset, offset + 1))
+        << offset;
+  }
+  ExpectGraphemeClustersTile(*paragraph);
+}
+
+TEST(ParagraphTest, GetGraphemeBoundary_SplitsWhatShapingSeparated) {
+  // The test shaper gives every character its own glyph with an advance, which
+  // is what a font with no glyph for the sequence produces: the flag and the
+  // mark then fall apart into their characters, and so do the clusters.
+  InspectableParagraphImpl paragraph;
+  paragraph.AddTextRun(nullptr, "\U0001F1E8\U0001F1F3");
+  paragraph.AddTextRun(nullptr, "e\u0301");
+  ASSERT_EQ(paragraph.GetCharCount(), 4u);
+  TestUtils::SimpleLayoutParagraphByWidth(&paragraph, 300.f);
+  EXPECT_EQ(paragraph.GetGraphemeBoundary(0), std::make_pair(0u, 1u));
+  EXPECT_EQ(paragraph.GetGraphemeBoundary(1), std::make_pair(1u, 2u));
+  EXPECT_EQ(paragraph.GetGraphemeBoundary(2), std::make_pair(2u, 3u));
+  EXPECT_EQ(paragraph.GetGraphemeBoundary(3), std::make_pair(3u, 4u));
+  ExpectGraphemeClustersTile(paragraph);
+}
+
+TEST(ParagraphTest, GetGraphemeBoundary_SplitsAtRunEdge) {
+  // Two runs are shaped and drawn on their own, so a cluster reaching across
+  // the edge is cut there even though the codepoint rules keep it whole.
+  InspectableParagraphImpl paragraph;
+  Style red;
+  red.SetForegroundColor(TTColor::RED);
+  paragraph.AddTextRun(&red, "e");
+  paragraph.AddTextRun(nullptr, "\u0301");
+  ASSERT_EQ(paragraph.GetCharCount(), 2u);
+  TestUtils::SimpleLayoutParagraphByWidth(&paragraph, 300.f);
+  EXPECT_EQ(paragraph.GetGraphemeBoundary(0), std::make_pair(0u, 1u));
+  EXPECT_EQ(paragraph.GetGraphemeBoundary(1), std::make_pair(1u, 2u));
+  ExpectGraphemeClustersTile(paragraph);
+}
+
+TEST(ParagraphTest, GetGraphemeBoundary_RightToLeft) {
+  // A right to left run stores its glyphs in visual order, so the glyph range
+  // of a cluster has to be resolved the other way round.
+  InspectableParagraphImpl paragraph;
+  ParagraphStyle style;
+  style.SetWriteDirection(WriteDirection::kRTL);
+  paragraph.SetParagraphStyle(&style);
+  paragraph.AddTextRun(nullptr, "\u05D0\u05B7\u05D1");
+  ASSERT_EQ(paragraph.GetCharCount(), 3u);
+
+  // The test shaper draws every character on its own, so the point splits off.
+  TestUtils::SimpleLayoutParagraphByWidth(&paragraph, 300.f);
+  EXPECT_EQ(paragraph.GetGraphemeBoundary(0), std::make_pair(0u, 1u));
+  EXPECT_EQ(paragraph.GetGraphemeBoundary(1), std::make_pair(1u, 2u));
+  EXPECT_EQ(paragraph.GetGraphemeBoundary(2), std::make_pair(2u, 3u));
+  ExpectGraphemeClustersTile(paragraph);
+
+  // With a real font the point is drawn as part of the letter, so it stays.
+  auto shaped = Paragraph::Create();
+  shaped->SetParagraphStyle(&style);
+  shaped->AddTextRun(nullptr, "\u05D0\u05B7\u05D1");
+  TTTextContext context;
+  TextLayout layout(TestUtils::getRealShaper());
+  auto region = std::make_unique<LayoutRegion>(400.f, 400.f);
+  layout.Layout(shaped.get(), region.get(), context);
+  EXPECT_EQ(shaped->GetGraphemeBoundary(0), std::make_pair(0u, 2u));
+  EXPECT_EQ(shaped->GetGraphemeBoundary(1), std::make_pair(0u, 2u));
+  EXPECT_EQ(shaped->GetGraphemeBoundary(2), std::make_pair(2u, 3u));
+  ExpectGraphemeClustersTile(*shaped);
+}
+
+TEST(ParagraphTest, GetGraphemeBoundary_OutOfRange) {
+  auto paragraph = Paragraph::Create();
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(0), std::make_pair(0u, 0u));
+  paragraph->AddTextRun(nullptr, "ab");
+  ASSERT_EQ(paragraph->GetCharCount(), 2u);
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(1), std::make_pair(1u, 2u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(2), std::make_pair(0u, 0u));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(100), std::make_pair(0u, 0u));
 }
 
 TEST(ParagraphTest, AddShapeRun_NotFloat) {

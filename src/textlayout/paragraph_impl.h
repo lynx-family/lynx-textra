@@ -108,6 +108,8 @@ class ParagraphImpl : public Paragraph {
   float GetMinIntrinsicWidth() const override;
 
   std::pair<uint32_t, uint32_t> GetWordBoundary(uint32_t offset) const override;
+  std::pair<uint32_t, uint32_t> GetGraphemeBoundary(
+      uint32_t offset) const override;
 
   void QueryStyle(uint32_t char_idx, Style* style) override;
 
@@ -176,6 +178,13 @@ class ParagraphImpl : public Paragraph {
   ParagraphHorizontalAlignment ResolveHorizontalAlignment(
       ParagraphHorizontalAlignment h_align) const;
   bool SplitRun(uint32_t idx, uint32_t char_pos_in_run);
+  // Narrows a codepoint based grapheme cluster to what was actually rendered.
+  // A cluster whose characters ended up as several glyphs carrying an advance
+  // is split at those glyphs, and a cluster reaching across a run edge is cut
+  // there, because the runs are drawn separately.
+  std::pair<uint32_t, uint32_t> RefineGraphemeByGlyphs(uint32_t offset,
+                                                       uint32_t start,
+                                                       uint32_t end) const;
   void InitJustifyAnalyst() const;
 
 #ifdef TTTEXT_DEBUG

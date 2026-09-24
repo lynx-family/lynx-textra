@@ -20,6 +20,8 @@
 #include "src/textlayout/style/paragraph_style_impl.h"
 #include "src/textlayout/style/style_impl.h"
 #include "src/textlayout/tt_shaper.h"
+#include "src/textlayout/utils/float_comparison.h"
+#include "src/textlayout/utils/grapheme_utils.h"
 #include "src/textlayout/utils/u_8_string.h"
 #include "style/style_manager.h"
 
@@ -587,6 +589,57 @@ std::pair<uint32_t, uint32_t> ParagraphImpl::GetWordBoundary(
     return {0, 0};
   }
   return {start, end};
+}
+
+std::pair<uint32_t, uint32_t> ParagraphImpl::GetGraphemeBoundary(
+    uint32_t offset) const {
+  const auto char_count = GetCharCount();
+  if (offset >= char_count) {
+    return {0, 0};
+  }
+  auto range = FindGraphemeCluster(
+      offset, char_count,
+      [this](uint32_t char_idx) { return content_.GetUnicode(char_idx); });
+  return RefineGraphemeByGlyphs(offset, range.start, range.end);
+}
+
+std::pair<uint32_t, uint32_t> ParagraphImpl::RefineGraphemeByGlyphs(
+    uint32_t offset, uint32_t start, uint32_t end) const {
+  const auto pos = CharPosToLayoutPosition(offset);
+  const auto* run = GetRun(pos.GetRunIdx());
+  if (run == nullptr || !run->IsTextRun()) {
+    return {start, end};
+  }
+  const uint32_t cluster_start = std::max(start, run->GetStartCharPos());
+  const uint32_t cluster_end = std::min(end, run->GetEndCharPos());
+  TTASSERT(cluster_start <= offset && offset < cluster_end);
+  const auto& shape_result = run->shape_result_;
+  if (!shape_result.Valid()) {
+    return {cluster_start, cluster_end};
+  }
+  const uint32_t run_start = run->GetStartCharPos();
+  std::vector<uint32_t> pieces;
+  pieces.push_back(cluster_start);
+  for (uint32_t glyph = shape_result.CharToGlyph(cluster_start - run_start);
+       glyph < shape_result.CharToGlyph(cluster_end - run_start); ++glyph) {
+    if (!FloatsLarger(shape_result.Advances(glyph)[0], 0)) {
+      continue;
+    }
+    const uint32_t char_pos = run_start + shape_result.GlyphToChar(glyph);
+    if (char_pos > cluster_start && char_pos < cluster_end) {
+      pieces.push_back(char_pos);
+    }
+  }
+  pieces.push_back(cluster_end);
+  if (pieces.size() <= 2) {
+    return {cluster_start, cluster_end};
+  }
+  for (size_t i = 0; i + 1 < pieces.size(); ++i) {
+    if (offset < pieces[i + 1]) {
+      return {pieces[i], pieces[i + 1]};
+    }
+  }
+  return {cluster_start, cluster_end};
 }
 
 void ParagraphImpl::QueryStyle(uint32_t char_idx, Style* style) {
