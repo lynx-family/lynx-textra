@@ -15,6 +15,7 @@ import android.os.Build;
 import java.io.IOException;
 
 public class JavaCanvasHelper {
+  private final BBufferInputStream inputStream = new BBufferInputStream();
   protected Canvas canvas_;
   protected final Paint paint_ = new Paint();
   protected JavaFontManager mFontManager = null;
@@ -25,101 +26,103 @@ public class JavaCanvasHelper {
 
   public void drawBuffer(Canvas canvas, byte[] input) {
     canvas_ = canvas;
-    BBufferInputStream inputStream = new BBufferInputStream(input);
+    inputStream.setBuffer(input);
     try {
       while (inputStream.available() > 0) {
-        TTTextDefinition.CanvasOp op = TTTextDefinition.GetCanvasOp(inputStream.readByte());
+        int op = inputStream.readByte();
         drawOp(op, inputStream);
+        if (op == TTTextDefinition.CanvasOp.END_PAINT) {
+          break;
+        }
       }
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
 
-  protected void drawOp(TTTextDefinition.CanvasOp op, BBufferInputStream stream)
-      throws IOException {
+  protected void drawOp(int op, BBufferInputStream stream) throws IOException {
     switch (op) {
-      case kStartPaint:
+      case TTTextDefinition.CanvasOp.START_PAINT:
         startPaint();
         break;
-      case kEndPaint:
+      case TTTextDefinition.CanvasOp.END_PAINT:
         endPaint();
         break;
-      case kSave:
+      case TTTextDefinition.CanvasOp.SAVE:
         save();
         break;
-      case kRestore:
+      case TTTextDefinition.CanvasOp.RESTORE:
         restore();
         break;
-      case kClear:
+      case TTTextDefinition.CanvasOp.CLEAR:
         clear();
         break;
-      case kTranslate:
+      case TTTextDefinition.CanvasOp.TRANSLATE:
         translate(stream);
         break;
-      case kScale:
+      case TTTextDefinition.CanvasOp.SCALE:
         scale(stream);
         break;
-      case kRotate:
+      case TTTextDefinition.CanvasOp.ROTATE:
         rotate(stream);
         break;
-      case kSkew:
+      case TTTextDefinition.CanvasOp.SKEW:
         skew(stream);
         break;
-      case kClipRect:
+      case TTTextDefinition.CanvasOp.CLIP_RECT:
         clipRect(stream);
         break;
-      case kClearRect:
+      case TTTextDefinition.CanvasOp.CLEAR_RECT:
         clearRect(stream);
         break;
-      case kFillRect:
+      case TTTextDefinition.CanvasOp.FILL_RECT:
         fillRect(stream);
         break;
-      case kDrawArc:
+      case TTTextDefinition.CanvasOp.DRAW_ARC:
         drawArc(stream);
         break;
-      case kDrawLine:
+      case TTTextDefinition.CanvasOp.DRAW_LINE:
         drawLine(stream);
         break;
-      case kDrawOval:
+      case TTTextDefinition.CanvasOp.DRAW_OVAL:
         drawOval(stream);
         break;
-      case kDrawPath:
+      case TTTextDefinition.CanvasOp.DRAW_PATH:
         drawPath(stream);
         break;
-      case kDrawRect:
+      case TTTextDefinition.CanvasOp.DRAW_RECT:
         drawRect(stream);
         break;
-      case kDrawText:
+      case TTTextDefinition.CanvasOp.DRAW_TEXT:
         drawText(stream);
         break;
-      case kDrawArcTo:
+      case TTTextDefinition.CanvasOp.DRAW_ARC_TO:
         drawArcTo(stream);
         break;
-      case kDrawColor:
+      case TTTextDefinition.CanvasOp.DRAW_COLOR:
         drawColor(stream);
         break;
-      case kDrawImage:
+      case TTTextDefinition.CanvasOp.DRAW_IMAGE:
         drawImage(stream);
         break;
-      case kDrawCircle:
+      case TTTextDefinition.CanvasOp.DRAW_CIRCLE:
         drawCircle(stream);
         break;
-      case kDrawGlyphs:
+      case TTTextDefinition.CanvasOp.DRAW_GLYPHS:
         drawGlyphs(stream);
         break;
-      case kDrawImageRect:
+      case TTTextDefinition.CanvasOp.DRAW_IMAGE_RECT:
         drawImgRect(stream);
         break;
-      case kDrawRunDelegate:
+      case TTTextDefinition.CanvasOp.DRAW_RUN_DELEGATE:
         drawRunDelegate(stream);
         break;
-      case kDrawBackgroundDelegate:
+      case TTTextDefinition.CanvasOp.DRAW_BACKGROUND_DELEGATE:
         drawBackgroundDelegate(stream);
         break;
-      case kDrawBlockRegion:
+      case TTTextDefinition.CanvasOp.DRAW_BLOCK_REGION:
         break;
-      case kDrawRoundRect:
+      case TTTextDefinition.CanvasOp.DRAW_ROUND_RECT:
         drawRoundRect(stream);
     }
   }
@@ -474,9 +477,9 @@ public class JavaCanvasHelper {
   }
 
   protected void ReadPath(Path path, BBufferInputStream stream) throws IOException {
-    TTTextDefinition.PathType type = TTTextDefinition.GetPathType(stream.readInt());
+    int type = stream.readInt();
     switch (type) {
-      case kLines: {
+      case TTTextDefinition.PathType.LINES: {
         int len = stream.readInt();
         for (int i = 0; i < len; i++) {
           float x = stream.readFloat();
@@ -484,7 +487,7 @@ public class JavaCanvasHelper {
           path.lineTo(x, y);
         }
       } break;
-      case kArc: {
+      case TTTextDefinition.PathType.ARC: {
         float x1 = stream.readFloat();
         float y1 = stream.readFloat();
         float x2 = stream.readFloat();
@@ -494,7 +497,7 @@ public class JavaCanvasHelper {
         float r = stream.readFloat();
         // TODO:add arc
       } break;
-      case kBezier: {
+      case TTTextDefinition.PathType.BEZIER: {
         int len = stream.readInt();
         PointF[] points = new PointF[len];
         for (int i = 0; i < len; i++) {
@@ -509,12 +512,12 @@ public class JavaCanvasHelper {
               points[0].x, points[0].y, points[1].x, points[1].y, points[2].x, points[2].y);
         }
       } break;
-      case kMoveTo: {
+      case TTTextDefinition.PathType.MOVE_TO: {
         float x = stream.readFloat();
         float y = stream.readFloat();
         path.moveTo(x, y);
       } break;
-      case kMultiPath: {
+      case TTTextDefinition.PathType.MULTI_PATH: {
         int count = stream.readInt();
         for (int i = 0; i < count; i++) {
           ReadPath(path, stream);

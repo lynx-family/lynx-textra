@@ -10,10 +10,16 @@ import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 
 public class BBufferInputStream {
-  private final ByteBuffer byteBuffer;
-  private final byte[] buffer;
+  private ByteBuffer byteBuffer;
+  private byte[] buffer;
+
+  public BBufferInputStream() {}
 
   public BBufferInputStream(byte[] buf) {
+    setBuffer(buf);
+  }
+
+  public void setBuffer(byte[] buf) {
     byteBuffer = ByteBuffer.wrap(buf);
     byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
     buffer = buf;
