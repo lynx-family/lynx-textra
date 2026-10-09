@@ -5,10 +5,9 @@
 package com.lynx.textra.demo;
 
 import android.graphics.Rect;
-import com.lynx.textra.TTTextDefinition;
 
 public interface IDrawerCallback {
-  int fetchThemeColor(TTTextDefinition.ThemeColorType type, String extra);
+  int fetchThemeColor(int type, String extra);
 
   void drawRunDelegate(IRunDelegate delegate, Rect rect);
 

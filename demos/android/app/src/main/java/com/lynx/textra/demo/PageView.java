@@ -16,7 +16,6 @@ import android.view.View;
 import androidx.annotation.Nullable;
 import com.lynx.textra.JavaCanvasHelper;
 import com.lynx.textra.JavaFontManager;
-import com.lynx.textra.TTTextDefinition;
 
 public class PageView extends View implements IDrawerCallback {
   private JavaDrawerCallback drawer;
@@ -101,7 +100,7 @@ public class PageView extends View implements IDrawerCallback {
       long font_manager_handler, byte[] jsonBytes, float width_px);
 
   @Override
-  public int fetchThemeColor(TTTextDefinition.ThemeColorType type, String extra) {
+  public int fetchThemeColor(int type, String extra) {
     return 0;
   }
 
