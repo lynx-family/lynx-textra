@@ -25,6 +25,7 @@
 #include "src/textlayout/paragraph_impl.h"
 #include "src/textlayout/run/base_run.h"
 #include "src/textlayout/shape_cache.h"
+#include "src/textlayout/shape_cache_scope_internal.h"
 #include "src/textlayout/style/style_manager.h"
 #include "src/textlayout/tttext_context_impl.h"
 #include "src/textlayout/utils/log_util.h"
@@ -86,6 +87,7 @@ bool TTShaper::Preload(ShaperType type) {
 
 void TTShaper::ClearFontCache() {
 #if defined(ENABLE_CTSHAPER) || defined(ENABLE_CTSHAPER_SKITY)
+  ShaperCoreText::ClearSafeFontCache();
   ShaperCoreTextSelfRendering::ClearSafeFontCache();
 #endif
 }
@@ -109,10 +111,17 @@ ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
   const ShapeKey key(text, length, shape_style, rtl);
   const auto disable_shape_cache =
       context_ != nullptr && context_->GetImpl().IsShapeCacheDisabled();
+  const auto scope =
+      context_ == nullptr ? nullptr : context_->GetImpl().GetShapeCacheScope();
+  const auto cache_route = ShapeCacheScopeInternal::CaptureRoute(
+      scope, key.style_.GetFontDescriptor());
+  ShapeCache& cache = ShapeCacheScopeInternal::GetShapeCache(cache_route);
   ShapeCache::Epoch cache_epoch = 0;
-  auto result = disable_shape_cache
-                    ? nullptr
-                    : ShapeCache::GetInstance().Find(key, &cache_epoch);
+  ShapeResultRef result;
+  if (!disable_shape_cache) {
+    ShapeCacheScopeInternal::RunIfCurrent(
+        cache_route, [&]() { result = cache.Find(key, &cache_epoch); });
+  }
   if (result == nullptr) {
     result = std::make_shared<ShapeResult>(length, rtl);
     OnShapeText(key, result.get());
@@ -125,7 +134,8 @@ ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
       }
     }
     if (!disable_shape_cache) {
-      ShapeCache::GetInstance().AddToCache(key, result, cache_epoch);
+      ShapeCacheScopeInternal::RunIfCurrent(
+          cache_route, [&]() { cache.AddToCache(key, result, cache_epoch); });
     }
   }
   TTASSERT(result != nullptr);
