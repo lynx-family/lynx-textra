@@ -65,6 +65,17 @@ class L_EXPORT TTTextContext {
   bool IsEnableSystemFontAdjust() const;
   void SetEnableSystemFontAdjust(bool enable_system_font_adjust);
 
+  /**
+   * @brief Aligns Java shaper font metrics with Android StaticLayout.
+   *
+   * Rounds ascent/descent with floor(value + 0.5) and truncates the font size
+   * used for shaping to an integer. Fractional advances are preserved.
+   * Default is false. Configure before layout and keep unchanged while caches
+   * are in use. Only affects the Java shaper.
+   */
+  bool IsAndroidMetricsRound() const;
+  void SetAndroidMetricsRound(bool enabled);
+
   void EnableFeature(FeatureOption feature_option, bool value);
 
   // Layout state getters/setters

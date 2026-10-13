@@ -20,6 +20,7 @@ TTTextContextImpl::TTTextContextImpl()
       trim_line_tail_space_(true),
       harmony_shaper_force_low_api_(false),
       enable_system_font_adjust_(false),
+      android_metrics_round_(false),
       disable_shape_cache_(false),
       layout_bottom_(0) {}
 
@@ -60,6 +61,14 @@ void TTTextContext::SetEnableSystemFontAdjust(bool enable_system_font_adjust) {
   impl_->enable_system_font_adjust_ = enable_system_font_adjust;
 }
 
+bool TTTextContext::IsAndroidMetricsRound() const {
+  return impl_->android_metrics_round_;
+}
+
+void TTTextContext::SetAndroidMetricsRound(bool enabled) {
+  impl_->android_metrics_round_ = enabled;
+}
+
 void TTTextContext::EnableFeature(FeatureOption feature_option, bool value) {
   switch (feature_option) {
     case kLastLineCanOverflow:
@@ -79,6 +88,9 @@ void TTTextContext::EnableFeature(FeatureOption feature_option, bool value) {
       break;
     case kDisableShapeCache:
       impl_->disable_shape_cache_ = value;
+      break;
+    case kAndroidMetricsRound:
+      impl_->android_metrics_round_ = value;
       break;
     default:
       break;

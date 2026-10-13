@@ -5,6 +5,8 @@
 #include <textra/platform/java/java_typeface.h>
 #include <textra/platform/java/tttext_jni_proxy.h>
 
+#include <cmath>
+
 #include "src/ports/shaper/java/java_utils.h"
 namespace ttoffice {
 namespace tttext {
@@ -60,8 +62,11 @@ uint16_t JavaTypeface::UnicharToGlyph(Unichar codepoint,
 void JavaTypeface::UnicharsToGlyphs(const Unichar* unichars, uint32_t count,
                                     GlyphID* glyphs) const {}
 void JavaTypeface::OnCreateFontInfo(FontInfo* info, float font_size) const {
-  info->SetAscent(font_ascent_ratio_ * font_size);
-  info->SetDescent(font_descent_ratio_ * font_size);
+  const float ascent = font_ascent_ratio_ * font_size;
+  const float descent = font_descent_ratio_ * font_size;
+  const bool round_metrics = round_font_metrics_;
+  info->SetAscent(round_metrics ? std::floor(ascent + 0.5f) : ascent);
+  info->SetDescent(round_metrics ? std::floor(descent + 0.5f) : descent);
   info->SetFontSize(font_size);
 }
 }  // namespace tttext

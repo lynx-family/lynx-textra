@@ -21,6 +21,7 @@ class TTTextContextImpl {
     return harmony_shaper_force_low_api_;
   }
   bool IsEnableSystemFontAdjust() const { return enable_system_font_adjust_; }
+  bool IsAndroidMetricsRound() const { return android_metrics_round_; }
   bool IsShapeCacheDisabled() const { return disable_shape_cache_; }
   bool IsTrimLineTailSpace() const { return trim_line_tail_space_; }
 
@@ -32,6 +33,7 @@ class TTTextContextImpl {
   bool trim_line_tail_space_;
   bool harmony_shaper_force_low_api_;
   bool enable_system_font_adjust_;
+  bool android_metrics_round_;
   bool disable_shape_cache_;
   float layout_bottom_;
 };

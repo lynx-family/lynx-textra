@@ -11,6 +11,7 @@
 #include <textra/icu_wrapper.h>
 #endif
 
+#include <cmath>
 #include <memory>
 
 #include "src/ports/shaper/java/java_shaper_result.h"
@@ -75,9 +76,15 @@ void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
   auto java_fontmanager = std ::static_pointer_cast<JavaFontManager>(
       font_collection_.GetDefaultFontManager());
   auto java_typeface = java_fontmanager->matchTypeface(fd);
+  const bool android_metrics_round =
+      context_ != nullptr && context_->IsAndroidMetricsRound();
+  java_typeface->SetStaticLayoutMetricsEnabled(android_metrics_round);
+  const float font_size = android_metrics_round
+                              ? std::floor(key.style_.GetFontSize())
+                              : key.style_.GetFontSize();
   auto* info_list = (jfloatArray)env->CallObjectMethod(
       java_instance_->get(), proxy.JavaShaper_method_OnShapeText_, j_content,
-      java_typeface->GetInstance(), key.style_.GetFontSize(), false,
+      java_typeface->GetInstance(), font_size, false,
       fd.font_style_.GetSlant() == FontStyle::kItalic_Slant);
   auto glyph_count = u16str.size();
   reader.text_count_ = char_count;

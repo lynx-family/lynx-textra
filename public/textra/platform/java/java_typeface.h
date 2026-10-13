@@ -24,6 +24,9 @@ class JavaTypeface final : public ITypefaceHelper {
 
  public:
   jobject GetInstance() const;
+  void SetStaticLayoutMetricsEnabled(bool enabled) {
+    round_font_metrics_ = enabled;
+  }
   float GetHorizontalAdvance(GlyphID glyph_id, float font_size) const override;
   void GetHorizontalAdvances(GlyphID* glyph_ids, uint32_t count, float* widths,
                              float font_size) const override;
@@ -47,6 +50,7 @@ class JavaTypeface final : public ITypefaceHelper {
   std::unique_ptr<ScopedGlobalRef> java_instance_ = nullptr;
   float font_ascent_ratio_ = 0;
   float font_descent_ratio_ = 0;
+  bool round_font_metrics_ = false;
 };
 }  // namespace tttext
 }  // namespace ttoffice
