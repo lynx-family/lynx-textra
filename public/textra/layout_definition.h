@@ -224,6 +224,7 @@ enum FeatureOption : uint8_t {
   kHarmonyShaperForceUseLowAPI,
   kSystemFontAdjust,
   kDisableShapeCache,
+  kAndroidMetricsRound,
 };
 enum class DominantBaseline : uint8_t {
   kAlphabetic,
