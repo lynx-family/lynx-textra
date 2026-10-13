@@ -40,6 +40,12 @@ message(STATUS "=================GENERATE CMAKE END================")
 
 set(BUILD_SHARED_LIBS ON)
 add_subdirectory(${PROJ_ROOT}/third_party/harfbuzz harfbuzz.out)
+set_property(TARGET harfbuzz APPEND_STRING PROPERTY LINK_FLAGS " -fuse-ld=lld")
+if (CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a" OR
+        CMAKE_ANDROID_ARCH_ABI STREQUAL "x86_64")
+    set_property(TARGET harfbuzz APPEND_STRING PROPERTY LINK_FLAGS
+            " -Wl,-z,max-page-size=16384")
+endif ()
 
 # According to the build variant,
 # import the CMakeLists-impl.cmake file to compile the native methods.
