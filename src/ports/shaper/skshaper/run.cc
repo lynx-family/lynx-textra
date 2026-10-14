@@ -37,6 +37,12 @@ SkShaper::RunHandler::Buffer Run::newRunBuffer() {
 }
 
 void Run::commit() {
+  const auto text_length = fTextRange.GetLength();
+  for (size_t i = 0; i < fGlyphs.size(); ++i) {
+    if (fClusterIndexes[i] >= text_length) {
+      fClusterIndexes[i] = 0;
+    }
+  }
   //  fFont.getBounds(fGlyphs.data(), fGlyphs.size(), fBounds.data(), nullptr);
 }
 }  // namespace tttext
