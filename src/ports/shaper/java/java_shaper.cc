@@ -11,6 +11,7 @@
 #include <textra/icu_wrapper.h>
 #endif
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 
@@ -18,9 +19,29 @@
 #include "src/ports/shaper/java/java_utils.h"
 #include "src/textlayout/run/base_run.h"
 #include "src/textlayout/style/style_manager.h"
+#include "src/textlayout/utils/u_8_string.h"
 
 namespace ttoffice {
 namespace tttext {
+namespace {
+constexpr uint32_t kChineseFont = 1;
+constexpr uint32_t kSupplementaryChineseFont = 2;
+
+uint32_t GetChineseFontMask(char32_t ch) {
+  // Han, CJK punctuation and fullwidth forms. This is a range-based estimate
+  // for the system default fallback, not a lookup of the actual glyph font.
+  if (base::IsCJKUnifiedIdeographBMP(ch) ||
+      base::IsCJKCompatibilityIdeographBMP(ch) ||
+      base::IsCJKSymbolsAndFullwidthForms(ch)) {
+    return kChineseFont;
+  }
+  if (base::IsCJKSupplementaryIdeograph(ch)) {
+    return kSupplementaryChineseFont;
+  }
+  return 0;
+}
+}  // namespace
+
 std::map<FontKey, std::shared_ptr<JavaTypeface>> JavaShaper::font_lst_;
 std::mutex JavaShaper::font_lst_lock_;
 JavaShaper::JavaShaper(const FontmgrCollection& font_collection)
@@ -50,6 +71,12 @@ void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
   auto& proxy = TTTextJNIProxy::GetInstance();
   auto* env = proxy.GetCurrentJNIEnv();
   JavaShapingResult reader;
+  const bool android_metrics_round =
+      context_ != nullptr && context_->IsAndroidMetricsRound();
+  const bool use_fallback_metrics = android_metrics_round &&
+                                    fd.platform_font_ == 0 &&
+                                    fd.font_family_list_.empty();
+  uint32_t chinese_fonts = 0;
   auto char_count = key.text_.length();
   reader.glyphs_.reserve(char_count * 2);
   reader.advances_.reserve(char_count * 2);
@@ -57,6 +84,9 @@ void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
   auto& indexes = reader.indexes_;
   uint32_t char32_index = 0;
   for (auto utf32 : key.text_) {
+    if (use_fallback_metrics) {
+      chinese_fonts |= GetChineseFontMask(utf32);
+    }
     if (utf32 <= 0xD7FF || (utf32 >= 0xE000 && utf32 <= 0xFFFF)) {
       u16str.push_back(static_cast<GlyphID>(utf32));
       indexes.push_back(char32_index);
@@ -76,23 +106,46 @@ void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
   auto java_fontmanager = std ::static_pointer_cast<JavaFontManager>(
       font_collection_.GetDefaultFontManager());
   auto java_typeface = java_fontmanager->matchTypeface(fd);
-  const bool android_metrics_round =
-      context_ != nullptr && context_->IsAndroidMetricsRound();
   java_typeface->SetStaticLayoutMetricsEnabled(android_metrics_round);
+  reader.font_ = java_typeface;
+  const float requested_font_size = key.style_.GetFontSize();
   const float font_size = android_metrics_round
-                              ? std::floor(key.style_.GetFontSize())
-                              : key.style_.GetFontSize();
+                              ? std::floor(requested_font_size)
+                              : requested_font_size;
   auto* info_list = (jfloatArray)env->CallObjectMethod(
       java_instance_->get(), proxy.JavaShaper_method_OnShapeText_, j_content,
       java_typeface->GetInstance(), font_size, false,
       fd.font_style_.GetSlant() == FontStyle::kItalic_Slant);
+  if (chinese_fonts != 0) {
+    auto default_manager = proxy.GetDefaultFontManager();
+    const auto& chinese_font =
+        default_manager->GetDefaultChineseTypeface(false);
+    if (chinese_font) {
+      float ascent_ratio = java_typeface->GetAscentRatio();
+      float descent_ratio = java_typeface->GetDescentRatio();
+      const auto merge_ratios = [&](const std::shared_ptr<JavaTypeface>& font) {
+        ascent_ratio = std::min(ascent_ratio, font->GetAscentRatio());
+        descent_ratio = std::max(descent_ratio, font->GetDescentRatio());
+      };
+      if (chinese_fonts & kChineseFont) {
+        merge_ratios(chinese_font);
+      }
+      if (chinese_fonts & kSupplementaryChineseFont) {
+        merge_ratios(default_manager->GetDefaultChineseTypeface(true));
+      }
+      if (ascent_ratio != java_typeface->GetAscentRatio() ||
+          descent_ratio != java_typeface->GetDescentRatio()) {
+        reader.font_ =
+            java_typeface->CopyWithFallbackMetrics(ascent_ratio, descent_ratio);
+      }
+    }
+  }
   auto glyph_count = u16str.size();
   reader.text_count_ = char_count;
   if (info_list == nullptr) {
     // maybe encounter java exception
     ClearException(env);
     reader.advances_.resize(glyph_count, 0);
-    reader.font_ = java_typeface;
     result->AppendPlatformShapingResult(reader);
     env->DeleteLocalRef(j_content);
     return;
@@ -102,7 +155,6 @@ void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
   TTASSERT(ret_length >= static_cast<jsize>(glyph_count));
   reader.advances_.insert(reader.advances_.begin(), ret_advances,
                           ret_advances + glyph_count);
-  reader.font_ = java_typeface;
   result->AppendPlatformShapingResult(reader);
   env->ReleaseFloatArrayElements(info_list, ret_advances, JNI_ABORT);
   env->DeleteLocalRef(info_list);

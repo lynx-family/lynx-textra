@@ -250,6 +250,17 @@ extern "C" JNIEXPORT void JNICALL JavaFontManagerBindNativeInstance(
   font_manager->BindJavaHandler();
 }
 
+extern "C" JNIEXPORT void JNICALL JavaFontManagerBindDefaultFallbackMetrics(
+    JNIEnv* env, jobject thiz, jlong native_handler, jfloat ascent_ratio,
+    jfloat descent_ratio, jfloat supplementary_ascent_ratio,
+    jfloat supplementary_descent_ratio) {
+  auto font_manager =
+      reinterpret_cast<tttext::JavaFontManager*>(native_handler);
+  font_manager->BindDefaultFallbackMetrics(ascent_ratio, descent_ratio,
+                                           supplementary_ascent_ratio,
+                                           supplementary_descent_ratio);
+}
+
 extern "C" JNIEXPORT jlong JNICALL JavaFontManagerCreateNativeTypeface(
     JNIEnv* env, jobject thiz, jlong native_handler) {
   auto font_manager =
@@ -268,6 +279,8 @@ static JNINativeMethod java_font_manager_methods[] = {
      reinterpret_cast<void*>(JavaFontManagerBindNativeInstance)},
     {"CreateNativeTypeface", "(J)J",
      reinterpret_cast<void*>(JavaFontManagerCreateNativeTypeface)},
+    {"BindDefaultFallbackMetrics", "(JFFFF)V",
+     reinterpret_cast<void*>(JavaFontManagerBindDefaultFallbackMetrics)},
 };
 
 extern "C" JNIEXPORT jobject JNICALL

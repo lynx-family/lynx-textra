@@ -21,6 +21,7 @@ public class TTText {
     }
     nativeInitialCache();
     mFontManager = nativeGetDefaultFontManager();
+    mFontManager.InitDefaultFallbackFonts();
     sInitialized = true;
   }
 
