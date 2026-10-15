@@ -226,6 +226,12 @@ inline std::u32string U16StringToU32(const std::u16string& u16str) {
 }
 uint32_t U32IndexToU16(const char32_t* content, uint32_t length,
                        uint32_t index);
+bool IsCJKUnifiedIdeographBMP(char32_t code);
+bool IsCJKCompatibilityIdeographBMP(char32_t code);
+bool IsCJKSupplementaryIdeograph(char32_t code);
+bool IsCJKSymbolsAndFullwidthForms(char32_t code);
+bool IsKana(char32_t code);
+bool IsHangul(char32_t code);
 bool IsCJK(char32_t code);
 bool IsWordSeparator(char32_t code);
 bool IsCJKPunctuation(char32_t code);

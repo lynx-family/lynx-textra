@@ -37,6 +37,26 @@ void JavaFontManager::BindJavaHandler() {
   ret = matchFamilyStyle(nullptr, FontStyle::BoldItalic());
   TTASSERT(ret != nullptr);
 }
+void JavaFontManager::BindDefaultFallbackMetrics(
+    float ascent_ratio, float descent_ratio, float supplementary_ascent_ratio,
+    float supplementary_descent_ratio) {
+  auto font = std::static_pointer_cast<JavaTypeface>(
+      matchFamilyStyle(nullptr, FontStyle::Normal()));
+  auto* env = TTTextJNIProxy::GetCurrentJNIEnv();
+  default_chinese_typeface_ =
+      std::make_shared<JavaTypeface>(font->GetUniqueId());
+  default_chinese_typeface_->BindJavaHandler(env, font->GetInstance(),
+                                             font->GetUniqueId(), ascent_ratio,
+                                             descent_ratio);
+  default_chinese_typeface_->SetStaticLayoutMetricsEnabled(true, true);
+  default_supplementary_chinese_typeface_ =
+      std::make_shared<JavaTypeface>(font->GetUniqueId());
+  default_supplementary_chinese_typeface_->BindJavaHandler(
+      env, font->GetInstance(), font->GetUniqueId(), supplementary_ascent_ratio,
+      supplementary_descent_ratio);
+  default_supplementary_chinese_typeface_->SetStaticLayoutMetricsEnabled(true,
+                                                                         true);
+}
 int JavaFontManager::countFamilies() const { return 0; }
 TypefaceRef JavaFontManager::matchFamilyStyle(const char familyName[],
                                               const FontStyle& font_style) {

@@ -176,34 +176,41 @@ uint32_t U32IndexToU16(const char32_t* u32str, uint32_t length,
   return ret;
 }
 
-/*
- * CJK Basic                    [4E00-9FFF]   20992 code points, actually 20940
- * characters CJK Extension A              [3400-4DBF]   6592 code points,
- * actually 6582 characters CJK Extension B              [20000-2A6DF] 42720
- * code points, actually 42711 characters CJK Extension C [2A700-2B73F] 4159
- * code points, actually 4149 characters CJK Extension D [2B740-2B81F] 224 code
- * points, actually 222 characters CJK Compatibility Extension  [2F800-2FA1F]
- * 544 code points, actually 542 characters CJK Radical Extension [2E80-2EFF]
- * 128 code points, actually 115 characters CJK Kangxi Radicals [2F00-2FDF] 224
- * code points, actually 214 characters CJK Strokes                  [31C0-31EF]
- * 48 code points, actually 36 characters Hangul Jamo              [1100-11FF]
- * Hangul Compatibility Jamo [3130-318F] Hangul Syllables          [AC00-D7AF]
- * Hangul Jamo Extended       [A960-A97F, D7B0-D7FF]
- * CJK Compatibility          [F900-FAFF]   512
- * code points, actually 477 characters PUA (GBK)                    [E815-E86F]
- * 90 code points, actually 80 characters PUA Component Extension [E400-E5FF]
- * 511 code points, actually 452 characters PUA Character Supplement [E600-E6BF]
- * 191 code points, actually 185 characters Hiragana & Katakana [3040-30ff]
- */
+bool IsCJKUnifiedIdeographBMP(char32_t code) {
+  return (code >= 0x3400 && code <= 0x4DBF) ||
+         (code >= 0x4E00 && code <= 0x9FFF);
+}
+
+bool IsCJKCompatibilityIdeographBMP(char32_t code) {
+  return code >= 0xF900 && code <= 0xFAFF;
+}
+
+bool IsCJKSupplementaryIdeograph(char32_t code) {
+  return (code >= 0x20000 && code <= 0x2A6DF) ||
+         (code >= 0x2A700 && code <= 0x2EE5F) ||
+         (code >= 0x2F800 && code <= 0x2FA1F) ||
+         (code >= 0x30000 && code <= 0x3347F);
+}
+
+bool IsCJKSymbolsAndFullwidthForms(char32_t code) {
+  return (code >= 0x3000 && code <= 0x303F) ||
+         (code >= 0xFF01 && code <= 0xFF60) ||
+         (code >= 0xFFE0 && code <= 0xFFE6);
+}
+
+bool IsKana(char32_t code) { return code >= 0x3040 && code <= 0x30FF; }
+
+bool IsHangul(char32_t code) {
+  return (code >= 0x1100 && code <= 0x11FF) ||
+         (code >= 0x3130 && code <= 0x318F) ||
+         (code >= 0xA960 && code <= 0xA97F) ||
+         (code >= 0xAC00 && code <= 0xD7FF);
+}
+
 bool IsCJK(char32_t code) {
-  return (code >= 0x4e00 && code <= 0x9FFF) ||
-         (code >= 0x3400 && code <= 0x4dbf) ||
-         (code >= 0x3040 && code <= 0x30ff) ||
-         (code >= 0x1100 && code <= 0x11ff) ||
-         (code >= 0x3130 && code <= 0x318f) ||
-         (code >= 0xa960 && code <= 0xa97f) ||
-         (code >= 0xac00 && code <= 0xd7ff) ||
-         (code >= 0x20000 && code <= 0x2ffff);
+  return IsCJKUnifiedIdeographBMP(code) ||
+         IsCJKCompatibilityIdeographBMP(code) ||
+         IsCJKSupplementaryIdeograph(code) || IsKana(code) || IsHangul(code);
 }
 
 bool IsWordSeparator(char32_t code) {
