@@ -4,9 +4,13 @@
 
 package com.lynx.textra;
 
+import android.annotation.TargetApi;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.fonts.Font;
-import java.lang.reflect.Type;
+import android.graphics.text.LineBreaker;
+import android.graphics.text.MeasuredText;
+import android.os.Build;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -122,6 +126,13 @@ public class JavaFontManager {
     return mTypefaceByIndex.get(index);
   }
 
+  public void InitDefaultFallbackFonts() {
+    if (Build.VERSION.SDK_INT >= 29) {
+      float[] metrics = ChineseFallbackMetrics.Precompute();
+      BindDefaultFallbackMetrics(mNativeHandler, metrics[0], metrics[1], metrics[2], metrics[3]);
+    }
+  }
+
   private static JavaTypeface.FontKey CreateFontKey(
       String families, int font_weight, boolean italic) {
     JavaTypeface.FontKey key = new JavaTypeface.FontKey();
@@ -133,7 +144,45 @@ public class JavaFontManager {
     return key;
   }
 
+  @TargetApi(29)
+  private static class ChineseFallbackMetrics {
+    private static final float TEXT_SIZE = 24;
+
+    static float[] Precompute() {
+      Paint paint = new Paint();
+      paint.setTypeface(Typeface.DEFAULT);
+      paint.setTextSize(TEXT_SIZE);
+      LineBreaker breaker = new LineBreaker.Builder()
+                                .setBreakStrategy(LineBreaker.BREAK_STRATEGY_SIMPLE)
+                                .setHyphenationFrequency(LineBreaker.HYPHENATION_FREQUENCY_NONE)
+                                .build();
+      LineBreaker.ParagraphConstraints constraints = new LineBreaker.ParagraphConstraints();
+      constraints.setWidth(1024);
+      float[] metrics = new float[4];
+      // Supplementary Han can use a different fallback font from common Han.
+      Measure("\u4E2D", paint, breaker, constraints, metrics, 0);
+      Measure("\uD842\uDFB7", paint, breaker, constraints, metrics, 2);
+      return metrics;
+    }
+
+    private static void Measure(String sample, Paint paint, LineBreaker breaker,
+        LineBreaker.ParagraphConstraints constraints, float[] metrics, int offset) {
+      char[] text = sample.toCharArray();
+      MeasuredText measured = new MeasuredText.Builder(text)
+                                  .setComputeHyphenation(false)
+                                  .setComputeLayout(true)
+                                  .appendStyleRun(paint, text.length, false)
+                                  .build();
+      LineBreaker.Result result = breaker.computeLineBreaks(measured, constraints, 0);
+      metrics[offset] = result.getLineAscent(0) / TEXT_SIZE;
+      metrics[offset + 1] = result.getLineDescent(0) / TEXT_SIZE;
+    }
+  }
+
   private native void BindNativeInstance(long nativeHandler, JavaFontManager java_instance);
 
   private native long CreateNativeTypeface(long nativeHandler);
+
+  private native void BindDefaultFallbackMetrics(long nativeHandler, float ascent, float descent,
+      float supplementaryAscent, float supplementaryDescent);
 }

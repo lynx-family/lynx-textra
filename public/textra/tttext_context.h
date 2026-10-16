@@ -70,6 +70,8 @@ class L_EXPORT TTTextContext {
    *
    * Rounds ascent/descent with floor(value + 0.5) and truncates the font size
    * used for shaping to an integer. Fractional advances are preserved.
+   * On API 29+, the system default font family uses two shared Chinese fallback
+   * metrics fonts selected by Unicode range, for layouts without includePad.
    * Default is false. Configure before layout and keep unchanged while caches
    * are in use. Only affects the Java shaper.
    */

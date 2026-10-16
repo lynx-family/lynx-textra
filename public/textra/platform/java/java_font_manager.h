@@ -43,6 +43,14 @@ class L_EXPORT JavaFontManager : public IFontManager {
  public:
   std::shared_ptr<JavaTypeface> matchTypeface(const FontDescriptor& fd);
   std::shared_ptr<JavaTypeface> CreateNativeTypeface();
+  void BindDefaultFallbackMetrics(float ascent_ratio, float descent_ratio,
+                                  float supplementary_ascent_ratio,
+                                  float supplementary_descent_ratio);
+  const std::shared_ptr<JavaTypeface>& GetDefaultChineseTypeface(
+      bool supplementary) const {
+    return supplementary ? default_supplementary_chinese_typeface_
+                         : default_chinese_typeface_;
+  }
 
  private:
   std::unique_ptr<ScopedGlobalRef> java_instance_ = nullptr;
@@ -52,6 +60,8 @@ class L_EXPORT JavaFontManager : public IFontManager {
                      FontDescriptor::Hasher>
       typeface_map_;
   std::mutex typeface_map_mutex_;
+  std::shared_ptr<JavaTypeface> default_chinese_typeface_;
+  std::shared_ptr<JavaTypeface> default_supplementary_chinese_typeface_;
 };
 }  // namespace tttext
 }  // namespace ttoffice
