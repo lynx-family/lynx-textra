@@ -24,7 +24,7 @@ static constexpr const CHAR* ZWS_STR() { return "\u200b"; }  // Zero Width Space
 static constexpr const CHAR* NBS_STR() { return "\u00a0"; }  // No Break Space
 static constexpr char16_t kReplacementU16() { return u'\xFFFD'; }
 static constexpr const char32_t* NeutralPunctuation() {
-  return U"-_–+=/*@#·^&|\\";
+  return U"-_–+=/*@#·゠・^&|\\";
 }
 static constexpr const char32_t* LeftPunctuation() { return U"([{<"; }
 static constexpr const char32_t* RightPunctuation() {

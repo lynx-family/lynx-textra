@@ -12,11 +12,14 @@
 #include "src/textlayout/utils/tt_string.h"
 namespace ttoffice {
 namespace tttext {
+class StyleManager;
+
 class BoundaryAnalyst {
  public:
   BoundaryAnalyst() = delete;
   explicit BoundaryAnalyst(const char32_t* u32_content, uint32_t char_count,
-                           LineBreakStrategy line_break_strategy);
+                           LineBreakStrategy line_break_strategy,
+                           const StyleManager& style_manager);
 
  public:
   uint32_t FindNextBoundary(uint32_t start, BoundaryType type) const;

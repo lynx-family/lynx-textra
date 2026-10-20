@@ -1263,6 +1263,47 @@ TEST_F(TextLayoutTest, ParagraphStyle_OverflowWrap) {
   }
 }
 
+TEST_F(TextLayoutTest, KeepAllMovesCJKWordToNextLine) {
+  auto paragraph = std::make_unique<ParagraphImpl>();
+  Style style;
+  style.SetTextSize(10.f);
+  style.SetWordBreak(WordBreakType::kKeepAll);
+  paragraph->AddTextRun(&style, u8"ab 中文文本");
+  TextLayout layout(GetFixedSizeMockShaper());
+  TTTextContext context;
+  LayoutRegion region(60.f, 200.f);
+  layout.Layout(paragraph.get(), &region, context);
+
+  ASSERT_EQ(region.GetLineCount(), 2u);
+  EXPECT_EQ(region.GetLine(0)->GetEndCharPos(), 3u);
+  EXPECT_EQ(region.GetLine(1)->GetStartCharPos(), 3u);
+  EXPECT_EQ(region.GetLine(1)->GetEndCharPos(), 7u);
+}
+
+TEST_F(TextLayoutTest, KeepAllAllowsBreakAtBaselineChange) {
+  for (auto overflow_wrap : {OverflowWrap::kNormal, OverflowWrap::kBreakWord,
+                             OverflowWrap::kAnywhere}) {
+    auto paragraph = std::make_unique<ParagraphImpl>();
+    ParagraphStyle paragraph_style;
+    paragraph_style.SetOverflowWrap(overflow_wrap);
+    paragraph->SetParagraphStyle(&paragraph_style);
+    Style style;
+    style.SetTextSize(10.f);
+    style.SetWordBreak(WordBreakType::kKeepAll);
+    paragraph->AddTextRun(&style, u8"中文");
+    style.SetBaselineOffset(2.f);
+    paragraph->AddTextRun(&style, u8"文本");
+    TextLayout layout(GetFixedSizeMockShaper());
+    TTTextContext context;
+    LayoutRegion region(30.f, 200.f);
+    layout.Layout(paragraph.get(), &region, context);
+
+    ASSERT_EQ(region.GetLineCount(), 2u);
+    EXPECT_EQ(region.GetLine(0)->GetEndCharPos(), 2u);
+    EXPECT_EQ(region.GetLine(1)->GetStartCharPos(), 2u);
+  }
+}
+
 TEST_F(TextLayoutTest, TextLine_GetTightBoundingRectByCharRange_GlyphBounds) {
   TextLayout layout(GetFixedSizeMockShaper());
   TTTextContext context;
