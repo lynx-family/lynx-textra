@@ -183,6 +183,7 @@ Pod::Spec.new do |s|
                                 "src/textlayout/utils/float_comparison.h",
                                 "src/textlayout/utils/grapheme_utils.h",
                                 "src/textlayout/utils/log_util.h",
+                                "src/textlayout/utils/lru_cache.h",
                                 "src/textlayout/utils/tt_point.cc",
                                 "src/textlayout/utils/tt_point.h",
                                 "src/textlayout/utils/tt_range.cc",
@@ -197,12 +198,13 @@ Pod::Spec.new do |s|
                                 "src/textlayout/utils/tt_string.h",
                                 "src/textlayout/utils/tt_string_piece.cc",
                                 "src/textlayout/utils/tt_string_piece.h",
+                                "src/textlayout/utils/type_helper.h",
                                 "src/textlayout/utils/u_8_string.cc",
                                 "src/textlayout/utils/u_8_string.h",
                                 "src/textlayout/utils/value_utils.h"
 
     sp.pod_target_xcconfig    = {
-                                  "GCC_PREPROCESSOR_DEFINITIONS" => "TTTEXT_OS_IOS ENABLE_CTSHAPER",
+                                  "GCC_PREPROCESSOR_DEFINITIONS" => "TTTEXT_OS_IOS ENABLE_CTSHAPER USE_LRU_CACHE=1",
                                   "HEADER_SEARCH_PATHS" => "\"${PODS_TARGET_SRCROOT}/\" \
                                                         \"${PODS_TARGET_SRCROOT}/public/\" \
                                                         \"${PODS_TARGET_SRCROOT}/src/\" \

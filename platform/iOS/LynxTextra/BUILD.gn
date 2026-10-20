@@ -15,6 +15,9 @@ source_set("LynxTextra") {
   ]
 
   defines = [ "TTTEXT_OS_IOS" ]
+  if (use_lru_cache) {
+    defines += [ "USE_LRU_CACHE=1" ]
+  }
 
   metadata = {
     header_mappings_dir = [ "public" ]
