@@ -9,13 +9,14 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+
+#include "src/textlayout/style/style_manager.h"
 #ifdef BOUNDARY_ANALYST_ICU
 #include <textra/icu_wrapper.h>
 #endif
 namespace ttoffice {
 namespace tttext {
 
-#ifndef BOUNDARY_ANALYST_ICU
 enum class CharType {
   kNone,
   kWhiteSpace,
@@ -74,13 +75,26 @@ class SimpleBreak {
     }
   }
 
+  static void ApplyWordBreak(const char32_t* u32_content, uint32_t char_count,
+                             BoundaryType* boundary,
+                             const StyleManager& style_manager) {
+    auto type = GetCharType(u32_content[0]);
+    for (auto k = 0u; k + 1 < char_count; ++k) {
+      const auto next_type = GetCharType(u32_content[k + 1]);
+      if (boundary[k] == BoundaryType::kLineBreakable &&
+          (type == CharType::kNone || type == CharType::kCJK) &&
+          (next_type == CharType::kNone || next_type == CharType::kCJK) &&
+          style_manager.GetWordBreak(k) == WordBreakType::kKeepAll) {
+        boundary[k] = BoundaryType::kWord;
+      }
+      type = next_type;
+    }
+  }
+
  private:
   static CharType GetCharType(char32_t ch32) {
     if (ch32 == 0) {
       return CharType::kWhiteSpace;
-    }
-    if (base::IsCJK(ch32)) {
-      return CharType::kCJK;
     }
     if (base::IsSpaceChar(ch32)) {
       return CharType::kWhiteSpace;
@@ -96,6 +110,9 @@ class SimpleBreak {
         StrFind(base::CJKRightPunctuation(), ch32)) {
       return CharType::kRightPunctuation;
     }
+    if (base::IsCJK(ch32)) {
+      return CharType::kCJK;
+    }
     return CharType::kNone;
   }
   static bool StrFind(const char32_t* string, char32_t ch32) {
@@ -108,11 +125,11 @@ class SimpleBreak {
     return false;
   }
 };
-#endif
 
 BoundaryAnalyst::BoundaryAnalyst(const char32_t* u32_content,
                                  uint32_t char_count,
-                                 LineBreakStrategy line_break_strategy) {
+                                 LineBreakStrategy line_break_strategy,
+                                 const StyleManager& style_manager) {
   // runs are left-closed right-open intervals, the last charpos of text is \0
   // character
   if (u32_content == nullptr || char_count == 0) {
@@ -128,6 +145,8 @@ BoundaryAnalyst::BoundaryAnalyst(const char32_t* u32_content,
   SimpleBreak::SimpleBoundaryBreak(u32_content, char_count, boundary_.data(),
                                    line_break_strategy);
 #endif
+  SimpleBreak::ApplyWordBreak(u32_content, char_count, boundary_.data(),
+                              style_manager);
 }
 uint32_t BoundaryAnalyst::FindNextBoundary(uint32_t start,
                                            BoundaryType type) const {

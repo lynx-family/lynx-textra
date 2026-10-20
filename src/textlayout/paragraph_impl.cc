@@ -159,7 +159,7 @@ void ParagraphImpl::FormatRunList() {
     TTASSERT(!content_.Empty() || !run_lst_.empty());
     boundary_analyst_ = std::make_unique<BoundaryAnalyst>(
         u32_content.data(), u32_content.length(),
-        paragraph_style_.line_break_strategy_);
+        paragraph_style_.line_break_strategy_, *style_manager_);
     TTASSERT(u32_content.length() == GetCharCount());
 
     std::vector<bool> must_split_run_pos(GetCharCount(), false);

@@ -430,6 +430,46 @@ TEST(ParagraphTest, MinIntrinsicWidthKeepsLongEnglishWord) {
   EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 80.f);
 }
 
+TEST(ParagraphTest, MinIntrinsicWidthRespectsDefaultKeepAll) {
+  auto paragraph = Paragraph::Create();
+  Style style;
+  style.SetTextSize(kIntrinsicTestGlyphWidth);
+  style.SetWordBreak(WordBreakType::kKeepAll);
+  ParagraphStyle paragraph_style;
+  paragraph_style.SetDefaultStyle(style);
+  paragraph->SetParagraphStyle(&paragraph_style);
+  paragraph->AddTextRun(nullptr, u8"中文 文本测试");
+  TestUtils::SimpleLayoutParagraphByWidth(paragraph.get(), 1000.f);
+
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 40.f);
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthAllowsBaselineBreakWithKeepAll) {
+  auto paragraph = Paragraph::Create();
+  Style style;
+  style.SetTextSize(kIntrinsicTestGlyphWidth);
+  style.SetWordBreak(WordBreakType::kKeepAll);
+  paragraph->AddTextRun(&style, u8"中文");
+  style.SetBaselineOffset(2.f);
+  paragraph->AddTextRun(&style, u8"文本");
+  TestUtils::SimpleLayoutParagraphByWidth(paragraph.get(), 1000.f);
+
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 20.f);
+}
+
+TEST(ParagraphTest, MinIntrinsicWidthRespectsKeepAllStyleRange) {
+  auto paragraph = Paragraph::Create();
+  Style style;
+  style.SetTextSize(kIntrinsicTestGlyphWidth);
+  paragraph->AddTextRun(&style, u8"中文文本");
+  Style keep_all;
+  keep_all.SetWordBreak(WordBreakType::kKeepAll);
+  paragraph->ApplyStyleInRange(keep_all, 1, 2);
+  TestUtils::SimpleLayoutParagraphByWidth(paragraph.get(), 1000.f);
+
+  EXPECT_FLOAT_EQ(paragraph->GetMinIntrinsicWidth(), 30.f);
+}
+
 TEST(ParagraphTest, MinIntrinsicWidthTrimsBreakableSpaces) {
   auto paragraph = CreateFormattedParagraph("aa    bbb");
 
