@@ -377,6 +377,7 @@ void ShaperCoreText::OnShapeText(const ShapeKey& key,
 
   CTShapingResult ct_result;
   CTFontRef prev_font = nullptr;
+  TypefaceRef run_typeface;
   for (auto k = 0; k < array_count; k++) {
     auto run = (CTRunRef)CFArrayGetValueAtIndex(array_ref, k);
     auto run_status = CTRunGetStatus(run);
@@ -392,10 +393,9 @@ void ShaperCoreText::OnShapeText(const ShapeKey& key,
     if (prev_font == nullptr || font != prev_font) {
       auto typeface = font_collection_.GetDefaultFontManager()
                           ->createTypefaceFromPlatformFont(font);
-      ct_font_lst_.push_back(typeface);
+      run_typeface = std::move(typeface);
       prev_font = font;
     }
-    TTASSERT(!ct_font_lst_.empty());
 
     std::vector<CGGlyph> ct_glyphs(glyph_count);
     std::vector<CGSize> ct_advances(glyph_count);
@@ -437,9 +437,8 @@ void ShaperCoreText::OnShapeText(const ShapeKey& key,
         ct_indices[i - 1] = cluster;
       }
     }
-    ct_result.AppendResult(ct_font_lst_.back(), ct_glyphs.data(),
-                           ct_advances.data(), ct_indices.data(),
-                           ct_position.data(),
+    ct_result.AppendResult(run_typeface, ct_glyphs.data(), ct_advances.data(),
+                           ct_indices.data(), ct_position.data(),
                            static_cast<uint32_t>(glyph_count),
                            static_cast<int32_t>(char_count), is_rtl);
   }

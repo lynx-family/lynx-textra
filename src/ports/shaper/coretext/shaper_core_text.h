@@ -88,7 +88,6 @@ class ShaperCoreText : public TTShaper {
   static void TrimSafeFontCacheLocked(SafeFontCacheState& state);
 
  private:
-  mutable std::vector<TypefaceRef> ct_font_lst_;
   mutable uint32_t tmp_buf_[SHAPER_BUFF_SIZE];
 };
 }  // namespace tttext
