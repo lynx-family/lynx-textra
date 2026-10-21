@@ -166,6 +166,10 @@ source_set("bidi") {
 }
 
 textlayout_public_headers = [
+  "$prj_root/public/textra/gradient.h",
+  "$prj_root/public/textra/platform/ark_graphics/ag_gradient.h",
+  "$prj_root/public/textra/platform/ios/coregraphics_gradient.h",
+  "$prj_root/public/textra/platform/skity/skity_gradient.h",
   "$prj_root/public/textra/macro.h",
   "$prj_root/public/textra/font_info.h",
   "$prj_root/public/textra/icu_wrapper.h",
@@ -250,6 +254,7 @@ source_set("textlayout") {
     "$prj_root/src/textlayout/run/layout_metrics.h",
     "$prj_root/src/textlayout/run/object_run.h",
     "$prj_root/src/textlayout/shape_cache.h",
+    "$prj_root/src/textlayout/style/gradient.cc",
     "$prj_root/src/textlayout/style/paragraph_style_impl.cc",
     "$prj_root/src/textlayout/style/paragraph_style_impl.h",
     "$prj_root/src/textlayout/style/style_impl.cc",

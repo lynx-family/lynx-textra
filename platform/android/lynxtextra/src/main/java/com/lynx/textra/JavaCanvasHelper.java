@@ -7,10 +7,15 @@ package com.lynx.textra;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.LinearGradient;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
+import android.graphics.RadialGradient;
 import android.graphics.Rect;
+import android.graphics.Shader;
+import android.graphics.SweepGradient;
 import android.os.Build;
 import java.io.IOException;
 
@@ -205,12 +210,14 @@ public class JavaCanvasHelper {
     float x2 = stream.readFloat();
     float y2 = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
+    boolean gradient = p.getShader() != null;
+    p.setShader(null);
     p.setColor(color_);
-    if (color_ != 0 && stroke_color_ == color_) {
+    if (!gradient && color_ != 0 && stroke_color_ == color_) {
       p.setStyle(Paint.Style.FILL_AND_STROKE);
       canvas_.drawLine(x1, y1, x2, y2, p);
     } else {
-      if (color_ != 0) {
+      if (!gradient && color_ != 0) {
         p.setStyle(Paint.Style.FILL);
         canvas_.drawLine(x1, y1, x2, y2, p);
       }
@@ -228,17 +235,19 @@ public class JavaCanvasHelper {
     float r = stream.readFloat();
     float b = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
-    p.setColor(color_);
-    if (color_ != 0 && stroke_color_ == color_) {
+    boolean gradient = p.getShader() != null;
+    p.setColor(gradient ? 0xffffffff : color_);
+    if (!gradient && color_ != 0 && stroke_color_ == color_) {
       p.setStyle(Paint.Style.FILL_AND_STROKE);
       canvas_.drawRect(l, t, r, b, p);
     } else {
-      if (color_ != 0) {
+      if (gradient || color_ != 0) {
         p.setStyle(Paint.Style.FILL);
         canvas_.drawRect(l, t, r, b, p);
       }
       if (stroke_color_ != 0) {
         p.setStyle(Paint.Style.STROKE);
+        p.setShader(null);
         p.setColor(stroke_color_);
         canvas_.drawRect(l, t, r, b, p);
       }
@@ -252,8 +261,9 @@ public class JavaCanvasHelper {
     float b = stream.readFloat();
     float radii = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
-    p.setColor(color_);
-    if (color_ != 0 && stroke_color_ == color_) {
+    boolean gradient = p.getShader() != null;
+    p.setColor(gradient ? 0xffffffff : color_);
+    if (!gradient && color_ != 0 && stroke_color_ == color_) {
       p.setStyle(Paint.Style.FILL_AND_STROKE);
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         canvas_.drawRoundRect(l, t, r, b, radii, radii, p);
@@ -261,7 +271,7 @@ public class JavaCanvasHelper {
         canvas_.drawRect(l, t, r, b, p);
       }
     } else {
-      if (color_ != 0) {
+      if (gradient || color_ != 0) {
         p.setStyle(Paint.Style.FILL);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
           canvas_.drawRoundRect(l, t, r, b, radii, radii, p);
@@ -271,6 +281,7 @@ public class JavaCanvasHelper {
       }
       if (stroke_color_ != 0) {
         p.setStyle(Paint.Style.STROKE);
+        p.setShader(null);
         p.setColor(stroke_color_);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
           canvas_.drawRoundRect(l, t, r, b, radii, radii, p);
@@ -295,17 +306,19 @@ public class JavaCanvasHelper {
     float y = stream.readFloat();
     float r = stream.readFloat();
     Paint p = ReadPaint(stream, paint_);
-    p.setColor(color_);
-    if (color_ != 0 && stroke_color_ == color_) {
+    boolean gradient = p.getShader() != null;
+    p.setColor(gradient ? 0xffffffff : color_);
+    if (!gradient && color_ != 0 && stroke_color_ == color_) {
       p.setStyle(Paint.Style.FILL_AND_STROKE);
       canvas_.drawCircle(x, y, r, p);
     } else {
-      if (color_ != 0) {
+      if (gradient || color_ != 0) {
         p.setStyle(Paint.Style.FILL);
         canvas_.drawCircle(x, y, r, p);
       }
       if (stroke_color_ != 0) {
         p.setStyle(Paint.Style.STROKE);
+        p.setShader(null);
         p.setColor(stroke_color_);
         canvas_.drawCircle(x, y, r, p);
       }
@@ -328,17 +341,19 @@ public class JavaCanvasHelper {
     ReadPath(path, stream);
     path.close();
     Paint p = ReadPaint(stream, paint_);
-    p.setColor(color_);
-    if (color_ != 0 && stroke_color_ == color_) {
+    boolean gradient = p.getShader() != null;
+    p.setColor(gradient ? 0xffffffff : color_);
+    if (!gradient && color_ != 0 && stroke_color_ == color_) {
       p.setStyle(Paint.Style.FILL_AND_STROKE);
       canvas_.drawPath(path, p);
     } else {
-      if (color_ != 0) {
+      if (gradient || color_ != 0) {
         p.setStyle(Paint.Style.FILL);
         canvas_.drawPath(path, p);
       }
       if (stroke_color_ != 0) {
         p.setStyle(Paint.Style.STROKE);
+        p.setShader(null);
         p.setColor(stroke_color_);
         canvas_.drawPath(path, p);
       }
@@ -372,17 +387,19 @@ public class JavaCanvasHelper {
     Paint p = ReadPaint(stream, paint_);
     p.setFakeBoldText(is_bold_);
     p.setTextSkewX((is_italic_ ? -0.25f : 0f) + text_skew_);
-    p.setColor(color_);
-    if (color_ != 0 && stroke_color_ == color_) {
+    boolean gradient = p.getShader() != null;
+    p.setColor(gradient ? 0xffffffff : color_);
+    if (!gradient && color_ != 0 && stroke_color_ == color_) {
       p.setStyle(Paint.Style.FILL_AND_STROKE);
       canvas_.drawText(text_, 0, char_count, x, y, p);
     } else {
-      if (color_ != 0) {
+      if (gradient || color_ != 0) {
         p.setStyle(Paint.Style.FILL);
         canvas_.drawText(text_, 0, char_count, x, y, p);
       }
       if (stroke_color_ != 0) {
         p.setStyle(Paint.Style.STROKE);
+        p.setShader(null);
         p.setColor(stroke_color_);
         canvas_.drawText(text_, 0, char_count, x, y, p);
       }
@@ -451,6 +468,7 @@ public class JavaCanvasHelper {
 
   protected Paint ReadPaint(BBufferInputStream stream, Paint painter) throws IOException {
     painter.setAntiAlias(true);
+    painter.setShader(null);
     painter.setStrokeWidth(stream.readFloat());
     color_ = stream.readInt();
     stroke_color_ = stream.readInt();
@@ -473,7 +491,42 @@ public class JavaCanvasHelper {
     is_bold_ = (flag & (1 << 2)) > 0;
     is_italic_ = (flag & (1 << 3)) > 0;
     is_underline_ = (flag & (1 << 4)) > 0;
+    if ((flag & (1 << 5)) != 0)
+      painter.setShader(readGradient(stream));
     return painter;
+  }
+
+  protected Shader readGradient(BBufferInputStream stream) throws IOException {
+    int type = stream.readByte();
+    float x = stream.readFloat();
+    float y = stream.readFloat();
+    float a = stream.readFloat();
+    float b = type == 3 ? 0 : stream.readFloat();
+    int count = stream.readInt();
+    if (type < 1 || type > 3 || count < 2 || count > stream.available() / 8) {
+      throw new IOException("Invalid Textra gradient payload");
+    }
+    int[] colors = new int[count];
+    float[] positions = new float[colors.length];
+    for (int i = 0; i < count; i++) colors[i] = stream.readInt();
+    for (int i = 0; i < count; i++) positions[i] = stream.readFloat();
+    if (type == 1) {
+      return new LinearGradient(x, y, a, b, colors, positions, Shader.TileMode.CLAMP);
+    }
+    Matrix matrix = new Matrix();
+    Shader shader;
+    if (type == 2) {
+      boolean hasZero = a == 0 || b == 0;
+      float aspectRatio = hasZero ? 1 : a / b;
+      shader = new RadialGradient(x, y, Math.max(a, 1f), colors, positions, Shader.TileMode.CLAMP);
+      if (aspectRatio != 1)
+        matrix.preScale(1, 1 / aspectRatio, x, y);
+    } else {
+      shader = new SweepGradient(x, y, colors, positions);
+      matrix.setRotate(a - 90f, x, y);
+    }
+    shader.setLocalMatrix(matrix);
+    return shader;
   }
 
   protected void ReadPath(Path path, BBufferInputStream stream) throws IOException {

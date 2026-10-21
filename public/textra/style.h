@@ -124,6 +124,12 @@ class L_EXPORT Style {
   TTColor GetForegroundColor() const;
   void SetForegroundColor(const TTColor& val);
 
+  // A caller-resolved fill in the same coordinates as the text being drawn.
+  // Independent from ForegroundColor. An explicitly null fill disables the
+  // inherited/default gradient in the applied range.
+  std::shared_ptr<const ResolvedGradient> GetForegroundGradient() const;
+  void SetForegroundGradient(std::shared_ptr<const ResolvedGradient> gradient);
+
   /**
    * @brief Background color behind text.
    *
@@ -404,6 +410,7 @@ class L_EXPORT Style {
   static constexpr AttrType TextSizeFlag = 1u << (kTextSize);
   static constexpr AttrType TextScaleFlag = 1u << (kTextScale);
   static constexpr AttrType ForegroundColorFlag = 1u << (kForegroundColor);
+  static constexpr AttrType ForegroundGradientFlag = 1u << kForegroundGradient;
   static constexpr AttrType BackgroundColorFlag = 1u << (kBackgroundColor);
   static constexpr AttrType DecorationColorFlag = 1u << (kDecorationColor);
   static constexpr AttrType DecorationTypeFlag = 1u << (kDecorationType);

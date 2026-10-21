@@ -16,6 +16,8 @@ executable("TextLayoutLiteTest") {
     "//demos/darwin/macos/ttreaderdemo/paragraph_test.cc",
     "boundary_analyst_test.cc",
     "ellipsis_foreground_color_test.cc",
+    "gradient_skity_test.cc",
+    "gradient_test.cc",
     "inline_block_test.cc",
     "justify_analyst_test.cc",
     "layout_drawer_test.cc",
@@ -67,4 +69,54 @@ executable("TextLayoutLiteTest") {
     "-Wno-unused-function",
     "-Wno-unused-private-field",
   ]
+}
+
+# Pure host tests do not require the Skity image-test dependencies.
+executable("GradientTest") {
+  testonly = true
+  sources = [
+    "gradient_test.cc",
+    "style_manager_test.cc",
+    "style_test.cc",
+  ]
+  include_dirs = [
+    "//",
+    "//public",
+  ]
+  deps = [
+    "//src:textlayout",
+    "//third_party/googletest:gmock",
+    "//third_party/googletest:gtest_main",
+  ]
+  if (is_mac) {
+    frameworks = [
+      "AppKit.framework",
+      "CoreText.framework",
+    ]
+  }
+}
+
+if (is_mac) {
+  executable("GradientCoreGraphicsTest") {
+    testonly = true
+    sources = [ "gradient_coregraphics_test.mm" ]
+    include_dirs = [ "//public" ]
+    deps = [
+      "//src:textlayout",
+      "//third_party/googletest:gtest_main",
+    ]
+    frameworks = [
+      "AppKit.framework",
+      "CoreText.framework",
+      "CoreGraphics.framework",
+    ]
+    cflags_objcc = [
+      "-fobjc-arc",
+      "-mmacosx-version-min=14.0",
+
+      # mac_canvas_base.h contains an existing unused local.
+      "-Wno-unused-variable",
+    ]
+    ldflags = [ "-mmacosx-version-min=14.0" ]
+  }
 }

@@ -9,6 +9,7 @@
 #include <textra/layout_definition.h>
 #include <textra/layout_drawer_listener.h>
 #include <textra/macro.h>
+#include <textra/platform/skia/skia_gradient.h>
 #include <textra/platform/skia/skia_painter.h>
 #include <textra/platform/skia/skia_typeface_helper.h>
 
@@ -63,25 +64,35 @@ class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
   void DrawColor(uint32_t color) override { canvas_->clear(color); }
   void DrawLine(float x1, float y1, float x2, float y2,
                 tttext::Painter* painter) override {
-    canvas_->drawLine({x1, y1}, {x2, y2}, ToSkPaint(painter));
+    DrawWithPaint(painter, ToSkPaint(painter), [&](const SkPaint& paint) {
+      canvas_->drawLine({x1, y1}, {x2, y2}, paint);
+    });
   }
   void DrawRect(float left, float top, float right, float bottom,
                 tttext::Painter* painter) override {
-    canvas_->drawRect({left, top, right, bottom}, ToSkPaint(painter));
+    DrawWithPaint(painter, ToSkPaint(painter), [&](const SkPaint& paint) {
+      canvas_->drawRect({left, top, right, bottom}, paint);
+    });
   }
   void DrawOval(float left, float top, float right, float bottom,
                 tttext::Painter* painter) override {
-    canvas_->drawOval({left, top, right, bottom}, ToSkPaint(painter));
+    DrawWithPaint(painter, ToSkPaint(painter), [&](const SkPaint& paint) {
+      canvas_->drawOval({left, top, right, bottom}, paint);
+    });
   }
   void DrawCircle(float x, float y, float radius,
                   tttext::Painter* painter) override {
-    canvas_->drawCircle(x, y, radius, ToSkPaint(painter));
+    DrawWithPaint(painter, ToSkPaint(painter), [&](const SkPaint& paint) {
+      canvas_->drawCircle(x, y, radius, paint);
+    });
   }
   void DrawArc(float left, float top, float right, float bottom,
                float startAngle, float sweepAngle, bool useCenter,
                tttext::Painter* painter) override {
-    canvas_->drawArc({left, top, right, bottom}, startAngle, sweepAngle,
-                     useCenter, ToSkPaint(painter));
+    DrawWithPaint(painter, ToSkPaint(painter), [&](const SkPaint& paint) {
+      canvas_->drawArc({left, top, right, bottom}, startAngle, sweepAngle,
+                       useCenter, paint);
+    });
   }
   void DrawArcTo(float start_x, float start_y, float mid_x, float mid_y,
                  float end_x, float end_y, float radius,
@@ -92,7 +103,9 @@ class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
     SkPoint end{end_x, end_y};
     path.moveTo(start);
     path.arcTo(mid, end, radius);
-    canvas_->drawPath(path, ToSkPaint(painter));
+    DrawWithPaint(painter, ToSkPaint(painter), [&](const SkPaint& paint) {
+      canvas_->drawPath(path, paint);
+    });
   }
   void DrawPath(tttext::Path* path, tttext::Painter* painter) override {
     // SkPath sk_path;
@@ -162,15 +175,23 @@ class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
                 uint32_t text_bytes, float x, float y,
                 tttext::Painter* painter) override {
     auto typeface = reinterpret_cast<const tttext::SkiaTypefaceHelper*>(font);
+    const auto& paint = ToSkPaint(painter);
     SkFont sk_font(typeface->GetSkTypeface(), painter->GetTextSize());
-    canvas_->drawSimpleText(text, text_bytes, SkTextEncoding::kUTF8, x, y,
-                            sk_font, ToSkPaint(painter));
+    if (painter->GetFillGradient() && &paint == &painter_) {
+      sk_font.setEmbolden(painter->IsBold());
+      sk_font.setSkewX((painter->IsItalic() ? tttext::FAKE_ITALIC_SKEW : 0) +
+                       painter->GetTextSkew());
+    }
+    DrawWithPaint(painter, paint, [&](const SkPaint& text_paint) {
+      canvas_->drawSimpleText(text, text_bytes, SkTextEncoding::kUTF8, x, y,
+                              sk_font, text_paint);
+    });
     if (painter->IsUnderLine()) {
       auto width = sk_font.measureText(text, text_bytes, SkTextEncoding::kUTF8);
       SkFontMetrics sk_font_metrics{};
       sk_font.getMetrics(&sk_font_metrics);
       canvas_->drawLine(x, y + sk_font_metrics.fDescent, x + width,
-                        y + sk_font_metrics.fDescent, ToSkPaint(painter));
+                        y + sk_font_metrics.fDescent, paint);
     }
   }
   void DrawGlyphs(const tttext::ITypefaceHelper* font, uint32_t glyph_count,
@@ -181,8 +202,13 @@ class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
       return;
     }
     auto typeface = reinterpret_cast<const tttext::SkiaTypefaceHelper*>(font);
+    const auto& paint = ToSkPaint(painter);
     SkFont sk_font(typeface->GetSkTypeface(), painter->GetTextSize(), 1,
                    painter->IsItalic() ? tttext::FAKE_ITALIC_SKEW : 0);
+    if (painter->GetFillGradient() && &paint == &painter_) {
+      sk_font.setEmbolden(painter->IsBold());
+      sk_font.setSkewX(sk_font.getSkewX() + painter->GetTextSkew());
+    }
     SkTextBlobBuilder builder;
     auto run_buffer = builder.allocRunPosH(sk_font, glyph_count, 0, nullptr);
     for (uint32_t k = 0; k < glyph_count; k++) {
@@ -205,7 +231,9 @@ class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
       }
     }
 
-    canvas_->drawTextBlob(blob, origin_x, origin_y, ToSkPaint(painter));
+    DrawWithPaint(painter, paint, [&](const SkPaint& text_paint) {
+      canvas_->drawTextBlob(blob, origin_x, origin_y, text_paint);
+    });
   }
   void DrawRunDelegate(const tttext::RunDelegate* run_delegate, float left,
                        float top, float right, float bottom,
@@ -221,13 +249,29 @@ class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
 
   void DrawRoundRect(float left, float top, float right, float bottom,
                      float radius, tttext::Painter* painter) override {
-    canvas_->drawRoundRect({left, top, right, bottom}, radius, radius,
-                           ToSkPaint(painter));
+    DrawWithPaint(painter, ToSkPaint(painter), [&](const SkPaint& paint) {
+      canvas_->drawRoundRect({left, top, right, bottom}, radius, radius, paint);
+    });
   }
 
   SkCanvas* GetSkCanvas() const { return canvas_; }
 
  private:
+  template <typename Draw>
+  void DrawWithPaint(const tttext::Painter* painter, const SkPaint& paint,
+                     Draw draw) {
+    draw(paint);
+    if (painter->GetFillGradient() && &paint == &painter_ &&
+        painter->GetStrokeColor() != tttext::TTColor::UNDEFINED) {
+      auto stroke = paint;
+      stroke.setShader(nullptr);
+      stroke.setColor(painter->GetStrokeColor());
+      stroke.setStrokeWidth(painter->GetStrokeWidth());
+      stroke.setStyle(SkPaint::kStroke_Style);
+      draw(stroke);
+    }
+  }
+
   SkPaint& ToSkPaint(tttext::Painter* painter) {
     auto* skia_painter = TTDYNAMIC_CAST<tttext::SkiaPainter*>(painter);
     if (skia_painter != nullptr && skia_painter->sk_paint_ != nullptr) {
@@ -236,6 +280,7 @@ class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
       }
       return *skia_painter->sk_paint_;
     }
+    painter_.setShader(nullptr);
     painter_.setAntiAlias(true);
     painter_.setStrokeCap(ToSkPaintCap(painter->GetCap()));
     bool need_fill = false;
@@ -258,6 +303,11 @@ class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
                                   tttext::FAKE_BOLD_RATE());
     } else {
       painter_.setStrokeWidth(painter->GetStrokeWidth());
+    }
+    if (painter->GetFillGradient()) {
+      painter_.setStyle(SkPaint::kFill_Style);
+      painter_.setColor(SK_ColorWHITE);
+      painter_.setShader(tttext::MakeSkiaGradient(*painter->GetFillGradient()));
     }
     return painter_;
   }
