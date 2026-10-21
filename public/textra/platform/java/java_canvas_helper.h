@@ -182,7 +182,34 @@ class JavaCanvasHelper : public ICanvasHelper {
       flag = flag | (1 << 4);
     }
     flag = flag | (static_cast<int8_t>(painter->GetCap()) & 0x3);
+    if (painter->GetFillGradient()) flag |= (1 << 5);
     stream_.WriteInt8(flag);
+    if (const auto& gradient = painter->GetFillGradient()) {
+      stream_.WriteInt8(static_cast<int8_t>(gradient->type));
+      switch (gradient->type) {
+        case GradientType::kLinear:
+          stream_.WriteFloat(gradient->start.x);
+          stream_.WriteFloat(gradient->start.y);
+          stream_.WriteFloat(gradient->end.x);
+          stream_.WriteFloat(gradient->end.y);
+          break;
+        case GradientType::kRadial:
+          stream_.WriteFloat(gradient->center.x);
+          stream_.WriteFloat(gradient->center.y);
+          stream_.WriteFloat(gradient->radius_x);
+          stream_.WriteFloat(gradient->radius_y);
+          break;
+        case GradientType::kConic:
+          stream_.WriteFloat(gradient->center.x);
+          stream_.WriteFloat(gradient->center.y);
+          stream_.WriteFloat(gradient->start_angle);
+          break;
+      }
+      stream_.WriteInt32(static_cast<int32_t>(gradient->colors.size()));
+      for (auto color : gradient->colors)
+        stream_.WriteInt32(static_cast<int32_t>(color));
+      for (auto position : gradient->positions) stream_.WriteFloat(position);
+    }
   }
 
  protected:

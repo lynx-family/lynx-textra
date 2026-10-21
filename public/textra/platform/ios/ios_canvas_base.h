@@ -10,6 +10,7 @@
 #import <UIKit/UIKit.h>
 #include <textra/i_canvas_helper.h>
 #include <textra/layout_definition.h>
+#include <textra/platform/ios/coregraphics_gradient.h>
 #include <textra/platform/ios/typeface_coretext.h>
 
 #include <memory>
@@ -293,6 +294,7 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     CGContextSaveGState(context_);
     auto text_mat = CGAffineTransformIdentity;
     auto text_skew = painter->GetTextSkew();
+    float bold_width = 0;
     if (painter->IsBold() || painter->IsItalic()) {
       NSDictionary* traits =
           (__bridge_transfer NSDictionary*)CTFontCopyTraits(ct_font);
@@ -304,6 +306,7 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
              reinterpret_cast<NSNumber*>(obj).doubleValue < 0.001)) {
           // fake bold
           auto size = CTFontGetSize(ct_font);
+          bold_width = size / 40.0;
           CGContextSetTextDrawingMode(context_, kCGTextFillStroke);
           CGContextSetLineWidth(context_, size / 40.0);
           CGContextSetRGBStrokeColor(
@@ -328,8 +331,25 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     CGContextSetTextMatrix(context_, text_mat);
     CGContextTranslateCTM(context_, ox, oy);
     CGContextScaleCTM(context_, 1, -1);
-    CTFontDrawGlyphs(ct_font, cg_glyphs.data(), cg_position.data(), glyph_count,
-                     context_);
+    // Color glyphs keep their native rendering instead of an outline mask.
+    if (painter->GetFillGradient() &&
+        !(CTFontGetSymbolicTraits(ct_font) & kCTFontColorGlyphsTrait)) {
+      CGContextSaveGState(context_);
+      ClipGradientGlyphs(context_, ct_font, cg_glyphs.data(),
+                         cg_position.data(), glyph_count, text_mat, bold_width);
+      CGContextScaleCTM(context_, 1, -1);
+      CGContextTranslateCTM(context_, -ox, -oy);
+      DrawCoreGraphicsGradient(context_, *painter->GetFillGradient());
+      CGContextRestoreGState(context_);
+      if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
+        CGContextSetTextDrawingMode(context_, kCGTextStroke);
+        CTFontDrawGlyphs(ct_font, cg_glyphs.data(), cg_position.data(),
+                         glyph_count, context_);
+      }
+    } else {
+      CTFontDrawGlyphs(ct_font, cg_glyphs.data(), cg_position.data(),
+                       glyph_count, context_);
+    }
     CGContextRestoreGState(context_);
     if (painter->IsUnderLine()) {
       auto underline_y = CTFontGetUnderlinePosition(ct_font);

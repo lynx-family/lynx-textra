@@ -47,6 +47,7 @@ StyleImpl& StyleImpl::operator=(const StyleImpl& other) {
   text_size_ = other.text_size_;
   text_scale_ = other.text_scale_;
   fg_color_ = other.fg_color_;
+  fg_gradient_ = other.fg_gradient_;
   bg_color_ = other.bg_color_;
   decoration_color_ = other.decoration_color_;
   decoration_type_ = other.decoration_type_;
@@ -128,6 +129,13 @@ TTColor Style::GetForegroundColor() const {
 }
 void Style::SetForegroundColor(const TTColor& val) {
   impl_->SetForegroundColor(val);
+}
+std::shared_ptr<const ResolvedGradient> Style::GetForegroundGradient() const {
+  return impl_->GetForegroundGradient();
+}
+void Style::SetForegroundGradient(
+    std::shared_ptr<const ResolvedGradient> gradient) {
+  impl_->SetForegroundGradient(std::move(gradient));
 }
 TTColor Style::GetBackgroundColor() const {
   return impl_->GetBackgroundColor();

@@ -5,9 +5,12 @@
 #ifndef PUBLIC_TEXTRA_PAINTER_H_
 #define PUBLIC_TEXTRA_PAINTER_H_
 
+#include <textra/gradient.h>
 #include <textra/tt_color.h>
 
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace ttoffice {
@@ -71,6 +74,12 @@ class Painter {
   // }
   void SetFillColor(uint32_t color) { fill_color_ = color; }
   TTColor GetFillColor() const { return fill_color_; }
+  void SetFillGradient(std::shared_ptr<const ResolvedGradient> gradient) {
+    fill_gradient_ = std::move(gradient);
+  }
+  const std::shared_ptr<const ResolvedGradient>& GetFillGradient() const {
+    return fill_gradient_;
+  }
   void SetStrokeColor(TTColor color) { stroke_color_ = color; }
   TTColor GetStrokeColor() const { return stroke_color_; }
   float GetStrokeWidth() const { return stroke_width_; }
@@ -102,6 +111,7 @@ class Painter {
 
  private:
   TTColor fill_color_;
+  std::shared_ptr<const ResolvedGradient> fill_gradient_;
   TTColor stroke_color_;
   float stroke_width_;
   float stroke_miter_;

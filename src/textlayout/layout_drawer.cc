@@ -338,9 +338,10 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
     if (style_manager != nullptr && run->GetType() != RunType::kGhostRun) {
       style_manager->GetStyleRange(
           &style_range, run->GetStartCharPos() + piece_start,
-          Style::ForegroundColorFlag | Style::ForegroundPainterFlag |
-              Style::BaselineOffsetFlag | Style::TextStrokeStyleFlag |
-              Style::TextShadowListFlag | Style::TextSkewFlag);
+          Style::ForegroundColorFlag | Style::ForegroundGradientFlag |
+              Style::ForegroundPainterFlag | Style::BaselineOffsetFlag |
+              Style::TextStrokeStyleFlag | Style::TextShadowListFlag |
+              Style::TextSkewFlag);
       piece_end = std::min(char_end_pos, style_range.GetRange().GetEnd() -
                                              run->GetStartCharPos());
       style = &style_range.GetStyle();
@@ -356,6 +357,11 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
       }
       painter->SetTextSize(layout_style.GetScaledTextSize());
       painter->SetFillColor(style->GetForegroundColor());
+      if (style->HasStyleAttribute(Style::ForegroundGradientFlag) &&
+          style->GetForegroundGradient()) {
+        painter->SetFillGradient(style->GetForegroundGradient());
+        painter->SetFillColor(TTColor::WHITE);
+      }
       painter->SetBold(layout_style.GetBold());
       painter->SetItalic(layout_style.GetItalic());
       painter->SetStrokeColor(style->GetTextStrokeColor());
@@ -381,7 +387,7 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
         piece_end++;
       }
     } else {
-      y += style->GetBaselineOffset();
+      const auto piece_y = y + style->GetBaselineOffset();
       std::vector<uint16_t> glyphs(glyph_count);
       std::vector<const ITypefaceHelper*> fonts(glyph_count);
       std::vector<float> advance(glyph_count);
@@ -394,15 +400,16 @@ float LayoutDrawer::DrawTextRun(const BaseRun* run, uint32_t start_char_in_run,
         fonts[k] = result.Font(invert_glyph_id).get();
         if (k > 0 && fonts[k] != fonts[k - 1]) {
           DrawGlyphsOrText(run, glyphs.data() + prev_start, k - prev_start,
-                           prev_glyph_id + glyph_start, fonts[prev_start], x, y,
-                           pos_x + prev_start, pos_y + prev_start, painter);
+                           prev_glyph_id + glyph_start, fonts[prev_start], x,
+                           piece_y, pos_x + prev_start, pos_y + prev_start,
+                           painter);
           prev_start = k;
           prev_glyph_id = invert_glyph_id - glyph_start;
         }
       }
       DrawGlyphsOrText(run, glyphs.data() + prev_start,
                        glyph_count - prev_start, prev_glyph_id + glyph_start,
-                       fonts[prev_start], x, y, pos_x + prev_start,
+                       fonts[prev_start], x, piece_y, pos_x + prev_start,
                        pos_y + prev_start, painter);
     }
     piece_start = piece_end;

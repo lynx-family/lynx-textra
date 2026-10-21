@@ -21,6 +21,7 @@
 #include <textra/layout_definition.h>
 #include <textra/macro.h>
 #include <textra/painter.h>
+#include <textra/platform/ark_graphics/ag_gradient.h>
 #include <textra/platform/ark_graphics/ag_typeface_helper.h>
 
 #include <memory>
@@ -195,6 +196,15 @@ class AGCanvasHelper : public ICanvasHelper {
     OH_Drawing_CanvasSave(canvas_);
     auto* font_helper = TTDYNAMIC_CAST<const AGTypefaceHelper*>(font);
     auto* oh_font = font_helper->GetTypeface();
+    auto* const gradient = painter->GetFillGradient()
+                               ? MakeAGGradient(*painter->GetFillGradient())
+                               : nullptr;
+    const auto old_skew = OH_Drawing_FontGetTextSkewX(oh_font);
+    const auto old_bold = OH_Drawing_FontIsFakeBoldText(oh_font);
+    OH_Drawing_FontSetTextSkewX(
+        oh_font,
+        (painter->IsItalic() ? FAKE_ITALIC_SKEW : 0) + painter->GetTextSkew());
+    OH_Drawing_FontSetFakeBoldText(oh_font, painter->IsBold());
     OH_Drawing_TextBlobBuilder* builder = OH_Drawing_TextBlobBuilderCreate();
     const OH_Drawing_RunBuffer* runBuffer =
         OH_Drawing_TextBlobBuilderAllocRunPos(builder, oh_font, glyph_count,
@@ -205,10 +215,15 @@ class AGCanvasHelper : public ICanvasHelper {
       runBuffer->pos[idx * 2 + 1] = y[idx];
     }
     OH_Drawing_TextBlob* textBlob = OH_Drawing_TextBlobBuilderMake(builder);
+    OH_Drawing_FontSetTextSkewX(oh_font, old_skew);
+    OH_Drawing_FontSetFakeBoldText(oh_font, old_bold);
     auto* brush = OH_Drawing_BrushCreate();
     auto* pen = OH_Drawing_PenCreate();
-    if (painter->GetFillColor() != TTColor::UNDEFINED) {
-      OH_Drawing_BrushSetColor(brush, painter->GetFillColor());
+    if (gradient || painter->GetFillColor() != TTColor::UNDEFINED) {
+      OH_Drawing_BrushSetColor(
+          brush,
+          gradient ? TTColor::WHITE : painter->GetFillColor().GetPlainColor());
+      if (gradient) OH_Drawing_BrushSetShaderEffect(brush, gradient);
       OH_Drawing_CanvasAttachBrush(canvas_, brush);
     }
     if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
@@ -218,24 +233,14 @@ class AGCanvasHelper : public ICanvasHelper {
       OH_Drawing_CanvasAttachPen(canvas_, pen);
     }
 
-    if (painter->IsBold() && painter->GetStrokeColor() == TTColor::UNDEFINED) {
-      pen = OH_Drawing_PenCreate();
-      OH_Drawing_PenSetColor(pen, painter->GetFillColor());
-      OH_Drawing_PenSetWidth(pen, painter->GetTextSize() / 40);
-      OH_Drawing_PenSetCap(pen, ToAGPenLineCap(painter->GetCap()));
-      OH_Drawing_CanvasAttachPen(canvas_, pen);
-    }
-    OH_Drawing_CanvasTranslate(canvas_, origin_x, origin_y);
-    if (painter->IsItalic()) {
-      OH_Drawing_CanvasSkew(canvas_, FAKE_ITALIC_SKEW, 0);
-    }
-    OH_Drawing_CanvasDrawTextBlob(canvas_, textBlob, 0, 0);
+    OH_Drawing_CanvasDrawTextBlob(canvas_, textBlob, origin_x, origin_y);
     OH_Drawing_CanvasDetachBrush(canvas_);
     OH_Drawing_BrushDestroy(brush);
 
     OH_Drawing_CanvasDetachPen(canvas_);
     OH_Drawing_PenDestroy(pen);
     OH_Drawing_CanvasRestore(canvas_);
+    if (gradient) OH_Drawing_ShaderEffectDestroy(gradient);
     OH_Drawing_TextBlobDestroy(textBlob);
     OH_Drawing_TextBlobBuilderDestroy(builder);
   }
