@@ -13,11 +13,11 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Python Setup
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install Common Dependencies
         uses: ./.github/actions/common-deps
       - name: Build AAR with Gradle
@@ -35,7 +35,7 @@ jobs:
           find . -name "*release.aar" -exec cp {} android-build/lynxtextra-${TAG_NAME}.aar \;
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: |
             android-build/lynxtextra-${{ github.event.release.tag_name }}.aar
@@ -61,7 +61,7 @@ jobs:
         id: build_artifact
 
       - name: Publish artifact to maven
-        uses: lynx-infra/maven-publish-action@8f547cf037360752cc9f195d04c2d8f327fee434
+        uses: ./.github/actions/publish-maven
         with:
           portal_api_token: ${{ secrets.PORTAL_API_TOKEN }}
           artifact_path_list: ${{ steps.build_artifact.outputs.artifact_list }}
@@ -73,7 +73,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Download Source
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 2
           ref: ${{ github.event.pull_request.head.sha }}
@@ -118,7 +118,7 @@ jobs:
           ruby -rerb -e 'puts ERB.new(File.read("LynxTextra.podspec.erb")).result' > ./LynxTextra.podspec
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: |
             demos/darwin/ios/TextlayoutDemo/LynxTextra-${{ github.event.release.tag_name }}.xcframework.zip
