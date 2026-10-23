@@ -1,0 +1,41 @@
+name: Publish Maven artifacts
+
+description: Publish artifacts to Maven Central using a pinned publisher.
+
+inputs:
+  artifact_path_list:
+    description: Artifact local path list
+    required: true
+  portal_api_token:
+    description: Portal API token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout publisher
+      uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      with:
+        repository: lynx-infra/maven-publish-action
+        ref: 53b4da2f23f9cfc4e905b135eda2724fcf5a0f0e
+        path: maven-publish-action
+
+    - name: Set up Python
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      with:
+        python-version: "3.13"
+
+    - name: Install publisher dependencies
+      shell: bash
+      working-directory: maven-publish-action
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install -r requirements.txt
+
+    - name: Publish artifacts
+      shell: bash
+      working-directory: maven-publish-action
+      env:
+        PORTAL_API_TOKEN: ${{ inputs.portal_api_token }}
+        ARTIFACT_PATH_LIST: ${{ inputs.artifact_path_list }}
+      run: python3 ./src/publish.py "$PORTAL_API_TOKEN" "$ARTIFACT_PATH_LIST"
