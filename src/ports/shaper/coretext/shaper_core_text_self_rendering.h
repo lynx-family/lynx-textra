@@ -121,7 +121,6 @@ class ShaperCoreTextSelfRendering : public TTShaper {
   static void TrimSafeFontCacheLocked(SafeFontCacheState& state);
 
  private:
-  mutable std::vector<TypefaceRef> ct_font_lst_;
   mutable uint32_t tmp_buf_[SELF_RENDERING_SHAPER_BUFF_SIZE];
 };
 }  // namespace tttext
