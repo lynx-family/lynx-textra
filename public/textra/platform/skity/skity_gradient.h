@@ -7,8 +7,10 @@
 #include <textra/gradient.h>
 
 #include <algorithm>
+#include <memory>
 #include <skity/effect/shader.hpp>
 #include <skity/geometry/matrix.hpp>
+#include <vector>
 
 namespace ttoffice {
 namespace tttext {
