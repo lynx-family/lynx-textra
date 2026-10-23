@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <memory>
 
 namespace ttoffice {
 namespace tttext {
@@ -106,6 +107,12 @@ void StyleManager::ApplyStyleInRange(const StyleImpl& style,
       text_shadow_list_.push_back(style.GetTextShadowList());
       value = reinterpret_cast<AttributesRangeList::ValueType>(
           &text_shadow_list_.back());
+    } else if (id == kForegroundGradient) {
+      auto gradient = std::find(gradients_.begin(), gradients_.end(),
+                                style.GetForegroundGradient());
+      if (gradient == gradients_.end())
+        gradient = gradients_.insert(gradient, style.GetForegroundGradient());
+      value = reinterpret_cast<AttributesRangeList::ValueType>(&*gradient);
     }
     constexpr auto max_end = Range::MaxIndex();
     const auto end = len > max_end - start ? max_end : start + len;
@@ -203,6 +210,10 @@ void StyleManager::SetStyle(StyleImpl* style, uint64_t value,
   switch (type) {
     case AttributeType::kForegroundColor:
       return style->SetForegroundColor(static_cast<uint32_t>(value));
+    case AttributeType::kForegroundGradient:
+      return style->SetForegroundGradient(
+          *reinterpret_cast<const std::shared_ptr<const ResolvedGradient>*>(
+              value));
     case AttributeType::kBackgroundColor:
       return style->SetBackgroundColor(static_cast<uint32_t>(value));
     case AttributeType::kDecorationColor:
@@ -247,6 +258,8 @@ AttributesRangeList::ValueType StyleManager::GetStyleValue(
   switch (type) {
     case AttributeType::kForegroundColor:
       return style->GetForegroundColor();
+    case AttributeType::kForegroundGradient:
+      return reinterpret_cast<uint64_t>(&style->GetForegroundGradient());
     case AttributeType::kBackgroundColor:
       return style->GetBackgroundColor();
     case AttributeType::kDecorationColor:

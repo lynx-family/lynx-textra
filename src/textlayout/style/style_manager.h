@@ -11,6 +11,7 @@
 
 #include <list>
 #include <map>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -96,13 +97,7 @@ class StyleManager {
   };
 
   StyleManager() { style_list_[kDecorationType].SetMergeRange(false); }
-  StyleManager(const StyleManager& other)
-      : extra_style_list_(other.extra_style_list_),
-        default_style_(other.default_style_) {
-    for (AttrType k = 0; k < kMaxAttrType; k++) {
-      style_list_[k] = other.style_list_[k];
-    }
-  }
+  StyleManager(const StyleManager& other) = delete;
 
  private:
   template <class T>
@@ -382,6 +377,7 @@ class StyleManager {
   AttributesRangeList style_list_[kMaxAttrType];
   std::map<AttrType, AttributesRangeList> extra_style_list_;
   StyleImpl default_style_;
+  std::list<std::shared_ptr<const ResolvedGradient>> gradients_;
   std::list<TextShadowList> text_shadow_list_;
   std::vector<StyleState> style_state_stack_;
 };

@@ -8,6 +8,7 @@
 #include <textra/i_canvas_helper.h>
 #include <textra/layout_definition.h>
 #include <textra/painter.h>
+#include <textra/platform/skity/skity_gradient.h>
 #include <textra/platform/skity/skity_typeface_helper.h>
 
 #include <memory>
@@ -57,12 +58,22 @@ class SkityCanvasHelper : public ICanvasHelper {
   void DrawLine(float x1, float y1, float x2, float y2,
                 tttext::Painter* painter) override {
     skity::Paint* paint = ToSkityPaint(painter);
-    canvas_->DrawLine(x1, y1, x2, y2, *paint);
+    if (paint == &paint_ && painter->GetFillGradient()) {
+      auto stroke = *paint;
+      stroke.SetShader(nullptr);
+      stroke.SetColor(painter->GetStrokeColor());
+      canvas_->DrawLine(x1, y1, x2, y2, stroke);
+    } else {
+      canvas_->DrawLine(x1, y1, x2, y2, *paint);
+    }
   }
   void DrawRect(float left, float top, float right, float bottom,
                 tttext::Painter* painter) override {
     skity::Paint* paint = ToSkityPaint(painter);
-    canvas_->DrawRect(skity::Rect::MakeLTRB(left, top, right, bottom), *paint);
+    DrawWithPaint(painter, *paint, [&](const skity::Paint& draw_paint) {
+      canvas_->DrawRect(skity::Rect::MakeLTRB(left, top, right, bottom),
+                        draw_paint);
+    });
   }
   void DrawOval(float left, float top, float right, float bottom,
                 tttext::Painter* painter) override {}
@@ -110,6 +121,8 @@ class SkityCanvasHelper : public ICanvasHelper {
     const auto& shadow_list = painter->GetShadowList();
     if (!shadow_list.empty()) {
       skity::Paint shadow_paint = *paint;
+      if (paint == &paint_ && painter->GetFillGradient())
+        shadow_paint.SetShader(nullptr);
       for (auto& shadow : shadow_list) {
         shadow_paint.SetColor(shadow.color_);
         if (shadow.blur_radius_ != 0) {
@@ -123,7 +136,9 @@ class SkityCanvasHelper : public ICanvasHelper {
       }
     }
 
-    canvas_->DrawTextBlob(text_blob, ox, oy, *paint);
+    DrawWithPaint(painter, *paint, [&](const skity::Paint& draw_paint) {
+      canvas_->DrawTextBlob(text_blob, ox, oy, draw_paint);
+    });
   }
   void DrawRunDelegate(const RunDelegate* delegate, float left, float top,
                        float right, float bottom,
@@ -161,6 +176,11 @@ class SkityCanvasHelper : public ICanvasHelper {
       paint_.SetStyle(need_fill ? skity::Paint::kStrokeAndFill_Style
                                 : skity::Paint::kStroke_Style);
     }
+    if (painter->GetFillGradient()) {
+      paint_.SetStyle(skity::Paint::kFill_Style);
+      paint_.SetColor(TTColor::WHITE);
+      paint_.SetShader(MakeSkityGradient(*painter->GetFillGradient()));
+    }
     return &paint_;
   }
 
@@ -177,6 +197,20 @@ class SkityCanvasHelper : public ICanvasHelper {
   }
 
  private:
+  template <typename Draw>
+  void DrawWithPaint(const Painter* painter, const skity::Paint& paint,
+                     Draw draw) {
+    draw(paint);
+    if (&paint == &paint_ && painter->GetFillGradient() &&
+        painter->GetStrokeColor() != TTColor::UNDEFINED) {
+      auto stroke = paint;
+      stroke.SetShader(nullptr);
+      stroke.SetColor(painter->GetStrokeColor());
+      stroke.SetStyle(skity::Paint::kStroke_Style);
+      draw(stroke);
+    }
+  }
+
   skity::Canvas* canvas_;
   skity::Paint paint_{};
 };

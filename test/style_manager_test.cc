@@ -211,14 +211,6 @@ TEST(AttributesRangeListTest, SetRangeValue) {
   range_list.Clear();
 }
 
-TEST(StyleManager, CopyConstructor) {
-  StyleManager original;
-  TTColor color(TTColor::BLUE);
-  original.SetForegroundColor(color, 1, 5);
-  StyleManager copy(original);
-  EXPECT_EQ(copy.GetForegroundColor(2), color);
-}
-
 TEST(StyleManager, SetParagraphStyle) {
   StyleManager manager;
   TTColor fg_color(TTColor::RED);

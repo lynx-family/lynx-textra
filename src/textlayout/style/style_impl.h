@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace ttoffice {
@@ -59,6 +60,13 @@ class StyleImpl {
     ClearShapeStyle();
   }
   TTColor GetForegroundColor() const { return fg_color_; }
+  const std::shared_ptr<const ResolvedGradient>& GetForegroundGradient() const {
+    return fg_gradient_;
+  }
+  void SetForegroundGradient(std::shared_ptr<const ResolvedGradient> gradient) {
+    fg_gradient_ = std::move(gradient);
+    flag_ |= Style::ForegroundGradientFlag;
+  }
   void SetForegroundColor(const TTColor& val) {
     fg_color_ = val;
     flag_ |= Style::ForegroundColorFlag;
@@ -190,6 +198,7 @@ class StyleImpl {
   float text_size_;
   float text_scale_;
   TTColor fg_color_;
+  std::shared_ptr<const ResolvedGradient> fg_gradient_;
   TTColor bg_color_;
   TTColor decoration_color_;
   DecorationType decoration_type_;
