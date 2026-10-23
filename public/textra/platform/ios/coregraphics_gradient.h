@@ -73,11 +73,11 @@ inline void DrawCoreGraphicsConicGradientFallback(CGContextRef context,
                                    position);
       const size_t hi = static_cast<size_t>(next - fill.positions.begin());
       uint32_t color;
-      if (hi == 0)
+      if (hi == 0) {
         color = fill.colors.front();
-      else if (hi == fill.colors.size())
+      } else if (hi == fill.colors.size()) {
         color = fill.colors.back();
-      else {
+      } else {
         const float t = (position - fill.positions[hi - 1]) /
                         (fill.positions[hi] - fill.positions[hi - 1]);
         color = 0;
