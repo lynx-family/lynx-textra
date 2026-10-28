@@ -30,12 +30,6 @@ deps = {
         "commit": "f90543d272e2e2edc5b3cdf8ead0b5b3eebceef5",
         "ignore_in_git": True,
     },
-    "third_party/wuffs": {
-        "type": "git",
-        "url": "https://github.com/google/wuffs-mirror-release-c.git",
-        "ignore_in_git": True,
-        "commit": "a29749ebe0be57d2b19d8406475bd2326d0f1a85",
-    },
     'third_party/skity': {
         "type": "solution",
         "url": "https://github.com/lynx-family/skity",
@@ -54,6 +48,7 @@ deps = {
         "url": "https://github.com/google/wuffs-mirror-release-c.git",
         "ignore_in_git": True,
         "commit": "a29749ebe0be57d2b19d8406475bd2326d0f1a85",
+        "require": ["third_party/skity"],
     },
     "third_party/skity/third_party/libwebp": {
         "type": "git",
