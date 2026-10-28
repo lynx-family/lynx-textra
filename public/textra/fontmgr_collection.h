@@ -8,7 +8,9 @@
 #include <textra/font_info.h>
 #include <textra/i_font_manager.h>
 
+#include <array>
 #include <memory>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -38,6 +40,7 @@ class L_EXPORT FontmgrCollection {
   size_t getFontManagersCount() const;
 
   void SetDefaultSystemFontFamily(std::string familyName) {
+    DetachTypefaceCache();
     default_system_font_family_ = familyName;
   }
 
@@ -54,15 +57,19 @@ class L_EXPORT FontmgrCollection {
   void clearCaches();
 
   void SetAssetFontManager(const FontManagerRef& fontManager) {
+    DetachTypefaceCache();
     asset_font_manager_ = fontManager;
   }
   void SetDynamicFontManager(const FontManagerRef& fontManager) {
+    DetachTypefaceCache();
     dynamic_font_manager_ = fontManager;
   }
   void SetTestFontManager(const FontManagerRef& fontManager) {
+    DetachTypefaceCache();
     test_font_manager_ = fontManager;
   }
   void SetDefaultFontManager(const FontManagerRef& fontManager) {
+    DetachTypefaceCache();
     default_font_manager_ = fontManager;
   }
   FontManagerRef GetAssetFontManager() const { return asset_font_manager_; }
@@ -71,16 +78,41 @@ class L_EXPORT FontmgrCollection {
   FontManagerRef GetDefaultFontManager() const { return default_font_manager_; }
 
  private:
-  std::vector<FontManagerRef> getFontManagerOrder() const;
+  struct TypefaceCacheState {
+    mutable std::shared_mutex mutex;
+    uint64_t epoch = 0;
+    std::unordered_map<FontDescriptor, std::vector<TypefaceRef>,
+                       FontDescriptor::Hasher>
+        entries;
+  };
 
-  TypefaceRef matchTypeface(const std::string& familyName,
-                            FontStyle fontStyle) const;
+  struct FontManagerOrder {
+    std::array<FontManagerRef, 4> managers{};
+    size_t count = 0;
+
+    void push_back(const FontManagerRef& manager) {
+      managers[count++] = manager;
+    }
+    size_t size() const { return count; }
+    const FontManagerRef* begin() const { return managers.data(); }
+    const FontManagerRef* end() const { return managers.data() + count; }
+  };
+
+  FontManagerOrder getFontManagerOrder() const;
+  void DetachTypefaceCache() {
+    typeface_cache_ = std::make_shared<TypefaceCacheState>();
+  }
+
+  TypefaceRef matchTypeface(const std::string& familyName, FontStyle fontStyle,
+                            bool literal = false) const;
 
   bool fEnableFontFallback = true;
   std::string default_system_font_family_ = kDefaultFontFamily;
-  mutable std::unordered_map<FontDescriptor, std::vector<TypefaceRef>,
-                             FontDescriptor::Hasher>
-      fTypefaces;
+  // Copies made for independent TextLayout/TTShaper instances share only
+  // immutable resolved typefaces. Manager policy remains call-local; explicit
+  // clear invalidates every copy from the same font-resource generation.
+  std::shared_ptr<TypefaceCacheState> typeface_cache_ =
+      std::make_shared<TypefaceCacheState>();
   std::vector<std::string> fDefaultFamilyNames;
   FontManagerRef default_font_manager_;
   FontManagerRef asset_font_manager_;

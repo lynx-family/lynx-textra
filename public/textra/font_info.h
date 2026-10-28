@@ -7,6 +7,7 @@
 
 #include <textra/macro.h>
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -109,12 +110,18 @@ struct L_EXPORT FontDescriptor {
   std::vector<std::string> font_family_list_;
   FontStyle font_style_ = FontStyle::Normal();
   uint64_t platform_font_ = 0;
+  // Empty = legacy. Otherwise parallel to font_family_list_: true is a
+  // CSS named literal, false a CSS generic with existing platform policy.
+  std::vector<uint8_t> font_family_literals_;
   struct Hasher {
     size_t operator()(const FontDescriptor& key) const {
       size_t seed = 0;
       for (auto& font : key.font_family_list_) {
         seed ^= std::hash<std::string>()(font) + 0x9e3779b9;
       }
+      for (bool literal : key.font_family_literals_)
+        seed ^=
+            std::hash<bool>()(literal) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
       return seed ^ std::hash<int32_t>()(key.font_style_.Value()) ^
              std::hash<uint64_t>()(key.platform_font_);
     }
@@ -122,7 +129,8 @@ struct L_EXPORT FontDescriptor {
   bool operator==(const FontDescriptor& rhs) const {
     return platform_font_ == rhs.platform_font_ &&
            font_style_ == rhs.font_style_ &&
-           font_family_list_ == rhs.font_family_list_;
+           font_family_list_ == rhs.font_family_list_ &&
+           font_family_literals_ == rhs.font_family_literals_;
   }
 };
 /**

@@ -66,6 +66,23 @@ class IFontManager : public std::enable_shared_from_this<IFontManager> {
    *  most significant. If no specified bcp47 codes match, any font with the
    *  requested character will be matched.
    */
+  // Internal typed CSS generic resolution, not a literal-family lookup.
+  // Only a platform/default manager may provide this policy. An unresolved
+  // generic never becomes a raw dynamic/asset family key.
+  virtual TypefaceRef matchGenericFamily(const char* generic,
+                                         const FontStyle& style) {
+    return nullptr;
+  }
+  // Internal Canvas named-family matching. Managers without CSS aliases
+  // retain their existing lookup; aliasing adapters override both methods.
+  virtual TypefaceRef matchFamilyStyleLiteral(const char* family,
+                                              const FontStyle& style) {
+    return matchFamilyStyle(family, style);
+  }
+  virtual TypefaceRef legacyMakeTypefaceLiteral(const char* family,
+                                                FontStyle style) const {
+    return legacyMakeTypeface(family, style);
+  }
   virtual TypefaceRef matchFamilyStyleCharacter(const char familyName[],
                                                 const FontStyle&,
                                                 const char* bcp47[],
