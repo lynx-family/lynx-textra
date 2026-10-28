@@ -51,23 +51,21 @@ class ITypefaceHelper : public std::enable_shared_from_this<ITypefaceHelper> {
 
   const FontInfo& GetFontInfo(float font_size) {
     std::lock_guard<std::mutex> guard(font_info_cache_lock_);
-    auto iter = font_info_cache_.find(font_size);
-    if (iter != font_info_cache_.end()) {
-      return iter->second;
+    auto [iter, inserted] = font_info_cache_.try_emplace(font_size);
+    auto& info = iter->second;
+    if (inserted) {
+      OnCreateFontInfo(&info, font_size);
     }
-    auto& info = font_info_cache_[font_size];
-    OnCreateFontInfo(&info, font_size);
     return info;
   }
 
   const FontEmHeight& GetFontEmHeight(float font_size) {
     std::lock_guard<std::mutex> guard(font_em_height_cache_lock_);
-    auto iter = font_em_height_cache_.find(font_size);
-    if (iter != font_em_height_cache_.end()) {
-      return iter->second;
+    auto [iter, inserted] = font_em_height_cache_.try_emplace(font_size);
+    auto& em_height = iter->second;
+    if (inserted) {
+      OnCreateFontEmHeight(&em_height, font_size);
     }
-    auto& em_height = font_em_height_cache_[font_size];
-    OnCreateFontEmHeight(&em_height, font_size);
     return em_height;
   }
 

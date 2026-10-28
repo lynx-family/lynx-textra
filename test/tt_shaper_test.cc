@@ -9,8 +9,11 @@
 #include <textra/font_info.h>
 
 #include <array>
+#include <condition_variable>
 #include <initializer_list>
+#include <mutex>
 #include <numeric>
+#include <thread>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -114,6 +117,56 @@ class AdjacentFlagFontManager final : public IFontManager {
   TypefaceRef first_flag_typeface_;
   TypefaceRef second_flag_typeface_;
 };
+
+class SessionCacheFontManager final : public IFontManager {
+ public:
+  int countFamilies() const override { return 1; }
+  TypefaceRef matchFamilyStyle(const char[], const FontStyle&) override {
+    std::unique_lock lock(mutex_);
+    ++calls_;
+    entered_ = true;
+    entered_cv_.notify_all();
+    while (blocked_) release_cv_.wait(lock);
+    return typeface_;
+  }
+  TypefaceRef matchFamilyStyleCharacter(const char[], const FontStyle&,
+                                        const char*[], int, uint32_t) override {
+    return typeface_;
+  }
+  TypefaceRef makeFromFile(const char[], int) override { return nullptr; }
+  TypefaceRef legacyMakeTypeface(const char[], FontStyle) const override {
+    return typeface_;
+  }
+  void BlockNextResolve() {
+    std::lock_guard lock(mutex_);
+    blocked_ = true;
+    entered_ = false;
+  }
+  void WaitUntilEntered() {
+    std::unique_lock lock(mutex_);
+    entered_cv_.wait(lock, [this] { return entered_; });
+  }
+  void Release() {
+    std::lock_guard lock(mutex_);
+    blocked_ = false;
+    release_cv_.notify_all();
+  }
+  int calls() const {
+    std::lock_guard lock(mutex_);
+    return calls_;
+  }
+
+ private:
+  TypefaceRef typeface_ = std::make_shared<FixedMetricsTypefaceHelper>(9001);
+  mutable std::mutex mutex_;
+  std::condition_variable entered_cv_, release_cv_;
+  int calls_ = 0;
+  bool entered_ = false, blocked_ = false;
+};
+
+FontDescriptor SessionCacheDescriptor() {
+  return {{"OfficeSessionCache"}, FontStyle::Normal(), 0};
+}
 
 }  // namespace
 
@@ -576,4 +629,46 @@ TEST(TTShaper, UsesSeparateFallbackFontsForAdjacentFlagClusters) {
   EXPECT_EQ(result.FontByCharId(3), font_manager->first_flag_typeface());
   EXPECT_EQ(result.FontByCharId(4), font_manager->second_flag_typeface());
   EXPECT_EQ(result.FontByCharId(5), font_manager->second_flag_typeface());
+}
+
+TEST(FontmgrCollectionSessionCache, CopiesShareResolveAndClearInvalidatesAll) {
+  auto manager = std::make_shared<SessionCacheFontManager>();
+  FontmgrCollection first(manager);
+  auto second = first;
+  const auto descriptor = SessionCacheDescriptor();
+  ASSERT_EQ(first.findTypefaces(descriptor).size(), 1u);
+  ASSERT_EQ(second.findTypefaces(descriptor).size(), 1u);
+  EXPECT_EQ(manager->calls(), 1);
+  first.clearCaches();
+  ASSERT_EQ(second.findTypefaces(descriptor).size(), 1u);
+  EXPECT_EQ(manager->calls(), 2);
+}
+
+TEST(FontmgrCollectionSessionCache, PolicyMutationDetachesCopiedCache) {
+  auto manager = std::make_shared<SessionCacheFontManager>();
+  FontmgrCollection first(manager);
+  auto second = first;
+  const auto descriptor = SessionCacheDescriptor();
+  ASSERT_EQ(first.findTypefaces(descriptor).size(), 1u);
+  second.SetDefaultSystemFontFamily("DifferentDefault");
+  ASSERT_EQ(second.findTypefaces(descriptor).size(), 1u);
+  EXPECT_EQ(manager->calls(), 2);
+  ASSERT_EQ(first.findTypefaces(descriptor).size(), 1u);
+  EXPECT_EQ(manager->calls(), 2);
+}
+
+TEST(FontmgrCollectionSessionCache, ClearRejectsInflightOldEpochResult) {
+  auto manager = std::make_shared<SessionCacheFontManager>();
+  FontmgrCollection first(manager);
+  auto second = first;
+  const auto descriptor = SessionCacheDescriptor();
+  manager->BlockNextResolve();
+  std::thread resolving(
+      [&] { EXPECT_EQ(first.findTypefaces(descriptor).size(), 1u); });
+  manager->WaitUntilEntered();
+  second.clearCaches();
+  manager->Release();
+  resolving.join();
+  ASSERT_EQ(second.findTypefaces(descriptor).size(), 1u);
+  EXPECT_EQ(manager->calls(), 2);
 }
