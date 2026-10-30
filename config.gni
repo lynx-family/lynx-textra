@@ -12,13 +12,8 @@ if (target_cpu == "arm" || target_cpu == "arm64") {
 # global configs
 declare_args() {
   use_lru_cache = true
-
-  enable_unittests = false
-
   # select linebreak mode between "simple" and "icu"
   boundary_analyst = "simple"
-  enable_16kb_align = false
-  
   # Whether to dynamically load (dlopen) Harfbuzz .so
   dynamic_load_harfbuzz = false
   is_lvgl = false
