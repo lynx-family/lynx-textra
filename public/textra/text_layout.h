@@ -7,6 +7,7 @@
 
 #include <textra/layout_region.h>
 #include <textra/macro.h>
+#include <textra/style.h>
 
 #include <memory>
 
@@ -16,6 +17,13 @@ class Paragraph;
 class LayoutRegion;
 class FontmgrCollection;
 class TTShaper;
+class ICanvasHelper;
+
+struct InlineLayoutMetrics {
+  float width = 0;
+  float baseline = 0;
+  float descent = 0;
+};
 enum ShaperType : uint8_t {
   kSystem,
   kSelfRendering,
@@ -69,6 +77,13 @@ class L_EXPORT TextLayout {
    */
   LayoutResult LayoutEx(Paragraph* para, LayoutRegion* page,
                         TTTextContext& context) const;
+
+  // Shapes and paints the constrained one-style, one-line LTR subset without
+  // constructing Paragraph/LayoutRegion/TextLine. Returns false for inputs
+  // that require the full layout engine.
+  bool LayoutInline(const char32_t* text, uint32_t length, const Style& style,
+                    WriteDirection direction, ICanvasHelper* canvas,
+                    InlineLayoutMetrics* metrics, TTTextContext& context) const;
 
  private:
   std::unique_ptr<TTShaper> shaper_;
