@@ -20,9 +20,13 @@ public class BBufferInputStream {
   }
 
   public void setBuffer(byte[] buf) {
-    byteBuffer = ByteBuffer.wrap(buf);
-    byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-    buffer = buf;
+    if (byteBuffer != null && buffer == buf) {
+      byteBuffer.clear();
+    } else {
+      byteBuffer = ByteBuffer.wrap(buf);
+      byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+      buffer = buf;
+    }
   }
 
   public int available() {

@@ -17,6 +17,7 @@
 #include "src/textlayout/run/ghost_run.h"
 #include "src/textlayout/run/object_run.h"
 #include "src/textlayout/shape_cache.h"
+#include "src/textlayout/single_line_paragraph_impl.h"
 #include "src/textlayout/style/paragraph_style_impl.h"
 #include "src/textlayout/style/style_impl.h"
 #include "src/textlayout/tt_shaper.h"
@@ -33,6 +34,11 @@ float ParagraphImpl::GetBaselineOffset(uint32_t char_pos) const {
 
 std::unique_ptr<Paragraph> Paragraph::Create() {
   return std::make_unique<ParagraphImpl>();
+}
+std::unique_ptr<Paragraph> Paragraph::Create(ParagraphType type) {
+  if (type == ParagraphType::kSingleLine)
+    return std::make_unique<SingleLineParagraphImpl>();
+  return Create();
 }
 ParagraphImpl::ParagraphImpl()
     : Paragraph(),

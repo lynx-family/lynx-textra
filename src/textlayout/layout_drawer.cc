@@ -17,6 +17,7 @@
 #include "src/textlayout/layout_measurer.h"
 #include "src/textlayout/run/ghost_run.h"
 #include "src/textlayout/run/object_run.h"
+#include "src/textlayout/single_line_paragraph_impl.h"
 #include "src/textlayout/style/style_impl.h"
 #include "src/textlayout/style/style_manager.h"
 #include "src/textlayout/text_line_impl.h"
@@ -47,6 +48,91 @@ void LayoutDrawer::DrawLayoutPage(LayoutRegion* layout_page) {
   canvas_->DrawRect(0, 0, width, height, painter.get());
 #endif
 }
+bool LayoutDrawer::DrawSingleLine(const Paragraph& paragraph, float x,
+                                  float y) {
+  if (!canvas_) return false;
+  if (paragraph.GetType() != ParagraphType::kSingleLine) return false;
+  const auto& result = static_cast<const SingleLineParagraphImpl&>(paragraph);
+  if (!result.shaped) return false;
+  const auto& shaped = *result.shaped;
+  const auto& style = result.style;
+  const auto count = shaped.GlyphCount();
+  // Scratch coordinates are never shared with the immutable result: Android
+  // canvas helpers are allowed to modify them. Short lines allocate no arrays.
+  constexpr uint32_t kInlineGlyphs = 64;
+  std::array<uint16_t, kInlineGlyphs> short_glyphs;
+  std::array<float, kInlineGlyphs * 2> short_positions;
+  std::vector<uint16_t> long_glyphs;
+  std::vector<float> long_positions;
+  uint16_t* glyphs = short_glyphs.data();
+  float* pos_x = short_positions.data();
+  float* pos_y = pos_x + kInlineGlyphs;
+  if (count > kInlineGlyphs) {
+    long_glyphs.resize(count);
+    long_positions.resize(static_cast<size_t>(count) * 2);
+    glyphs = long_glyphs.data();
+    pos_x = long_positions.data();
+    pos_y = pos_x + count;
+  }
+  float advance_x =
+      FloatsLarger(result.skew_extra, 0.f) ? result.skew_extra : 0.f;
+  for (uint32_t i = 0; i < count; ++i) {
+    glyphs[i] = shaped.Glyphs(i);
+    const float advance = shaped.Advances(i)[0];
+    pos_y[i] = shaped.Positions(i)[1];
+    pos_x[i] = advance < 0 ? advance_x - advance : advance_x;
+    if (advance >= 0) advance_x += advance;
+    if (FloatsLarger(advance, 0)) advance_x += style.GetLetterSpacing();
+  }
+  auto painter = canvas_->CreatePainter();
+  if (!painter) return false;
+  const auto& descriptor = style.GetFontDescriptor();
+  if (!descriptor.font_family_list_.empty())
+    painter->SetFontFamily(descriptor.font_family_list_.front());
+  painter->SetTextSize(style.GetScaledTextSize());
+  painter->SetFillColor(style.GetForegroundColor());
+  if (style.GetForegroundGradient()) {
+    painter->SetFillGradient(style.GetForegroundGradient());
+    painter->SetFillColor(TTColor::WHITE);
+  }
+  painter->SetBold(style.GetBold());
+  painter->SetItalic(style.GetItalic());
+  painter->SetStrokeColor(style.GetTextStrokeColor());
+  painter->SetStrokeWidth(style.GetTextStrokeWidth());
+  painter->SetShadowList(style.GetTextShadowList());
+  painter->SetTextSkew(style.GetTextSkew());
+  const auto& desired = descriptor.font_style_;
+  for (uint32_t start = 0; start < count;) {
+    auto end = start + 1;
+    const auto& font = shaped.Font(start);
+    while (end < count && shaped.Font(end) == font) ++end;
+    const auto next = end;
+    const auto bold = painter->IsBold();
+    const auto italic = painter->IsItalic();
+    if (desired != font->FontStyle()) {
+      const auto weight = desired.GetWeight();
+      painter->SetBold(
+          weight >= FontStyle::kSemiBold_Weight &&
+          static_cast<int32_t>(weight) -
+                  static_cast<int32_t>(font->FontStyle().GetWeight()) >=
+              200);
+      painter->SetItalic(desired.GetSlant() == FontStyle::kItalic_Slant &&
+                         font->FontStyle().GetSlant() !=
+                             FontStyle::kItalic_Slant);
+    }
+    while (end > start && glyphs[end - 1] == 0) --end;
+    if (end > start) {
+      canvas_->DrawGlyphs(font.get(), end - start, glyphs + start, nullptr, 0,
+                          x, y + result.baseline + style.GetBaselineOffset(),
+                          pos_x + start, pos_y + start, painter.get());
+    }
+    painter->SetBold(bold);
+    painter->SetItalic(italic);
+    start = next;
+  }
+  return true;
+}
+
 void LayoutDrawer::SetListener(LayoutDrawerListener* listener) {
   listener_ = listener;
 }

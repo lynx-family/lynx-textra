@@ -7,6 +7,8 @@
 
 #include <textra/layout_region.h>
 #include <textra/macro.h>
+#include <textra/paragraph.h>
+#include <textra/style.h>
 
 #include <memory>
 
@@ -45,6 +47,8 @@ class L_EXPORT TextLayout {
                       ShaperType type = kSystem);
   explicit TextLayout(std::unique_ptr<TTShaper> shaper);
   ~TextLayout();
+  TextLayout(const TextLayout&) = delete;
+  TextLayout& operator=(const TextLayout&) = delete;
 
  public:
   static bool Preload(ShaperType type);
@@ -62,6 +66,7 @@ class L_EXPORT TextLayout {
    * Layout interface, can specify the starting position for layout and get
    * layout results Layouts according to the height and width defined by
    * LayoutPage, returns end position and layout results when the page is full
+   * Returns kUnsupported for kSingleLine paragraphs; use LayoutSingleLine.
    * @param para [in] paragraph structure to be laid out
    * @param page [in/out] layout page, stores line information after layout
    * @param context [in/out] layout context, stores layout information after *
@@ -69,6 +74,13 @@ class L_EXPORT TextLayout {
    */
   LayoutResult LayoutEx(Paragraph* para, LayoutRegion* page,
                         TTTextContext& context) const;
+
+  // Lays out a Paragraph::Create(kSingleLine) result after AddTextRun as an
+  // unwrapped, one-style LTR line, without a LayoutRegion. No drawing takes
+  // place; draw with DrawSingleLine. Returns false for a regular paragraph,
+  // empty/invalid text, or unsupported content/styles (controls, backgrounds,
+  // decorations, custom painters or unsupported editing operations).
+  bool LayoutSingleLine(Paragraph* paragraph, TTTextContext& context) const;
 
  private:
   std::unique_ptr<TTShaper> shaper_;

@@ -69,6 +69,7 @@ enum class LayoutResult : uint8_t {
   kBreakPage,
   kBreakColumn,
   kBreakLine,
+  kUnsupported,
 };
 enum class ParagraphHorizontalAlignment : uint8_t {
   kLeft,

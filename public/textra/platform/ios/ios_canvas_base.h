@@ -13,7 +13,9 @@
 #include <textra/platform/ios/coregraphics_gradient.h>
 #include <textra/platform/ios/typeface_coretext.h>
 
+#include <array>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 using namespace tttext;
@@ -279,13 +281,19 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
                   float ox, float oy, float* x, float* y,
                   tttext::Painter* painter) override {
     if (!CheckValide()) return;
-    if (font == nullptr) return;
+    if (font == nullptr || glyph_count == 0) return;
     auto ct_font = ((tttext::TypefaceCoreText*)font)->GetFontRef();
 
-    std::vector<CGGlyph> cg_glyphs(glyph_count);
-    std::vector<CGPoint> cg_position(glyph_count);
+    static_assert(std::is_same<CGGlyph, uint16_t>::value,
+                  "CoreGraphics glyphs must match the canvas glyph type");
+    constexpr uint32_t kInlineGlyphs = 64;
+    std::array<CGPoint, kInlineGlyphs> short_positions;
+    auto* cg_position = short_positions.data();
+    if (glyph_count > kInlineGlyphs) {
+      glyph_positions_.resize(glyph_count);
+      cg_position = glyph_positions_.data();
+    }
     for (uint32_t i = 0; i < glyph_count; i++) {
-      cg_glyphs[i] = glyphs[i];
       cg_position[i].x = x[i];
       cg_position[i].y = y[i];
     }
@@ -335,20 +343,18 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     if (painter->GetFillGradient() &&
         !(CTFontGetSymbolicTraits(ct_font) & kCTFontColorGlyphsTrait)) {
       CGContextSaveGState(context_);
-      ClipGradientGlyphs(context_, ct_font, cg_glyphs.data(),
-                         cg_position.data(), glyph_count, text_mat, bold_width);
+      ClipGradientGlyphs(context_, ct_font, glyphs, cg_position, glyph_count,
+                         text_mat, bold_width);
       CGContextScaleCTM(context_, 1, -1);
       CGContextTranslateCTM(context_, -ox, -oy);
       DrawCoreGraphicsGradient(context_, *painter->GetFillGradient());
       CGContextRestoreGState(context_);
       if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
         CGContextSetTextDrawingMode(context_, kCGTextStroke);
-        CTFontDrawGlyphs(ct_font, cg_glyphs.data(), cg_position.data(),
-                         glyph_count, context_);
+        CTFontDrawGlyphs(ct_font, glyphs, cg_position, glyph_count, context_);
       }
     } else {
-      CTFontDrawGlyphs(ct_font, cg_glyphs.data(), cg_position.data(),
-                       glyph_count, context_);
+      CTFontDrawGlyphs(ct_font, glyphs, cg_position, glyph_count, context_);
     }
     CGContextRestoreGState(context_);
     if (painter->IsUnderLine()) {
@@ -356,8 +362,12 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
       auto thickness = CTFontGetUnderlineThickness(ct_font);
       CGContextBeginPath(context_);
       CGContextMoveToPoint(context_, ox + cg_position[0].x, oy + underline_y);
-      CGContextAddLineToPoint(context_, ox + cg_position[glyph_count].x,
-                              oy + underline_y);
+      CGSize last_advance;
+      CTFontGetAdvancesForGlyphs(ct_font, kCTFontOrientationDefault,
+                                 glyphs + glyph_count - 1, &last_advance, 1);
+      CGContextAddLineToPoint(
+          context_, ox + cg_position[glyph_count - 1].x + last_advance.width,
+          oy + underline_y);
       CGContextSetLineWidth(context_, thickness);
       CGContextSetLineCap(context_, ToCGLineCap(painter->GetCap()));
       CGContextSetRGBStrokeColor(
@@ -448,6 +458,9 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
 
  protected:
   CGContextRef context_;
+
+ private:
+  std::vector<CGPoint> glyph_positions_;
 };
 
 #endif  // PUBLIC_TEXTRA_PLATFORM_IOS_IOS_CANVAS_BASE_H_

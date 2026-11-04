@@ -76,7 +76,7 @@ Java_com_lynx_textra_perftest_TTTextView_nativeGetFontManager(
 extern "C" JNIEXPORT jbyteArray JNICALL
 Java_com_lynx_textra_perftest_TTTextView_nativeDrawContent(
     JNIEnv* env, jobject thiz, jobject canvas, jlong manager_handler,
-    jlong region_handler) {
+    jlong region_handler, jbyteArray reusable_buffer) {
   auto* manager = reinterpret_cast<TTTextManager*>(manager_handler);
   auto* canvas_helper = manager->GetCanvas();
   LayoutDrawer drawer(reinterpret_cast<ICanvasHelper*>(canvas_helper));
@@ -86,10 +86,5 @@ Java_com_lynx_textra_perftest_TTTextView_nativeDrawContent(
   }
   canvas_helper->ClearBuffer();
   drawer.DrawLayoutPage(region);
-  auto& stream = canvas_helper->GetBuffer();
-  auto data = stream.GetBuffer();
-  auto length = stream.GetSize();
-  auto array = env->NewByteArray(length);
-  env->SetByteArrayRegion(array, 0, length, reinterpret_cast<jbyte*>(data));
-  return array;
+  return canvas_helper->CopyBufferToJava(env, reusable_buffer);
 }
