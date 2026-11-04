@@ -66,6 +66,12 @@ class L_EXPORT LayoutDrawer {
    */
   void DrawLayoutPage(LayoutRegion* layout_page);
 
+  // Draws an immutable single-line result with its layout-box top at (x, y).
+  // Repeated calls, including at different origins, preserve the result.
+  // Returns false without a successful, unmodified LayoutSingleLine result,
+  // or if no canvas or painter is available.
+  bool DrawSingleLine(const Paragraph& paragraph, float x, float y);
+
   /**
    * @brief Renders a specific character range within a text line to the backing
    * canvas.

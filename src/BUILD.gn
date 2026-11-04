@@ -254,6 +254,7 @@ source_set("textlayout") {
     "$prj_root/src/textlayout/run/layout_metrics.h",
     "$prj_root/src/textlayout/run/object_run.h",
     "$prj_root/src/textlayout/shape_cache.h",
+    "$prj_root/src/textlayout/single_line_paragraph_impl.h",
     "$prj_root/src/textlayout/style/gradient.cc",
     "$prj_root/src/textlayout/style/paragraph_style_impl.cc",
     "$prj_root/src/textlayout/style/paragraph_style_impl.h",

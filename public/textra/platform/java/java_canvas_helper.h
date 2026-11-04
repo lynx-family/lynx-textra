@@ -115,7 +115,7 @@ class JavaCanvasHelper : public ICanvasHelper {
                   const uint16_t* glyphs, const char* text, uint32_t text_bytes,
                   float ox, float oy, float* x, float* y,
                   Painter* painter) override {
-    for (auto k = 0; k < glyph_count; k++) x[k] += ox;
+    if (glyph_count == 0) return;
     stream_.Write((uint8_t)tttext::CanvasOp::kDrawText);
     stream_.Write(font->GetUniqueId());
     stream_.WriteInt32(glyph_count);
@@ -124,7 +124,7 @@ class JavaCanvasHelper : public ICanvasHelper {
       auto rk = rtl ? glyph_count - 1 - k : k;
       stream_.Write(glyphs[rk]);
     }
-    stream_.Write(*x);
+    stream_.Write(x[0] + ox);
     stream_.Write(oy);
     WritePaint(painter);
   }
@@ -163,6 +163,20 @@ class JavaCanvasHelper : public ICanvasHelper {
 
   void ClearBuffer() { stream_.Clear(); }
   BufferOutputStream& GetBuffer() { return stream_; }
+
+  // Overwrites and returns reusable_buffer when its length matches; otherwise
+  // returns a new local reference. Exact lengths avoid replaying stale bytes.
+  jbyteArray CopyBufferToJava(JNIEnv* env, jbyteArray reusable_buffer) {
+    const auto size = static_cast<jsize>(stream_.GetSize());
+    auto buffer = reusable_buffer;
+    if (!buffer || env->GetArrayLength(buffer) != size) {
+      buffer = env->NewByteArray(size);
+      if (!buffer) return nullptr;
+    }
+    env->SetByteArrayRegion(
+        buffer, 0, size, reinterpret_cast<const jbyte*>(stream_.GetBuffer()));
+    return buffer;
+  }
 
  protected:
   void WritePaint(Painter* painter) {

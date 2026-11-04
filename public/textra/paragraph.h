@@ -17,6 +17,8 @@
 
 namespace ttoffice {
 namespace tttext {
+enum class ParagraphType : uint8_t { kGeneral, kSingleLine };
+
 /**
  * @brief Represents a paragraph of text with associated styles.
  *
@@ -35,11 +37,22 @@ namespace tttext {
  * and Style (for character-level formatting).
  */
 class L_EXPORT Paragraph {
+  friend class TextLayout;
+
  protected:
   Paragraph() = default;
 
  public:
   virtual ~Paragraph() = default;
+  virtual ParagraphType GetType() const { return ParagraphType::kGeneral; }
+  // Metrics of the lines produced by the most recent layout call; zero before
+  // layout. Baseline/ascent are measured from the first line top, and descent
+  // spans from that baseline to the last line bottom.
+  virtual float GetWidth() const { return layout_width_; }
+  virtual float GetHeight() const { return layout_height_; }
+  virtual float GetBaseline() const { return layout_baseline_; }
+  virtual float GetAscent() const { return layout_baseline_; }
+  virtual float GetDescent() const { return layout_height_ - layout_baseline_; }
   void AddTextRun(const Style* style, const char* content) {
     AddTextRun(style, content, static_cast<uint32_t>(strlen(content)));
   }
@@ -87,6 +100,22 @@ class L_EXPORT Paragraph {
 
  public:
   static std::unique_ptr<Paragraph> Create();
+  // kSingleLine accepts one AddTextRun and uses
+  // LayoutSingleLine/DrawSingleLine. Content, style, metrics, word/grapheme
+  // boundaries and intrinsic widths are queried directly from single-line data;
+  // no automatic conversion to a general paragraph takes place. Boundary
+  // analysis is performed on demand. A second nonempty AddTextRun,
+  // paragraph-style access (including the mutable getter), shape runs,
+  // ApplyStyleInRange, SaveStyle and RestoreStyle are unsupported: they log an
+  // error and permanently invalidate this object.
+  // LayoutSingleLine/DrawSingleLine then return false and metrics are zero.
+  // Use a separately created kGeneral paragraph for those operations.
+  static std::unique_ptr<Paragraph> Create(ParagraphType type);
+
+ private:
+  float layout_width_ = 0;
+  float layout_height_ = 0;
+  float layout_baseline_ = 0;
 };
 }  // namespace tttext
 }  // namespace ttoffice

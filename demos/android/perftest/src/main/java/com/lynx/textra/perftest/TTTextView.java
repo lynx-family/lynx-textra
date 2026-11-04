@@ -67,7 +67,7 @@ public class TTTextView extends View {
   public void DrawContent(Canvas canvas) {
     if (region_handler == 0)
       return;
-    drawer_buffer_ = nativeDrawContent(canvas, manager_handler, region_handler);
+    drawer_buffer_ = nativeDrawContent(canvas, manager_handler, region_handler, drawer_buffer_);
     if (drawer_buffer_ == null)
       return;
     canvas_helper.drawBuffer(canvas, drawer_buffer_);
@@ -90,5 +90,6 @@ public class TTTextView extends View {
 
   native long nativeLayoutContent(long handler, float height);
 
-  native byte[] nativeDrawContent(Canvas canvas, long manager_handler, long region_handler);
+  native byte[] nativeDrawContent(
+      Canvas canvas, long manager_handler, long region_handler, byte[] reusable_buffer);
 }
