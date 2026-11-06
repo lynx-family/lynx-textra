@@ -67,7 +67,9 @@ jobs:
           artifact_path_list: ${{ steps.build_artifact.outputs.artifact_list }}
 
   github-ios-release:
-    runs-on: macos-14
+    runs-on: lynx-darwin-15.6.1-medium
+    env:
+      LANG: en_US.UTF-8
     permissions:
       contents: write
     timeout-minutes: 30
@@ -79,6 +81,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Install Common Dependencies
         uses: ./.github/actions/common-deps
+      - name: Install Ruby dependencies
+        working-directory: demos/darwin/ios/TextlayoutDemo
+        run: bundle install
       - name: Build XCFramework
         run: |        
           source tools/envsetup.sh
