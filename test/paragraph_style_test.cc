@@ -11,6 +11,22 @@
 #include "test_src.h"
 #include "test_utils.h"
 
+TEST(ParagraphStyleTest, LineHeightTrimDefaultsAndCopies) {
+  ParagraphStyle style;
+  EXPECT_EQ(style.GetLineHeightTrim(), LineHeightTrim::kNone);
+
+  for (auto trim : {LineHeightTrim::kNone, LineHeightTrim::kFirstLineTop,
+                    LineHeightTrim::kLastLineBottom, LineHeightTrim::kBoth}) {
+    style.SetLineHeightTrim(trim);
+    EXPECT_EQ(style.GetLineHeightTrim(), trim);
+    ParagraphStyle copied(style);
+    EXPECT_EQ(copied.GetLineHeightTrim(), trim);
+    ParagraphStyle assigned;
+    assigned = style;
+    EXPECT_EQ(assigned.GetLineHeightTrim(), trim);
+  }
+}
+
 TEST(ParagraphStyleTest, InlineVerticalAlignmentModeIsOptIn) {
   ParagraphStyle style;
   EXPECT_EQ(style.GetInlineVerticalAlignmentMode(),

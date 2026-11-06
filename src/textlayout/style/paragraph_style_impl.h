@@ -117,6 +117,8 @@ class ParagraphStyleImpl {
     spacing_->line_percent_ = percent;
   }
   RulerType GetLineHeightRule() const { return spacing_->line_rule_; }
+  void SetLineHeightTrim(LineHeightTrim trim) { line_height_trim_ = trim; }
+  LineHeightTrim GetLineHeightTrim() const { return line_height_trim_; }
   void SetInlineVerticalAlignmentMode(InlineVerticalAlignmentMode mode) {
     inline_vertical_alignment_mode_ = mode;
   }
@@ -205,6 +207,7 @@ class ParagraphStyleImpl {
   Style default_style_;
   std::unique_ptr<Indent> indent_;
   std::unique_ptr<Spacing> spacing_;
+  LineHeightTrim line_height_trim_;
 
   WriteDirection write_direction_;
   std::u32string ellipsis_;
