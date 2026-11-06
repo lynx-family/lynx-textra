@@ -86,6 +86,18 @@ LayoutPosition TextLineImpl::UpdateLine(LayoutPosition pos, float max_ascent,
       bottom_extra_ = 0;
       break;
   }
+  const auto trim = para_style.GetLineHeightTrim();
+  if ((trim == LineHeightTrim::kFirstLineTop ||
+       trim == LineHeightTrim::kBoth) &&
+      GetStartCharPos() == 0) {
+    top_extra_ = std::min(top_extra_, 0.f);
+  }
+  if ((trim == LineHeightTrim::kLastLineBottom ||
+       trim == LineHeightTrim::kBoth) &&
+      (pos.GetRunIdx() == paragraph_->GetRunCount() ||
+       layout_page_->GetLineCount() + 1 >= para_style.GetMaxLines())) {
+    bottom_extra_ = std::min(bottom_extra_, 0.f);
+  }
   return pos;
 }
 

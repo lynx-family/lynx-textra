@@ -24,6 +24,7 @@ ParagraphStyleImpl::ParagraphStyleImpl()
       default_style_(Style::DefaultStyle()),
       indent_(std::make_unique<Indent>()),
       spacing_(std::make_unique<Spacing>()),
+      line_height_trim_(LineHeightTrim::kNone),
 
       write_direction_(WriteDirection::kAuto),
       ellipsis_(U""),
@@ -49,6 +50,7 @@ ParagraphStyleImpl& ParagraphStyleImpl::operator=(
   default_style_ = paragraph_style.default_style_;
   *indent_ = *paragraph_style.indent_;
   *spacing_ = *paragraph_style.spacing_;
+  line_height_trim_ = paragraph_style.line_height_trim_;
 
   write_direction_ = paragraph_style.write_direction_;
   ellipsis_ = paragraph_style.ellipsis_;
@@ -204,6 +206,12 @@ void ParagraphStyle::SetLineHeightInPercent(float percent) {
 }
 RulerType ParagraphStyle::GetLineHeightRule() const {
   return impl_->GetLineHeightRule();
+}
+void ParagraphStyle::SetLineHeightTrim(LineHeightTrim trim) {
+  impl_->SetLineHeightTrim(trim);
+}
+LineHeightTrim ParagraphStyle::GetLineHeightTrim() const {
+  return impl_->GetLineHeightTrim();
 }
 void ParagraphStyle::SetInlineVerticalAlignmentMode(
     InlineVerticalAlignmentMode mode) {

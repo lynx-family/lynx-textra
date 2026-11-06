@@ -625,6 +625,22 @@ ParagraphStyle ParseParagraphStyle(const Value& style_data) {
     para_style.SetMaxLines(max_lines);
   }
 
+  if (HasOptionalField(style_data, "line_height_trim")) {
+    const auto trim =
+        GetRequiredField<std::string>(style_data, "line_height_trim");
+    if (trim == "kNone") {
+      para_style.SetLineHeightTrim(LineHeightTrim::kNone);
+    } else if (trim == "kFirstLineTop") {
+      para_style.SetLineHeightTrim(LineHeightTrim::kFirstLineTop);
+    } else if (trim == "kLastLineBottom") {
+      para_style.SetLineHeightTrim(LineHeightTrim::kLastLineBottom);
+    } else if (trim == "kBoth") {
+      para_style.SetLineHeightTrim(LineHeightTrim::kBoth);
+    } else {
+      throw std::runtime_error("Invalid line_height_trim value: " + trim);
+    }
+  }
+
   // Parse line_height_override
   if (HasOptionalField(style_data, "line_height_override")) {
     auto override = GetRequiredField<bool>(style_data, "line_height_override");
