@@ -98,6 +98,11 @@
                 // [Integer] Maximum number of lines to display
                 // [Optional] Default: 0 (unlimited)
                 "max_lines": 0,
+                // line_height_trim
+                // [String] Removes extra line-height space at paragraph edges
+                // Allowed values: ["kNone", "kFirstLineTop", "kLastLineBottom", "kBoth"]
+                // [Optional] Default: "kNone"
+                "line_height_trim": "kNone",
                 // line_height_override
                 // [Boolean] Whether to override line height
                 // [Optional] Default: false

@@ -380,6 +380,19 @@ class L_EXPORT ParagraphStyle {
   RulerType GetLineHeightRule() const;
 
   /**
+   * @brief Trims extra space introduced by line height at paragraph edges.
+   *
+   * kFirstLineTop removes positive line-height space above the first line;
+   * kLastLineBottom removes it below the last line, including a line truncated
+   * by GetMaxLines(). kBoth applies both; a single line is both first and last.
+   * Default is kNone. Space between lines and explicit line spacing are kept.
+   * Line heights smaller than the content height are not changed by trimming.
+   * The distribution of extra space follows GetVerticalAlign().
+   */
+  void SetLineHeightTrim(LineHeightTrim trim);
+  LineHeightTrim GetLineHeightTrim() const;
+
+  /**
    * @brief Selects how inline vertical-align participates in line layout.
    *
    * kLegacy preserves TTText's existing placement behavior. kLineBox resolves

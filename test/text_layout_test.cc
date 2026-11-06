@@ -7,6 +7,7 @@
 #include <textra/text_layout.h>
 #include <textra/tttext_context.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -1209,6 +1210,194 @@ TEST_F(TextLayoutTest, ParagraphStyle_LineHeightOverride) {
     auto [_, region] = layout_helper(true);
     ASSERT_GT(region->GetLineCount(), 1u);
     EXPECT_FLOAT_EQ(region->GetLine(0)->GetLineHeight(), text_size);
+  }
+}
+
+TEST_F(TextLayoutTest, LineHeightTrimRespectsAlignmentAndParagraphEdges) {
+  struct TrimCase {
+    LineHeightTrim trim;
+    bool top;
+    bool bottom;
+  };
+  const TrimCase trim_cases[] = {
+      {LineHeightTrim::kNone, false, false},
+      {LineHeightTrim::kFirstLineTop, true, false},
+      {LineHeightTrim::kLastLineBottom, false, true},
+      {LineHeightTrim::kBoth, true, true},
+  };
+  const std::pair<const char*, uint32_t> content_cases[] = {
+      {"A", 1u}, {"ABC", 3u}, {"A\nB\nC", 3u}, {"A\n", 1u}};
+  TextLayout layout(GetFixedSizeMockShaper());
+  for (auto rule : {RulerType::kExact, RulerType::kAtLeast, RulerType::kAuto}) {
+    for (auto align :
+         {ParagraphVerticalAlignment::kTop, ParagraphVerticalAlignment::kCenter,
+          ParagraphVerticalAlignment::kBottom}) {
+      const float top = align == ParagraphVerticalAlignment::kTop      ? 0.f
+                        : align == ParagraphVerticalAlignment::kCenter ? 10.f
+                                                                       : 20.f;
+      for (const auto& trim_case : trim_cases) {
+        for (const auto& [content, count] : content_cases) {
+          SCOPED_TRACE(PrintToString(
+              std::make_tuple(rule, align, trim_case.trim, content)));
+          ParagraphImpl para;
+          ParagraphStyle style;
+          Style text_style;
+          text_style.SetTextSize(10.f);
+          style.SetDefaultStyle(text_style);
+          style.SetVerticalAlign(align);
+          style.SetLineHeightInPx(30.f, rule);
+          style.SetLineHeightInPercent(3.f);
+          style.SetLineHeightTrim(trim_case.trim);
+          para.SetParagraphStyle(&style);
+          para.AddTextRun(nullptr, content);
+          TTTextContext context;
+          LayoutRegion region(10.f, 200.f);
+          layout.Layout(&para, &region, context);
+
+          ASSERT_EQ(region.GetLineCount(), count);
+          float expected_top = 0.f;
+          for (uint32_t i = 0; i < count; ++i) {
+            const float removed_top = trim_case.top && i == 0 ? top : 0.f;
+            const float removed_bottom =
+                trim_case.bottom && i + 1 == count ? 20.f - top : 0.f;
+            const auto* line = region.GetLine(i);
+            EXPECT_FLOAT_EQ(line->GetLineTop(), expected_top);
+            EXPECT_FLOAT_EQ(line->GetLineHeight(),
+                            30.f - removed_top - removed_bottom);
+            EXPECT_FLOAT_EQ(line->GetLineBaseLine(),
+                            expected_top + 7.5f + top - removed_top);
+            if (i > 0) {
+              EXPECT_FLOAT_EQ(line->GetLineBaseLine() -
+                                  region.GetLine(i - 1)->GetLineBaseLine(),
+                              30.f);
+            }
+            expected_top = line->GetLineBottom();
+          }
+          EXPECT_FLOAT_EQ(region.GetLayoutedHeight(), expected_top);
+          EXPECT_FLOAT_EQ(context.GetLayoutBottom(), expected_top);
+        }
+      }
+    }
+  }
+}
+
+TEST_F(TextLayoutTest, LineHeightTrimKeepsShortLineHeightAndExplicitSpacing) {
+  TextLayout layout(GetFixedSizeMockShaper());
+  for (float line_height : {5.f, 10.f, 30.f}) {
+    SCOPED_TRACE(line_height);
+    ParagraphImpl para;
+    ParagraphStyle style;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    style.SetDefaultStyle(text_style);
+    style.SetLineHeightInPxExact(line_height);
+    style.SetLineHeightTrim(LineHeightTrim::kBoth);
+    style.SetLineSpaceBeforePx(3.f);
+    style.SetLineSpaceAfterPx(4.f);
+    para.SetParagraphStyle(&style);
+    para.AddTextRun(nullptr, "ABC");
+    TTTextContext context;
+    LayoutRegion region(10.f, 200.f);
+    layout.Layout(&para, &region, context);
+
+    ASSERT_EQ(region.GetLineCount(), 3u);
+    const float edge_height =
+        std::min(line_height, 10.f) + std::max(0.f, line_height - 10.f) / 2;
+    EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineTop(), 3.f);
+    EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineHeight(), edge_height);
+    EXPECT_FLOAT_EQ(region.GetLine(1)->GetLineHeight(), line_height);
+    EXPECT_FLOAT_EQ(region.GetLine(2)->GetLineHeight(), edge_height);
+    for (uint32_t i = 1; i < 3; ++i) {
+      EXPECT_FLOAT_EQ(region.GetLine(i)->GetLineTop() -
+                          region.GetLine(i - 1)->GetLineBottom(),
+                      7.f);
+    }
+  }
+}
+
+TEST_F(TextLayoutTest, LineHeightTrimAppliesToMaxLinesAndHeightMeasurement) {
+  TextLayout layout(GetFixedSizeMockShaper());
+  for (uint32_t max_lines : {1u, 2u}) {
+    SCOPED_TRACE(max_lines);
+    ParagraphImpl para;
+    ParagraphStyle style;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    style.SetDefaultStyle(text_style);
+    style.SetLineHeightInPxExact(30.f);
+    style.SetLineHeightTrim(LineHeightTrim::kBoth);
+    style.SetMaxLines(max_lines);
+    style.SetEllipsis(".");
+    para.SetParagraphStyle(&style);
+    para.AddTextRun(nullptr, "ABCDEFGHI");
+    TTTextContext context;
+    context.SetLastLineCanOverflow(false);
+    LayoutRegion region(30.f, 30.f * max_lines - 20.f);
+    layout.Layout(&para, &region, context);
+
+    ASSERT_EQ(region.GetLineCount(), max_lines);
+    EXPECT_TRUE(region.DidExceedMaxLines());
+    EXPECT_FLOAT_EQ(region.GetLine(0)->GetContentTop(), 0.f);
+    const auto* last = region.GetLine(max_lines - 1);
+    EXPECT_FLOAT_EQ(last->GetContentBottom(), last->GetLineHeight());
+    EXPECT_FLOAT_EQ(region.GetLayoutedHeight(), 30.f * max_lines - 20.f);
+    EXPECT_FLOAT_EQ(context.GetLayoutBottom(), region.GetLayoutedHeight());
+  }
+}
+
+TEST_F(TextLayoutTest, LineHeightTrimKeepsParagraphEdgesAcrossRegions) {
+  ParagraphImpl para;
+  ParagraphStyle style;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  style.SetDefaultStyle(text_style);
+  style.SetLineHeightInPxExact(30.f);
+  style.SetLineHeightTrim(LineHeightTrim::kBoth);
+  para.SetParagraphStyle(&style);
+  para.AddTextRun(nullptr, "ABC");
+  TTTextContext context;
+  context.SetLastLineCanOverflow(false);
+  TextLayout layout(GetFixedSizeMockShaper());
+  LayoutRegion first(10.f, 50.f);
+  layout.Layout(&para, &first, context);
+  ASSERT_EQ(first.GetLineCount(), 2u);
+  EXPECT_FLOAT_EQ(first.GetLine(0)->GetLineHeight(), 20.f);
+  EXPECT_FLOAT_EQ(first.GetLine(1)->GetLineHeight(), 30.f);
+
+  context.SetLayoutBottom(0.f);
+  LayoutRegion second(10.f, 20.f);
+  layout.Layout(&para, &second, context);
+  ASSERT_EQ(second.GetLineCount(), 1u);
+  EXPECT_FLOAT_EQ(second.GetLine(0)->GetContentTop(), 10.f);
+  EXPECT_FLOAT_EQ(second.GetLayoutedHeight(), 20.f);
+}
+
+TEST_F(TextLayoutTest, LineHeightTrimPreservesInlineObjectBounds) {
+  TextLayout layout(GetFixedSizeMockShaper());
+  for (auto mode : {InlineVerticalAlignmentMode::kLegacy,
+                    InlineVerticalAlignmentMode::kLineBox}) {
+    SCOPED_TRACE(static_cast<int>(mode));
+    ParagraphImpl para;
+    ParagraphStyle style;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    style.SetDefaultStyle(text_style);
+    style.SetLineHeightInPxExact(40.f);
+    style.SetLineHeightTrim(LineHeightTrim::kBoth);
+    style.SetInlineVerticalAlignmentMode(mode);
+    para.SetParagraphStyle(&style);
+    para.AddTextRun(nullptr, "A");
+    auto object = std::make_shared<MockInlineObject>(10.f, -20.f, 0.f);
+    para.AddShapeRun(nullptr, object, false);
+    TTTextContext context;
+    LayoutRegion region(100.f, 100.f);
+    layout.Layout(&para, &region, context);
+
+    ASSERT_EQ(region.GetLineCount(), 1u);
+    const auto* line = region.GetLine(0);
+    EXPECT_FLOAT_EQ(line->GetLineHeight(), 22.5f);
+    EXPECT_GE(object->GetYOffset(), line->GetLineTop());
+    EXPECT_LE(object->GetYOffset() + 20.f, line->GetLineBottom());
   }
 }
 
