@@ -18,8 +18,6 @@
 #include <type_traits>
 #include <vector>
 
-using namespace tttext;
-
 class FontManager;
 /**
  * @brief A canvas helper implementation backed by Apple's CoreGraphics
@@ -32,8 +30,8 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
   ~IOSCanvasBase() = default;
 
  public:
-  std::unique_ptr<Painter> CreatePainter() override {
-    return std::make_unique<Painter>();
+  std::unique_ptr<tttext::Painter> CreatePainter() override {
+    return std::make_unique<tttext::Painter>();
   }
   void StartPaint() override {
     if (!CheckValide()) return;
@@ -160,7 +158,7 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     //  CGContextClosePath(context_);
     //  CGContextDrawPath(context_, ApplyPainterStyle(painter));
   }
-  void AddPath(Path* path) {
+  void AddPath(tttext::Path* path) {
     //  switch (path->type_) {
     //    case ttoffice::PathType::kMoveTo: {
     //      auto *point = reinterpret_cast<ttoffice::MoveToPath *>(path);
@@ -212,7 +210,7 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     //      break;
     //  }
   }
-  void DrawPath(Path* path, tttext::Painter* painter) override {
+  void DrawPath(tttext::Path* path, tttext::Painter* painter) override {
     //  if (!CheckValide()) return;
     //  CGContextBeginPath(context_);
     //  AddPath(path);
@@ -230,12 +228,12 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     CGContextSetLineWidth(context_, painter->GetStrokeWidth());
     CGContextDrawPath(context_, ApplyPainterStyle(painter));
   }
-  void DrawText(const ITypefaceHelper* void_font, const char* text,
+  void DrawText(const tttext::ITypefaceHelper* void_font, const char* text,
                 uint32_t text_bytes, float x, float y,
                 tttext::Painter* painter) override {
     if (!CheckValide()) return;
-    auto font =
-        reinterpret_cast<const TypefaceCoreText*>(void_font)->GetFontRef();
+    auto font = reinterpret_cast<const tttext::TypefaceCoreText*>(void_font)
+                    ->GetFontRef();
     if (font == nullptr) return;
     CFStringRef cf_text = CFStringCreateWithBytes(
         kCFAllocatorDefault, reinterpret_cast<const UInt8*>(text), text_bytes,
@@ -276,7 +274,7 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     CFRelease(cf_text);
   }
 
-  void DrawGlyphs(const ITypefaceHelper* font, uint32_t glyph_count,
+  void DrawGlyphs(const tttext::ITypefaceHelper* font, uint32_t glyph_count,
                   const uint16_t* glyphs, const char* text, uint32_t text_bytes,
                   float ox, float oy, float* x, float* y,
                   tttext::Painter* painter) override {
@@ -307,7 +305,7 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
       NSDictionary* traits =
           (__bridge_transfer NSDictionary*)CTFontCopyTraits(ct_font);
       if (painter->IsBold() &&
-          painter->GetStrokeColor() == TTColor::UNDEFINED) {
+          painter->GetStrokeColor() == tttext::TTColor::UNDEFINED) {
         NSObject* obj = traits[(id)kCTFontWeightTrait];
         if (obj == nil ||
             ([obj isKindOfClass:[NSNumber class]] &&
@@ -327,7 +325,7 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
         if ([obj isKindOfClass:[NSNumber class]]) {
           NSNumber* slant = reinterpret_cast<NSNumber*>(obj);
           if (slant.doubleValue == 0) {
-            text_skew += FAKE_ITALIC_SKEW;
+            text_skew += tttext::FAKE_ITALIC_SKEW;
           }
         }
       }
@@ -343,13 +341,13 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     if (painter->GetFillGradient() &&
         !(CTFontGetSymbolicTraits(ct_font) & kCTFontColorGlyphsTrait)) {
       CGContextSaveGState(context_);
-      ClipGradientGlyphs(context_, ct_font, glyphs, cg_position, glyph_count,
-                         text_mat, bold_width);
+      tttext::ClipGradientGlyphs(context_, ct_font, glyphs, cg_position,
+                                 glyph_count, text_mat, bold_width);
       CGContextScaleCTM(context_, 1, -1);
       CGContextTranslateCTM(context_, -ox, -oy);
-      DrawCoreGraphicsGradient(context_, *painter->GetFillGradient());
+      tttext::DrawCoreGraphicsGradient(context_, *painter->GetFillGradient());
       CGContextRestoreGState(context_);
-      if (painter->GetStrokeColor() != TTColor::UNDEFINED) {
+      if (painter->GetStrokeColor() != tttext::TTColor::UNDEFINED) {
         CGContextSetTextDrawingMode(context_, kCGTextStroke);
         CTFontDrawGlyphs(ct_font, glyphs, cg_position, glyph_count, context_);
       }
@@ -376,8 +374,8 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
       CGContextDrawPath(context_, kCGPathStroke);
     }
   }
-  void DrawRunDelegate(const RunDelegate* run_delegate, float left, float top,
-                       float right, float bottom,
+  void DrawRunDelegate(const tttext::RunDelegate* run_delegate, float left,
+                       float top, float right, float bottom,
                        tttext::Painter* painter) override {
     //  auto *ios_run_delegate = (IOSRunDelegate *)run_delegate;
     //  if (run_delegate_drawer_ == nullptr) {
@@ -400,7 +398,7 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     //  }
     //  CGContextResetClip(context_);
   }
-  void DrawBackgroundDelegate(const RunDelegate* delegate,
+  void DrawBackgroundDelegate(const tttext::RunDelegate* delegate,
                               tttext::Painter* painter) override {}
   void DrawImage(const char* src, float left, float top, float right,
                  float bottom, tttext::Painter* painter) override {
@@ -431,16 +429,16 @@ class IOSCanvasBase : public tttext::ICanvasHelper {
     CGPathDrawingMode mode = kCGPathFillStroke;
     auto fill_color = painter->GetFillColor();
     auto stroke_color = painter->GetStrokeColor();
-    if (fill_color != TTColor::UNDEFINED &&
-        stroke_color != TTColor::UNDEFINED) {
+    if (fill_color != tttext::TTColor::UNDEFINED &&
+        stroke_color != tttext::TTColor::UNDEFINED) {
       mode = kCGPathFillStroke;
       CGContextSetTextDrawingMode(context_, kCGTextFillStroke);
     } else {
-      if (fill_color != TTColor::UNDEFINED) {
+      if (fill_color != tttext::TTColor::UNDEFINED) {
         mode = kCGPathFill;
         CGContextSetTextDrawingMode(context_, kCGTextFill);
       }
-      if (stroke_color != TTColor::UNDEFINED) {
+      if (stroke_color != tttext::TTColor::UNDEFINED) {
         mode = kCGPathStroke;
         CGContextSetTextDrawingMode(context_, kCGTextStroke);
       }
