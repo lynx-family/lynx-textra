@@ -5,6 +5,7 @@
 #ifndef SRC_TEXTLAYOUT_TTTEXT_CONTEXT_IMPL_H_
 #define SRC_TEXTLAYOUT_TTTEXT_CONTEXT_IMPL_H_
 #include <memory>
+#include <string>
 
 #include "src/textlayout/layout_position.h"
 namespace ttoffice {
@@ -13,6 +14,11 @@ class TTTextContextImpl {
  public:
   TTTextContextImpl();
   ~TTTextContextImpl() = default;
+  /// Returns a copy of a process-wide option, or default_value if absent.
+  /// Thread-safe. Reads the singleton configured by TTTextContext.
+  static std::string GetGlobalOption(const std::string& key,
+                                     const std::string& default_value = "");
+
   bool IsLastLineCanOverflow() const { return last_line_can_overflow_; }
   bool IsSkipSpacingBeforeFirstLine() const {
     return skip_spacing_before_first_line_;
