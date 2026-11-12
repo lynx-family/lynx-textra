@@ -7,11 +7,63 @@
 #include <textra/tttext_context.h>
 
 #include <memory>
+#include <mutex>
+#include <unordered_map>
 #include <utility>
 
 #include "src/textlayout/layout_position.h"
 namespace ttoffice {
 namespace tttext {
+namespace {
+
+class GlobalOptionStorage {
+ public:
+  static GlobalOptionStorage& GetInstance() {
+    static GlobalOptionStorage instance;
+    return instance;
+  }
+
+  std::mutex mutex_;
+  std::unordered_map<std::string, std::string> values_;
+
+ private:
+  GlobalOptionStorage() = default;
+  GlobalOptionStorage(const GlobalOptionStorage&) = delete;
+  GlobalOptionStorage& operator=(const GlobalOptionStorage&) = delete;
+};
+
+}  // namespace
+
+void TTTextContext::SetGlobalOption(const char* key, const char* value) {
+  if (key == nullptr || value == nullptr) {
+    return;
+  }
+  auto& storage = GlobalOptionStorage::GetInstance();
+  std::lock_guard<std::mutex> lock(storage.mutex_);
+  storage.values_[key] = value;
+}
+
+void TTTextContext::SetGlobalOption(const char* const* keys,
+                                    const char* const* values, size_t count) {
+  if (keys == nullptr || values == nullptr || count == 0) {
+    return;
+  }
+  auto& storage = GlobalOptionStorage::GetInstance();
+  std::lock_guard<std::mutex> lock(storage.mutex_);
+  for (size_t i = 0; i < count; ++i) {
+    if (keys[i] != nullptr && values[i] != nullptr) {
+      storage.values_[keys[i]] = values[i];
+    }
+  }
+}
+
+std::string TTTextContextImpl::GetGlobalOption(
+    const std::string& key, const std::string& default_value) {
+  auto& storage = GlobalOptionStorage::GetInstance();
+  std::lock_guard<std::mutex> lock(storage.mutex_);
+  const auto it = storage.values_.find(key);
+  return it == storage.values_.end() ? default_value : it->second;
+}
 
 TTTextContextImpl::TTTextContextImpl()
     : position_(std::make_unique<LayoutPosition>(0, 0)),
