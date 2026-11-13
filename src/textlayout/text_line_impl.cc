@@ -256,32 +256,43 @@ void TextLineImpl::CreateDrawerPiece() {
 }
 
 void TextLineImpl::TrimTailSpace() {
-  auto last = drawer_list_.rbegin();
-  while (last != drawer_list_.rend()) {
-    auto& drawer = *last;
+  const bool trim_left =
+      paragraph_->GetResolvedWriteDirection() == WriteDirection::kRTL;
+  const auto content = paragraph_->GetContent();
+  size_t empty_count = 0;
+  while (empty_count < drawer_list_.size()) {
+    const auto index =
+        trim_left ? empty_count : drawer_list_.size() - 1 - empty_count;
+    auto& drawer = drawer_list_[index];
     if (drawer->GetRun()->IsGhostRun()) {
       break;
     }
-    auto start_char_index = drawer->GetStartCharPosInParagraph();
-    auto last_char_index = drawer->GetEndCharPosInParagraph();
-    auto content = paragraph_->GetContent();
-    while (last_char_index > start_char_index) {
-      if (!base::IsSpaceChar(content.GetUnicode(last_char_index - 1))) {
+    // The visual edge of an RTL piece is opposite to its logical edge.
+    const bool remove_last = drawer->GetRun()->IsRtl() == trim_left;
+    while (drawer->GetCharCount() != 0) {
+      const auto char_index = remove_last
+                                  ? drawer->GetEndCharPosInParagraph() - 1
+                                  : drawer->GetStartCharPosInParagraph();
+      if (!base::IsSpaceChar(content.GetUnicode(char_index))) {
         break;
       }
-      drawer->RemoveLastChar(1);
-      last_char_index--;
+      if (remove_last) {
+        drawer->RemoveLastChar();
+      } else {
+        drawer->RemoveFirstChar();
+      }
     }
-    if (last_char_index == start_char_index) {
-      TTASSERT(drawer->GetStartCharPosInParagraph() ==
-               drawer->GetEndCharPosInParagraph());
-      ++last;
+    if (drawer->GetCharCount() == 0) {
+      ++empty_count;
       continue;
     }
     break;
   }
-  if (last != drawer_list_.rend()) {
-    drawer_list_.erase(last.base(), drawer_list_.end());
+  if (trim_left) {
+    drawer_list_.erase(drawer_list_.begin(),
+                       drawer_list_.begin() + empty_count);
+  } else {
+    drawer_list_.erase(drawer_list_.end() - empty_count, drawer_list_.end());
   }
 }
 

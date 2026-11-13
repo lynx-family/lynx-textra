@@ -312,6 +312,96 @@ TEST_F(TextLayoutTest, GetCharBoundingRectIncludesTextSkewExtraWidth) {
   EXPECT_FLOAT_EQ(rect[2], text_size + expected_extra_width);
 }
 
+TEST_F(TextLayoutTest, TrimTailSpacePreservesRtlMixedTextSeparator) {
+  const char* text = "«رحلة الذئاب» فعالية لمبدعي TikTok LIVE، ";
+  for (auto direction : {WriteDirection::kRTL, WriteDirection::kAuto}) {
+    for (auto alignment : {ParagraphHorizontalAlignment::kLeft,
+                           ParagraphHorizontalAlignment::kRight,
+                           ParagraphHorizontalAlignment::kJustify}) {
+      for (bool trim : {false, true}) {
+        SCOPED_TRACE(::testing::Message()
+                     << static_cast<int>(direction) << "/"
+                     << static_cast<int>(alignment) << "/" << trim);
+        auto para = std::make_unique<ParagraphImpl>();
+        ParagraphStyle para_style;
+        Style style;
+        style.SetTextSize(24.f);
+        para_style.SetDefaultStyle(style);
+        para_style.SetWriteDirection(direction);
+        para_style.SetHorizontalAlign(alignment);
+        para->SetParagraphStyle(&para_style);
+        para->AddTextRun(nullptr, text);
+        TTTextContext context;
+        context.EnableFeature(kTrimLineTailSpace, trim);
+        TextLayout layout(TestUtils::getRealShaper());
+        LayoutRegion region(800.f, 200.f);
+        layout.Layout(para.get(), &region, context);
+        ASSERT_EQ(region.GetLineCount(), 1u);
+        auto* line = region.GetLine(0);
+        float separator[4]{};
+        float trailing_space[4]{};
+        line->GetCharBoundingRect(separator, 27);
+        line->GetCharBoundingRect(trailing_space, 40);
+        EXPECT_GT(separator[2], 0.f);
+        if (trim) {
+          EXPECT_FLOAT_EQ(trailing_space[2], 0.f);
+        } else {
+          EXPECT_GT(trailing_space[2], 0.f);
+        }
+      }
+    }
+  }
+}
+
+TEST_F(TextLayoutTest, TrimTailSpaceUsesResolvedVisualEdge) {
+  struct TrimCase {
+    const char* text;
+    WriteDirection direction;
+    uint32_t trailing_start;
+  };
+  const TrimCase cases[] = {
+      {"ABC  ", WriteDirection::kLTR, 3},
+      {"אבג  ", WriteDirection::kRTL, 3},
+      {"אבג  ", WriteDirection::kAuto, 3},
+      {"ABC  ", WriteDirection::kRTL, 3},
+      {"אבג  ", WriteDirection::kLTR, 3},
+      {"  ", WriteDirection::kLTR, 0},
+      {"  ", WriteDirection::kRTL, 0},
+  };
+  for (const auto& test_case : cases) {
+    SCOPED_TRACE(test_case.text);
+    auto para = std::make_unique<ParagraphImpl>();
+    ParagraphStyle para_style;
+    Style style;
+    style.SetTextSize(24.f);
+    para_style.SetDefaultStyle(style);
+    para_style.SetWriteDirection(test_case.direction);
+    para->SetParagraphStyle(&para_style);
+    para->AddTextRun(nullptr, test_case.text);
+    TTTextContext context;
+    TextLayout layout(TestUtils::getRealShaper());
+    LayoutRegion region(800.f, 200.f);
+    layout.Layout(para.get(), &region, context);
+    ASSERT_EQ(region.GetLineCount(), 1u);
+    auto* line = region.GetLine(0);
+    if (test_case.trailing_start == 0) {
+      // A fully trimmed line has no drawers; its char-bound API requires one.
+      continue;
+    }
+    for (uint32_t c = test_case.trailing_start;
+         c < test_case.trailing_start + 2; ++c) {
+      float rect[4]{};
+      line->GetCharBoundingRect(rect, c);
+      EXPECT_FLOAT_EQ(rect[2], 0.f);
+    }
+    if (test_case.trailing_start != 0) {
+      float rect[4]{};
+      line->GetCharBoundingRect(rect, 0);
+      EXPECT_GT(rect[2], 0.f);
+    }
+  }
+}
+
 TEST_F(TextLayoutTest, ParagraphStyle_HorizontalAlignment) {
   const char* text = "Hello world!";  // 12 characters, each 1 x 1 size
   const float page_width = 10.5f;     // Line fits 10 characters + 0.5 spacing
