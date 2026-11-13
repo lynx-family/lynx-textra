@@ -48,6 +48,13 @@ class RunRange {
       end_char_ -= count;
     }
   }
+  void RemoveFirstChar(uint32_t count = 1) {
+    if (end_char_ - start_char_ < count) {
+      start_char_ = end_char_;
+    } else {
+      start_char_ += count;
+    }
+  }
   uint32_t GetCharCount() const {
     return GetEndCharPosInParagraph() - GetStartCharPosInParagraph();
   }
