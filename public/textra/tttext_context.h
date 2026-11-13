@@ -5,6 +5,7 @@
 #ifndef PUBLIC_TEXTRA_TTTEXT_CONTEXT_H_
 #define PUBLIC_TEXTRA_TTTEXT_CONTEXT_H_
 
+#include <stddef.h>
 #include <textra/layout_definition.h>
 #include <textra/macro.h>
 
@@ -29,6 +30,16 @@ class L_EXPORT TTTextContext {
  public:
   TTTextContext();
   ~TTTextContext();
+
+  /// Copies a process-wide key/value option, replacing any existing value.
+  /// Thread-safe. Null inputs are ignored. Options are shared by all contexts
+  /// and are not cleared by Reset() or context destruction.
+  static void SetGlobalOption(const char* key, const char* value);
+
+  /// Copies count options from parallel arrays under one lock. Each array must
+  /// contain at least count elements. Null arrays or pairs are ignored.
+  static void SetGlobalOption(const char* const* keys,
+                              const char* const* values, size_t count);
 
  public:
   // Layout Configurations getters/setters
