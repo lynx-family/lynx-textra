@@ -257,6 +257,15 @@ TEST(LayoutDrawer, DrawTextRunPassesTextSkewToPainter) {
 }
 
 TEST(LayoutDrawer, PunctuationCompressionOffsetsOpeningGlyph) {
+  class PunctuationTypeface : public FixedMetricsTypefaceHelper {
+   public:
+    void GetWidthBounds(float* ltrb, GlyphID[], uint32_t, float) override {
+      ltrb[0] = 5.f;
+      ltrb[1] = -7.5f;
+      ltrb[2] = 10.f;
+      ltrb[3] = 2.5f;
+    }
+  };
   ParagraphImpl paragraph;
   Style style;
   style.SetTextSize(10.f);
@@ -268,8 +277,10 @@ TEST(LayoutDrawer, PunctuationCompressionOffsetsOpeningGlyph) {
   paragraph.AddTextRun(&style, u8"（A");
 
   TTTextContext context;
+  context.EnableFeature(kDisableShapeCache, true);
   LayoutRegion region(20.f, 100.f);
-  TextLayout layout(TestUtils::getTestShaper());
+  TextLayout layout(TestUtils::CreateFixedBidiTestShaper(
+      {0, 1}, {0, 0}, std::make_shared<PunctuationTypeface>()));
   layout.Layout(&paragraph, &region, context);
 
   NiceMock<MockCanvasHelper> canvas_helper;

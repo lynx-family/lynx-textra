@@ -42,6 +42,7 @@ enum class BoundaryType : uint8_t;
 class BaseRun {
   friend ParagraphImpl;
   friend TextLineImpl;
+  friend class TextLayoutImpl;
   friend class LayoutDrawer;
   friend class DominateBaselineHelper;
 

@@ -7,6 +7,9 @@
 #include <textra/tttext_context.h>
 
 #include <algorithm>
+#include <array>
+#include <map>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -19,6 +22,19 @@
 namespace ttoffice {
 namespace tttext {
 namespace {
+std::array<float, 4> GetCachedCharBounds(const TypefaceRef& font, GlyphID glyph,
+                                         float font_size) {
+  using Key = std::tuple<TypefaceRef, GlyphID, float>;
+  static thread_local std::map<Key, std::array<float, 4>> cache;
+  auto [iter, inserted] = cache.try_emplace(Key{font, glyph, font_size});
+  if (inserted) {
+    font->GetWidthBounds(iter->second.data(), &glyph, 1, font_size);
+    iter->second[2] -= iter->second[0];
+    iter->second[3] -= iter->second[1];
+  }
+  return iter->second;
+}
+
 bool UsesExactTextLineBox(const ParagraphStyleImpl& para_style) {
   return para_style.GetLineHeightRule() == RulerType::kExact &&
          para_style.GetInlineVerticalAlignmentMode() ==
@@ -179,16 +195,33 @@ LayoutPosition TextLayoutImpl::ProcessBreakableRunList(
 float TextLayoutImpl::CalculatePunctuationCompression(
     const ParagraphImpl& paragraph, const BaseRun& run,
     const PunctuationCompressConfig& config, bool line_start, bool line_end) {
-  const auto raw_width = run.GetRawWidth(0, run.GetCharCount());
+  const auto raw_width = run.GetRawWidth(0, 1);
   if (config.type == PunctuationType::kNone) {
     return 0;
   }
   const auto& style = paragraph.GetParagraphStyleImpl();
   const auto type = config.type;
+  const auto& shape_result = run.shape_result_;
+  const auto glyph_index = shape_result.CharToGlyph(0);
+  const auto& font = shape_result.Font(glyph_index);
+  const auto font_size = run.GetLayoutStyle().GetScaledTextSize();
+  const auto bounds =
+      GetCachedCharBounds(font, shape_result.Glyphs(glyph_index), font_size);
+  const auto skew_extra = run.GetSkewExtraWidth() * bounds[1] /
+                          font->GetFontInfo(font_size).GetAscent();
+  const auto left = bounds[0] - std::max(0.f, skew_extra);
+  const auto right = bounds[0] + bounds[2] + std::max(0.f, -skew_extra);
+  const auto max_left_compression = std::max(0.f, left);
+  const auto max_right_compression = std::max(0.f, raw_width - right);
+  const auto max_compression =
+      type == PunctuationType::kOpen ? max_left_compression
+      : type == PunctuationType::kClose
+          ? max_right_compression
+          : 2 * std::min(max_left_compression, max_right_compression);
   auto compression = [&](float ratio) {
     const auto compression_ratio =
         ratio == 0 ? config.default_compress_ratio : ratio;
-    return raw_width * compression_ratio;
+    return std::min(raw_width * compression_ratio, max_compression);
   };
   if (style.HasPunctuationCompressOption(
           PunctuationCompressOption::kLineEdge)) {
