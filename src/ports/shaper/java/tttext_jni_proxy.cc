@@ -35,9 +35,7 @@ jmethodID TTTextJNIProxy::JavaShaper_method_OnShapeTextNew_ = nullptr;
 std::unique_ptr<ScopedGlobalRef> TTTextJNIProxy::JavaFontManager_class_ =
     nullptr;
 jmethodID TTTextJNIProxy::JavaFontManager_method_init_ = nullptr;
-jmethodID TTTextJNIProxy::JavaFontManager_method_onMatchFamilyStyle_ = nullptr;
-jmethodID TTTextJNIProxy::JavaFontManager_method_onMatchTypefaceIndex_ =
-    nullptr;
+jmethodID TTTextJNIProxy::JavaFontManager_method_onMatchTypeface_ = nullptr;
 jmethodID TTTextJNIProxy::JavaTypeface_method_GetTextBounds = nullptr;
 
 std::unique_ptr<ScopedGlobalRef> TTTextJNIProxy::tttext_utils_class_ = nullptr;
@@ -139,11 +137,9 @@ void TTTextJNIProxy::InitialJNI(JNIEnv* env) {
       std::make_unique<ScopedGlobalRef>(env, clzz_font_manager);
   JavaFontManager_method_init_ =
       GetMethod(env, clzz_font_manager, INSTANCE_METHOD, "<init>", "(J)V");
-  JavaFontManager_method_onMatchFamilyStyle_ =
-      GetMethod(env, clzz_font_manager, INSTANCE_METHOD, "onMatchFamilyStyle",
-                "(Ljava/lang/String;IZJ)J");
-  JavaFontManager_method_onMatchTypefaceIndex_ = GetMethod(
-      env, clzz_font_manager, INSTANCE_METHOD, "onMatchTypefaceIndex", "(J)J");
+  JavaFontManager_method_onMatchTypeface_ =
+      GetMethod(env, clzz_font_manager, INSTANCE_METHOD, "onMatchTypeface",
+                "(Ljava/lang/String;IZJLjava/lang/String;J)J");
   env->DeleteLocalRef(clzz_font_manager);
   auto clzz_JavaTypeface = GetClass(env, CLASS_JAVA_TYPEFACE);
   JavaTypeface_method_GetTextBounds = GetMethod(

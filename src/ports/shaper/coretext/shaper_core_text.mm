@@ -4,6 +4,8 @@
 
 #include "shaper_core_text.h"
 
+#include "font_feature_settings.h"
+
 #ifndef MIN
 #import <objc/NSObjCRuntime.h>
 #endif
@@ -169,18 +171,30 @@ void ShaperCoreText::TrimSafeFontCacheLocked(SafeFontCacheState& state) {
  * This bypasses the global (and thread-unsafe) _CTFontFallbacksArray in
  * CoreText.
  */
-CTFontRef ShaperCoreText::CreateSafeFontUnified(CTFontRef existing_font) const {
+CTFontRef ShaperCoreText::CreateSafeFontUnified(
+    CTFontRef existing_font, const FontDescriptor& fd) const {
   if (!existing_font) return nullptr;
 
   CGFloat font_size = CTFontGetSize(existing_font);
   CTFontDescriptorRef current_desc = CTFontCopyFontDescriptor(existing_font);
-  CTFontDescriptorRef safe_desc = CTFontDescriptorCreateCopyWithAttributes(
-      current_desc, GetSafeFontCascadeAttributes());
+  CFDictionaryRef attributes = GetSafeFontCascadeAttributes();
+  CFMutableDictionaryRef feature_attributes = nullptr;
+  if (!fd.font_feature_settings_.empty()) {
+    feature_attributes =
+        CFDictionaryCreateMutableCopy(kCFAllocatorDefault, 0, attributes);
+    AddFontFeatureSettings(feature_attributes, fd);
+    attributes = feature_attributes;
+  }
+  CTFontDescriptorRef safe_desc =
+      CTFontDescriptorCreateCopyWithAttributes(current_desc, attributes);
   CTFontRef safe_font =
       CTFontCreateWithFontDescriptor(safe_desc, font_size, nullptr);
 
   CFRelease(current_desc);
   CFRelease(safe_desc);
+  if (feature_attributes != nullptr) {
+    CFRelease(feature_attributes);
+  }
   return safe_font;
 }
 
@@ -268,7 +282,7 @@ CTFontRef ShaperCoreText::GetOrCreateSafeFont(const FontDescriptor& fd,
     return nullptr;
   }
 
-  CTFontRef safe_font = CreateSafeFontUnified(base_font);
+  CTFontRef safe_font = CreateSafeFontUnified(base_font, fd);
   CFRelease(base_font);
   if (safe_font == nullptr) {
     return nullptr;

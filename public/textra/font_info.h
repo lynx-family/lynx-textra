@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace ttoffice {
@@ -94,6 +95,17 @@ class L_EXPORT FontStyle {
   } pack_value_;
 };
 
+// An OpenType tag is exactly four bytes, without a trailing null terminator.
+struct L_EXPORT FontFeature {
+  char tag[4];
+  int32_t value;
+
+  bool operator==(const FontFeature& rhs) const {
+    return value == rhs.value && tag[0] == rhs.tag[0] && tag[1] == rhs.tag[1] &&
+           tag[2] == rhs.tag[2] && tag[3] == rhs.tag[3];
+  }
+};
+
 /**
  * @brief Encapsulates the information needed to select and match fonts.
  *
@@ -113,11 +125,19 @@ struct L_EXPORT FontDescriptor {
   // Empty = legacy. Otherwise parallel to font_family_list_: true is a
   // CSS named literal, false a CSS generic with existing platform policy.
   std::vector<uint8_t> font_family_literals_;
+  // OpenType tags and values used while shaping this font.
+  std::vector<FontFeature> font_feature_settings_;
   struct Hasher {
     size_t operator()(const FontDescriptor& key) const {
       size_t seed = 0;
       for (auto& font : key.font_family_list_) {
         seed ^= std::hash<std::string>()(font) + 0x9e3779b9;
+      }
+      for (const auto& [tag, value] : key.font_feature_settings_) {
+        seed ^= std::hash<std::string_view>()(std::string_view(tag, 4)) +
+                0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= std::hash<int32_t>()(value) + 0x9e3779b9 + (seed << 6) +
+                (seed >> 2);
       }
       for (bool literal : key.font_family_literals_)
         seed ^=
@@ -130,7 +150,8 @@ struct L_EXPORT FontDescriptor {
     return platform_font_ == rhs.platform_font_ &&
            font_style_ == rhs.font_style_ &&
            font_family_list_ == rhs.font_family_list_ &&
-           font_family_literals_ == rhs.font_family_literals_;
+           font_family_literals_ == rhs.font_family_literals_ &&
+           font_feature_settings_ == rhs.font_feature_settings_;
   }
 };
 /**

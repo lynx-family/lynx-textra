@@ -76,6 +76,11 @@ class ShaperCoreTextSelfRendering : public TTShaper {
             std::hash<int32_t>()(key.font_descriptor_.font_style_.Value()));
         hash_combine(
             std::hash<uint64_t>()(key.font_descriptor_.platform_font_));
+        for (const auto& [tag, value] :
+             key.font_descriptor_.font_feature_settings_) {
+          hash_combine(std::hash<std::string_view>()(std::string_view(tag, 4)));
+          hash_combine(std::hash<int32_t>()(value));
+        }
         hash_combine(std::hash<float>()(key.text_size_));
         hash_combine(std::hash<bool>()(key.fake_bold_));
         hash_combine(std::hash<bool>()(key.fake_italic_));
@@ -111,10 +116,12 @@ class ShaperCoreTextSelfRendering : public TTShaper {
   CFDictionaryRef GenerateAttributes(const ShapeKey& key) const;
   void ApplyOrderedFamilyFonts(
       CFMutableAttributedStringRef attributed_string, float text_size,
-      const std::vector<TypefaceRef>& resolved_typefaces) const;
+      const std::vector<TypefaceRef>& resolved_typefaces,
+      const FontDescriptor& fd) const;
   CTFontRef CreateSafeFontWithOrderedFamilyList(
       CTFontRef existing_font,
-      const std::vector<TypefaceRef>& resolved_typefaces) const;
+      const std::vector<TypefaceRef>& resolved_typefaces,
+      const FontDescriptor& fd) const;
   CTFontRef GetOrCreateSafeFont(const FontDescriptor& fd, float text_size,
                                 bool fake_bold, bool fake_italic) const;
   static SafeFontCacheState& GetSafeFontCacheState();

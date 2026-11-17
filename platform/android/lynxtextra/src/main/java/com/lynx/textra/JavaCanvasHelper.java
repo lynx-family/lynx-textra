@@ -385,6 +385,7 @@ public class JavaCanvasHelper {
     float y = stream.readFloat();
     paint_.setTypeface(ttfont.mTypeface);
     Paint p = ReadPaint(stream, paint_);
+    ttfont.ApplyFontFeatureSettings(p);
     p.setFakeBoldText(is_bold_);
     p.setTextSkewX((is_italic_ ? -0.25f : 0f) + text_skew_);
     boolean gradient = p.getShader() != null;

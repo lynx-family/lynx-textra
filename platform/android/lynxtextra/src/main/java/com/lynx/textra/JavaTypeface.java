@@ -8,6 +8,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.fonts.Font;
+import android.os.Build;
 import java.util.Objects;
 
 public class JavaTypeface {
@@ -22,6 +23,8 @@ public class JavaTypeface {
     String mFontFamily = "";
     int mFontWeight = 400;
     boolean mItalic = false;
+    String mFontFeatureSettings = "";
+    int mSourceIndex = 0;
 
     @Override
     public boolean equals(Object o) {
@@ -29,14 +32,18 @@ public class JavaTypeface {
         return false;
       FontKey fontKey = (FontKey) o;
       return mFontWeight == fontKey.mFontWeight && mItalic == fontKey.mItalic
-          && Objects.equals(mFontFamily, fontKey.mFontFamily);
+          && mSourceIndex == fontKey.mSourceIndex
+          && Objects.equals(mFontFamily, fontKey.mFontFamily)
+          && Objects.equals(mFontFeatureSettings, fontKey.mFontFeatureSettings);
     }
 
     @Override
     public int hashCode() {
       int result = mFontFamily.hashCode();
       result = 31 * result + mFontWeight;
-      return 31 * result + (mItalic ? 1 : 0);
+      result = 31 * result + (mItalic ? 1 : 0);
+      result = 31 * result + mSourceIndex;
+      return 31 * result + mFontFeatureSettings.hashCode();
     }
   }
 
@@ -100,6 +107,7 @@ public class JavaTypeface {
 
   public float[] GetTextBounds(char[] text, float text_size) {
     Paint paint = sPainter.get();
+    ApplyFontFeatureSettings(paint);
     Rect rect = new Rect();
     paint.setTypeface(mTypeface);
     paint.setTextSize(text_size);
@@ -110,6 +118,13 @@ public class JavaTypeface {
     ret[2] = rect.right;
     ret[3] = rect.bottom;
     return ret;
+  }
+
+  public void ApplyFontFeatureSettings(Paint paint) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      paint.setFontFeatureSettings(
+          mFontKey.mFontFeatureSettings.isEmpty() ? null : mFontKey.mFontFeatureSettings);
+    }
   }
 
   public native void BindNativeHandler(

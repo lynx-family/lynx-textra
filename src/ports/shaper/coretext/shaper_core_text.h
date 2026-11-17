@@ -81,7 +81,8 @@ class ShaperCoreText : public TTShaper {
                                                 uint32_t* u16char_map,
                                                 CFDictionaryRef key) const;
   CFDictionaryRef GenerateAttributes(const ShapeKey& key) const;
-  CTFontRef CreateSafeFontUnified(CTFontRef existing_font) const;
+  CTFontRef CreateSafeFontUnified(CTFontRef existing_font,
+                                  const FontDescriptor& fd) const;
   CTFontRef GetOrCreateSafeFont(const FontDescriptor& fd, float text_size,
                                 bool fake_bold, bool fake_italic) const;
   static SafeFontCacheState& GetSafeFontCacheState();

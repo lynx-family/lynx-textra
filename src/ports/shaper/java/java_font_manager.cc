@@ -107,12 +107,28 @@ std::shared_ptr<JavaTypeface> JavaFontManager::matchTypeface(
   }
   auto& proxy = TTTextJNIProxy::GetInstance();
   auto env = proxy.GetCurrentJNIEnv();
-  uint64_t raw_pointer = 0;
+  jstring j_settings = nullptr;
+  if (!fd.font_feature_settings_.empty()) {
+    std::string settings;
+    for (const auto& [tag, value] : fd.font_feature_settings_) {
+      if (!settings.empty()) {
+        settings += ",";
+      }
+      settings += "'";
+      settings.append(tag, 4);
+      settings += "' " + std::to_string(value);
+    }
+    j_settings = TTTextJNIProxy::CreateJavaStringFromU8(env, settings.data(),
+                                                        settings.size());
+  }
   std::shared_ptr<JavaTypeface> obj = nullptr;
+  jlong raw_pointer = 0;
   if (fd.platform_font_ != 0) {
     raw_pointer = env->CallLongMethod(
-        java_instance_->get(),
-        proxy.JavaFontManager_method_onMatchTypefaceIndex_, fd.platform_font_);
+        java_instance_->get(), proxy.JavaFontManager_method_onMatchTypeface_,
+        nullptr, static_cast<jint>(0), static_cast<jboolean>(false),
+        static_cast<jlong>(fd.platform_font_), j_settings,
+        static_cast<jlong>(0));
   } else {
     jstring j_fontfamily = nullptr;
     if (!fd.font_family_list_.empty()) {
@@ -124,15 +140,24 @@ std::shared_ptr<JavaTypeface> JavaFontManager::matchTypeface(
     }
     obj = std::make_shared<JavaTypeface>(0);
     raw_pointer = env->CallLongMethod(
-        java_instance_->get(), proxy.JavaFontManager_method_onMatchFamilyStyle_,
-        j_fontfamily, fd.font_style_.GetWeight(),
-        fd.font_style_.GetSlant() != FontStyle::kUpright_Slant,
-        reinterpret_cast<jlong>(obj.get()));
+        java_instance_->get(), proxy.JavaFontManager_method_onMatchTypeface_,
+        j_fontfamily, static_cast<jint>(fd.font_style_.GetWeight()),
+        static_cast<jboolean>(fd.font_style_.GetSlant() !=
+                              FontStyle::kUpright_Slant),
+        static_cast<jlong>(0), j_settings, reinterpret_cast<jlong>(obj.get()));
+    if (j_fontfamily != nullptr) {
+      env->DeleteLocalRef(j_fontfamily);
+    }
   }
-  if (raw_pointer != (uint64_t)obj.get()) {
-    auto typeface =
-        reinterpret_cast<JavaTypeface*>(raw_pointer)->shared_from_this();
-    obj = std::static_pointer_cast<JavaTypeface>(typeface);
+  if (j_settings != nullptr) {
+    env->DeleteLocalRef(j_settings);
+  }
+  if (ClearException(env) || raw_pointer == 0) {
+    return nullptr;
+  }
+  if (raw_pointer != reinterpret_cast<jlong>(obj.get())) {
+    obj = std::static_pointer_cast<JavaTypeface>(
+        reinterpret_cast<JavaTypeface*>(raw_pointer)->shared_from_this());
   }
   {
     std::lock_guard<std::mutex> lock(typeface_map_mutex_);

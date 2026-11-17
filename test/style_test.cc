@@ -88,3 +88,51 @@ TEST(StyleTest, Reset) {
   style.Reset();
   EXPECT_FALSE(style.HasStyleAttribute(Style::BackgroundColorFlag));
 }
+
+TEST(StyleTest, FontFeaturesDistinguishShapingAndReset) {
+  Style style;
+  auto original = style.GetShapeStyle();
+  auto descriptor = style.GetFontDescriptor();
+  descriptor.font_feature_settings_ = {{{'l', 'i', 'g', 'a'}, 0},
+                                       {{'c', 'v', '0', '1'}, 2}};
+  style.SetFontDescriptor(descriptor);
+  auto disabled = style.GetShapeStyle();
+  EXPECT_FALSE(original == disabled);
+  EXPECT_NE(std::hash<ShapeStyle>()(original),
+            std::hash<ShapeStyle>()(disabled));
+  EXPECT_EQ(style.GetFontDescriptor().font_feature_settings_.at(1).value, 2);
+
+  Style inherited = style;
+  EXPECT_EQ(inherited.GetShapeStyle(), disabled);
+  descriptor.font_feature_settings_[0].value = 1;
+  inherited.SetFontDescriptor(descriptor);
+  EXPECT_FALSE(inherited.GetShapeStyle() == disabled);
+  EXPECT_EQ(style.GetFontDescriptor().font_feature_settings_.at(0).value, 0);
+
+  descriptor.font_feature_settings_.clear();
+  inherited.SetFontDescriptor(descriptor);
+  EXPECT_EQ(inherited.GetShapeStyle(), original);
+}
+
+TEST(StyleTest, FontFeatureVectorUsesAllTagBytesAndValues) {
+  const FontFeature liga{{'l', 'i', 'g', 'a'}, 0};
+  const FontFeature ligb{{'l', 'i', 'g', 'b'}, 0};
+  const FontFeature enabled{{'l', 'i', 'g', 'a'}, 1};
+  EXPECT_TRUE(liga == liga);
+  EXPECT_FALSE(liga == ligb);
+  EXPECT_FALSE(liga == enabled);
+
+  FontDescriptor descriptor;
+  descriptor.font_feature_settings_ = {liga, enabled};
+  auto copy = descriptor;
+  EXPECT_EQ(descriptor, copy);
+  EXPECT_EQ(FontDescriptor::Hasher()(descriptor),
+            FontDescriptor::Hasher()(copy));
+  copy.font_feature_settings_[0] = ligb;
+  EXPECT_FALSE(descriptor == copy);
+  EXPECT_NE(FontDescriptor::Hasher()(descriptor),
+            FontDescriptor::Hasher()(copy));
+
+  copy.font_feature_settings_ = {enabled, liga};
+  EXPECT_FALSE(descriptor == copy);
+}

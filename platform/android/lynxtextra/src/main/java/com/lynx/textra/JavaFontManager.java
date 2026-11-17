@@ -56,16 +56,44 @@ public class JavaFontManager {
     }
   }
 
-  public long onMatchTypefaceIndex(long index) {
-    return GetTypefaceByIndex((int) index).mNativeHandler;
+  public long onMatchTypeface(String families, int font_weight, boolean is_italic, long index,
+      String settings, long typeface_handler) {
+    boolean has_features =
+        settings != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
+    // A newly resolved base and its feature variant must not share a native
+    // object: binding the variant would otherwise overwrite the base index.
+    JavaTypeface base = index != 0
+        ? GetTypefaceByIndex((int) index)
+        : MatchFamilyStyle(families, font_weight, is_italic, has_features ? 0 : typeface_handler);
+    if (!has_features) {
+      return base.mNativeHandler;
+    }
+    JavaTypeface.FontKey key =
+        CreateFontKey(base.mFontKey.mFontFamily, base.mFontKey.mFontWeight, base.mFontKey.mItalic);
+    key.mFontFeatureSettings = settings;
+    key.mSourceIndex = base.mIndex;
+    JavaTypeface cached = mFontMap.get(key);
+    if (cached != null) {
+      return cached.mNativeHandler;
+    }
+    // Keep the registered Typeface and give each feature set its own index.
+    JavaTypeface candidate = RegisterTypeface(base.mTypeface, key,
+        typeface_handler != 0 ? typeface_handler : CreateNativeTypeface(mNativeHandler));
+    mTypefaceByIndex.put(candidate.mIndex, candidate);
+    cached = mFontMap.putIfAbsent(key, candidate);
+    if (cached != null) {
+      mTypefaceByIndex.remove(candidate.mIndex, candidate);
+      return cached.mNativeHandler;
+    }
+    return candidate.mNativeHandler;
   }
-  public long onMatchFamilyStyle(
+  private JavaTypeface MatchFamilyStyle(
       String families, int font_weight, boolean is_italic, long typeface_handler) {
     JavaTypeface.FontKey requested_key = CreateFontKey(families, font_weight, is_italic);
     JavaTypeface.FontKey fallback_key = requested_key;
     JavaTypeface cached_typeface = mFontMap.get(requested_key);
     if (cached_typeface != null) {
-      return cached_typeface.mNativeHandler;
+      return cached_typeface;
     }
 
     if (!requested_key.mFontFamily.isEmpty()) {
@@ -74,9 +102,9 @@ public class JavaFontManager {
       if (cached_typeface != null) {
         JavaTypeface requested_typeface = mFontMap.get(requested_key);
         if (requested_typeface != null) {
-          return requested_typeface.mNativeHandler;
+          return requested_typeface;
         }
-        return cached_typeface.mNativeHandler;
+        return cached_typeface;
       }
     }
 
@@ -90,14 +118,15 @@ public class JavaFontManager {
     }
 
     JavaTypeface candidate =
-        RegisterTypeface(Typeface.create(Typeface.DEFAULT, style), fallback_key, typeface_handler);
+        RegisterTypeface(Typeface.create(Typeface.DEFAULT, style), fallback_key,
+            typeface_handler != 0 ? typeface_handler : CreateNativeTypeface(mNativeHandler));
     mTypefaceByIndex.put(candidate.mIndex, candidate);
     cached_typeface = mFontMap.putIfAbsent(fallback_key, candidate);
     if (cached_typeface != null) {
       mTypefaceByIndex.remove(candidate.mIndex, candidate);
-      return cached_typeface.mNativeHandler;
+      return cached_typeface;
     }
-    return candidate.mNativeHandler;
+    return candidate;
   }
 
   private JavaTypeface RegisterTypeface(
