@@ -20,7 +20,8 @@ Pod::Spec.new do |s|
 
   s.subspec "LynxTextra" do |sp|
     sp.header_mappings_dir    = "public"
-    sp.public_header_files    = "public/textra/font_info.h",
+    sp.public_header_files    = "public/textra/c/*.h",
+                                "public/textra/font_info.h",
                                 "public/textra/fontmgr_collection.h",
                                 "public/textra/i_canvas_helper.h",
                                 "public/textra/i_font_manager.h",
@@ -64,7 +65,8 @@ Pod::Spec.new do |s|
                                 "public/textra/tt_path.h",
                                 "public/textra/tttext_context.h"
 
-    sp.private_header_files   = "src/ports/shaper/coretext/*.{h,hpp}",
+    sp.private_header_files   = "src/capi/*.h",
+                                "src/ports/shaper/coretext/*.{h,hpp}",
                                 "src/textlayout/*.{h,hpp}",
                                 "src/textlayout/icu_substitute/bidi/*.{h,hpp}",
                                 "src/textlayout/icu_substitute/bidi/algorithm/*.{h,hpp}",
@@ -73,7 +75,9 @@ Pod::Spec.new do |s|
                                 "src/textlayout/style/*.{h,hpp}",
                                 "src/textlayout/utils/*.{h,hpp}"
 
-    sp.source_files           = "public/textra/font_info.h",
+    sp.source_files           = "public/textra/c/*.h",
+                                "src/capi/*.{h,cc,mm}",
+                                "public/textra/font_info.h",
                                 "public/textra/fontmgr_collection.h",
                                 "public/textra/i_canvas_helper.h",
                                 "public/textra/i_font_manager.h",

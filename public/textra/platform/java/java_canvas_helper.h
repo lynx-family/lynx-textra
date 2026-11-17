@@ -120,7 +120,7 @@ class JavaCanvasHelper : public ICanvasHelper {
     stream_.Write(font->GetUniqueId());
     stream_.WriteInt32(glyph_count);
     bool rtl = text_bytes == 1;
-    for (auto k = 0; k < glyph_count; k++) {
+    for (auto k = 0u; k < glyph_count; k++) {
       auto rk = rtl ? glyph_count - 1 - k : k;
       stream_.Write(glyphs[rk]);
     }

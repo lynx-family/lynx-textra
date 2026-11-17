@@ -166,6 +166,26 @@ source_set("bidi") {
 }
 
 textlayout_public_headers = [
+  "$prj_root/public/textra/c/textra.h",
+  "$prj_root/public/textra/c/textra_buffer_output_stream.h",
+  "$prj_root/public/textra/c/textra_canvas_helper.h",
+  "$prj_root/public/textra/c/textra_font.h",
+  "$prj_root/public/textra/c/textra_gradient.h",
+  "$prj_root/public/textra/c/textra_layout_drawer.h",
+  "$prj_root/public/textra/c/textra_layout_page_listener.h",
+  "$prj_root/public/textra/c/textra_layout_region.h",
+  "$prj_root/public/textra/c/textra_painter.h",
+  "$prj_root/public/textra/c/textra_paragraph.h",
+  "$prj_root/public/textra/c/textra_paragraph_style.h",
+  "$prj_root/public/textra/c/textra_platform_helper.h",
+  "$prj_root/public/textra/c/textra_resolved_gradient.h",
+  "$prj_root/public/textra/c/textra_run_delegate.h",
+  "$prj_root/public/textra/c/textra_style.h",
+  "$prj_root/public/textra/c/textra_text_layout.h",
+  "$prj_root/public/textra/c/textra_text_line.h",
+  "$prj_root/public/textra/c/textra_tttext_context.h",
+  "$prj_root/public/textra/c/textra_types.h",
+
   "$prj_root/public/textra/gradient.h",
   "$prj_root/public/textra/platform/ark_graphics/ag_gradient.h",
   "$prj_root/public/textra/platform/ios/coregraphics_gradient.h",
@@ -230,6 +250,10 @@ source_set("textlayout") {
 
   sources += textlayout_public_headers
   sources += [
+    "$prj_root/src/capi/textra_callbacks.cc",
+    "$prj_root/src/capi/textra_capi.cc",
+    "$prj_root/src/capi/textra_capi_internal.h",
+    "$prj_root/src/capi/textra_java_canvas.cc",
     "$prj_root/src/ports/platform_helper.cc",
     "$prj_root/src/textlayout/dominate_baseline.cc",
     "$prj_root/src/textlayout/dominate_baseline.h",
@@ -314,6 +338,7 @@ source_set("textlayout") {
     ]
 
     sources += [
+      "$prj_root/src/capi/textra_coregraphics.mm",
       "$prj_root/src/ports/shaper/coretext/shaper_core_text.h",
       "$prj_root/src/ports/shaper/coretext/shaper_core_text.mm",
       "$prj_root/src/ports/shaper/coretext/shaper_core_text_self_rendering.h",

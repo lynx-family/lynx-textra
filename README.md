@@ -38,6 +38,12 @@ It supports a wide range of text layout features, including:
 
 See [demos/README.md](demos/README.md) for details.
 
+## C API
+
+Include `<textra/c/textra.h>` for the C interface. It follows the C++ object model
+and ships with the core library. See the [design](docs/c-api-design.md) and
+[C API integration test](test/capi/README.md) for ownership rules and usage.
+
 ## Building
 
 See [platform/README.md](platform/README.md) for details.

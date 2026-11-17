@@ -78,6 +78,10 @@ class L_EXPORT TTTextContext {
   bool IsAndroidMetricsRound() const;
   void SetAndroidMetricsRound(bool enabled);
 
+  /**
+   * @brief Enables or disables one FeatureOption. Reset preserves these
+   * configurations. The configuration setters above use this same dispatch.
+   */
   void EnableFeature(FeatureOption feature_option, bool value);
 
   // Layout state getters/setters
