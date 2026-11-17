@@ -94,6 +94,10 @@ class ShapeStyle {
     for (const auto& font_family : font_descriptor_.font_family_list_) {
       hash_combine(std::hash<std::string>()(font_family));
     }
+    for (const auto& [tag, value] : font_descriptor_.font_feature_settings_) {
+      hash_combine(std::hash<std::string_view>()(std::string_view(tag, 4)));
+      hash_combine(std::hash<int32_t>()(value));
+    }
     hash_combine(std::hash<uint64_t>()(font_descriptor_.platform_font_));
     hash_combine(std::hash<int32_t>()(font_descriptor_.font_style_.Value()));
     hash_combine(std::hash<float>()(font_size_));

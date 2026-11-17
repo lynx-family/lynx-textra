@@ -230,6 +230,10 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
   if (weight < 0) weight = 0;
   if (weight > 8) weight = 8;
   OH_Drawing_SetTextStyleFontWeight(text_style, weight);
+  for (const auto& [tag, value] : fd.font_feature_settings_) {
+    const char terminated_tag[] = {tag[0], tag[1], tag[2], tag[3], '\0'};
+    OH_Drawing_TextStyleAddFontFeature(text_style, terminated_tag, value);
+  }
   OH_Drawing_TypographyHandlerPushTextStyle(typography_handler, text_style);
   auto u32_text(key.text_);
   for (auto& ch : u32_text) {

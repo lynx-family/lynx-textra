@@ -4,6 +4,8 @@
 
 #include "shaper_core_text_self_rendering.h"
 
+#include "font_feature_settings.h"
+
 #ifndef MIN
 #import <objc/NSObjCRuntime.h>
 #endif
@@ -225,8 +227,8 @@ void ShaperCoreTextSelfRendering::TrimSafeFontCacheLocked(
 }
 
 CTFontRef ShaperCoreTextSelfRendering::CreateSafeFontWithOrderedFamilyList(
-    CTFontRef existing_font,
-    const std::vector<TypefaceRef>& resolved_typefaces) const {
+    CTFontRef existing_font, const std::vector<TypefaceRef>& resolved_typefaces,
+    const FontDescriptor& fd) const {
   if (existing_font == nullptr) {
     return nullptr;
   }
@@ -249,11 +251,12 @@ CTFontRef ShaperCoreTextSelfRendering::CreateSafeFontWithOrderedFamilyList(
     CFRelease(descriptor);
   }
 
-  const void* keys[] = {kCTFontCascadeListAttribute};
-  const void* values[] = {cascade};
-  CFDictionaryRef cascade_attributes = CFDictionaryCreate(
-      kCFAllocatorDefault, keys, values, 1, &kCFTypeDictionaryKeyCallBacks,
+  CFMutableDictionaryRef cascade_attributes = CFDictionaryCreateMutable(
+      kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks,
       &kCFTypeDictionaryValueCallBacks);
+  CFDictionarySetValue(cascade_attributes, kCTFontCascadeListAttribute,
+                       cascade);
+  AddFontFeatureSettings(cascade_attributes, fd);
 
   CTFontDescriptorRef existing_descriptor =
       CTFontCopyFontDescriptor(existing_font);
@@ -371,7 +374,7 @@ CTFontRef ShaperCoreTextSelfRendering::GetOrCreateSafeFont(
   // existing safe fallback list, so ordered matching does not need a separate
   // legacy branch.
   CTFontRef safe_font =
-      CreateSafeFontWithOrderedFamilyList(base_font, resolved_typefaces);
+      CreateSafeFontWithOrderedFamilyList(base_font, resolved_typefaces, fd);
   CFRelease(base_font);
   if (safe_font == nullptr) {
     return nullptr;
@@ -502,7 +505,7 @@ void ShaperCoreTextSelfRendering::OnShapeText(const ShapeKey& key,
     CFMutableAttributedStringRef ordered_cfa =
         CFAttributedStringCreateMutableCopy(kCFAllocatorDefault, 0, cfa);
     ApplyOrderedFamilyFonts(ordered_cfa, key.style_.GetFontSize(),
-                            resolved_typefaces);
+                            resolved_typefaces, key.style_.GetFontDescriptor());
     CFRelease(cfa);
     cfa = ordered_cfa;
   }
@@ -605,7 +608,8 @@ void ShaperCoreTextSelfRendering::OnShapeText(const ShapeKey& key,
 
 void ShaperCoreTextSelfRendering::ApplyOrderedFamilyFonts(
     CFMutableAttributedStringRef attributed_string, float text_size,
-    const std::vector<TypefaceRef>& resolved_typefaces) const {
+    const std::vector<TypefaceRef>& resolved_typefaces,
+    const FontDescriptor& fd) const {
   auto font_manager = font_collection_.GetDefaultFontManager();
   if (attributed_string == nullptr || font_manager == nullptr ||
       resolved_typefaces.size() < 2) {
@@ -614,13 +618,26 @@ void ShaperCoreTextSelfRendering::ApplyOrderedFamilyFonts(
 
   std::vector<CTFontRef> fonts;
   fonts.reserve(resolved_typefaces.size());
+  CTFontDescriptorRef feature_descriptor = nullptr;
+  if (!fd.font_feature_settings_.empty()) {
+    CFMutableDictionaryRef attributes = CFDictionaryCreateMutable(
+        kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks,
+        &kCFTypeDictionaryValueCallBacks);
+    AddFontFeatureSettings(attributes, fd);
+    feature_descriptor = CTFontDescriptorCreateWithAttributes(attributes);
+    CFRelease(attributes);
+  }
   for (const TypefaceRef& typeface : resolved_typefaces) {
     CTFontRef platform_font = static_cast<CTFontRef>(
         font_manager->getPlatformFontFromTypeface(typeface));
     fonts.push_back(platform_font == nullptr
                         ? nullptr
-                        : CTFontCreateCopyWithAttributes(
-                              platform_font, text_size, nullptr, nullptr));
+                        : CTFontCreateCopyWithAttributes(platform_font,
+                                                         text_size, nullptr,
+                                                         feature_descriptor));
+  }
+  if (feature_descriptor != nullptr) {
+    CFRelease(feature_descriptor);
   }
 
   CFStringRef cf_string = CFAttributedStringGetString(attributed_string);

@@ -16,6 +16,7 @@ public class JavaShaper {
       String content, JavaTypeface font, float text_size, boolean is_rtl, boolean italic) {
     int textLength = content.length();
     float[] result = obtainAdvances(textLength);
+    font.ApplyFontFeatureSettings(mPaint);
     mPaint.setTypeface(font.mTypeface);
     mPaint.setTextSize(text_size);
     mPaint.getTextWidths(content, result);
