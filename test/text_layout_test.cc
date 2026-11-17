@@ -16,6 +16,7 @@
 #include <utility>
 
 #include "mocks.h"
+#include "src/textlayout/shape_cache.h"
 #include "src/textlayout/style_attributes.h"
 #include "test_utils.h"
 
@@ -69,8 +70,18 @@ class TextLayoutTest : public ::testing::Test {
           *info = FontInfo(-0.75 * font_size, 0.25 * font_size, font_size);
         }));
     ON_CALL(*mock_typeface, GetWidthBounds(_, _, _, _))
-        .WillByDefault(Invoke([](float* rect_ltrb, GlyphID[],
-                                 uint32_t glyph_count, float font_size) {
+        .WillByDefault(Invoke([font = mock_typeface.get()](
+                                  float* rect_ltrb, GlyphID glyphs[],
+                                  uint32_t glyph_count, float font_size) {
+          if (glyph_count == 1) {
+            float ltwh[4];
+            font->GetWidthBound(ltwh, glyphs[0], font_size);
+            rect_ltrb[0] = ltwh[0];
+            rect_ltrb[1] = ltwh[1];
+            rect_ltrb[2] = ltwh[0] + ltwh[2];
+            rect_ltrb[3] = ltwh[1] + ltwh[3];
+            return;
+          }
           if (glyph_count == 0) {
             rect_ltrb[0] = 0.f;
             rect_ltrb[1] = 0.f;
@@ -84,17 +95,26 @@ class TextLayoutTest : public ::testing::Test {
           rect_ltrb[3] = 0.25f * font_size;
         }));
     ON_CALL(*mock_typeface, GetWidthBound(_, _, _))
-        .WillByDefault(Invoke([](float* rect_ltwh, GlyphID, float font_size) {
-          rect_ltwh[0] = 0.f;
-          rect_ltwh[1] = -0.75f * font_size;
-          rect_ltwh[2] = font_size;
-          rect_ltwh[3] = font_size;
-        }));
+        .WillByDefault(
+            Invoke([](float* rect_ltwh, GlyphID glyph, float font_size) {
+              rect_ltwh[0] = 0.f;
+              rect_ltwh[1] = -0.75f * font_size;
+              rect_ltwh[2] = font_size;
+              rect_ltwh[3] = font_size;
+              // Leave space for compression while retaining visible
+              // punctuation.
+              if (glyph == U'（' || glyph == U'）' || glyph == U'，') {
+                rect_ltwh[2] = 0.1f * font_size;
+                if (glyph == U'（') rect_ltwh[0] = 0.9f * font_size;
+                if (glyph == U'，') rect_ltwh[0] = 0.45f * font_size;
+              }
+            }));
     return mock_typeface;
   }
 
   std::unique_ptr<MockTTShaper> CreateFixedSizeMockShaper(
       const ::TypefaceRef& typeface) {
+    ShapeCache::GetInstance().Clear();
     auto test_fontmgr = std::make_shared<TestFontMgr>(
         std::vector<std::shared_ptr<ITypefaceHelper>>{typeface});
     auto mock_shaper = std::make_unique<NiceMock<MockTTShaper>>(
@@ -105,7 +125,7 @@ class TextLayoutTest : public ::testing::Test {
               const size_t char_count = key.text_.size();
               TestShapingResultReader reader(char_count);
               for (size_t i = 0; i < char_count; ++i) {
-                reader.glyphs_[i] = i;
+                reader.glyphs_[i] = static_cast<GlyphID>(key.text_[i]);
                 const float font_size = key.style_.GetFontSize();
                 reader.advances_[i] = {font_size, font_size};
               }
@@ -1868,6 +1888,291 @@ TEST_F(TextLayoutTest, PunctuationCompressionModesAndFallback) {
   }
 }
 
+TEST_F(TextLayoutTest, PunctuationCompressionRespectsInkBounds) {
+  struct TestCase {
+    float left;
+    float right;
+    float open_width;
+    float close_width;
+    float center_width;
+  };
+  for (const auto test : {TestCase{3.f, 7.f, 7.f, 7.f, 4.f},
+                          {1.f, 7.f, 9.f, 7.f, 8.f},
+                          {3.f, 9.f, 7.f, 9.f, 8.f},
+                          {0.f, 10.f, 10.f, 10.f, 10.f},
+                          {-1.f, 11.f, 10.f, 10.f, 10.f}}) {
+    for (const auto type : {PunctuationType::kOpen, PunctuationType::kClose,
+                            PunctuationType::kCenter}) {
+      for (const auto ratio : {0.1f, 1.f}) {
+        SCOPED_TRACE(static_cast<int>(type));
+        SCOPED_TRACE(test.left);
+        SCOPED_TRACE(test.right);
+        SCOPED_TRACE(ratio);
+        auto typeface = CreateFixedSizeMockTypeface();
+        EXPECT_CALL(*static_cast<MockTypefaceHelper*>(typeface.get()),
+                    GetWidthBound(_, _, 10.f))
+            .Times(1)
+            .WillOnce(Invoke([test](float* ltwh, GlyphID, float) {
+              ltwh[0] = test.left;
+              ltwh[1] = -7.5f;
+              ltwh[2] = test.right - test.left;
+              ltwh[3] = 10.f;
+            }));
+        ParagraphImpl paragraph;
+        Style text_style;
+        text_style.SetTextSize(10.f);
+        auto& style = paragraph.GetParagraphStyle();
+        style.SetPunctuationCompressOptions(PunctuationCompressOption::kAll);
+        style.UpdatePunctuationCompressConfig({U'，', type, ratio, 0.f, 0.f});
+        paragraph.AddTextRun(&text_style, u8"，");
+        TextLayout layout(CreateFixedSizeMockShaper(typeface));
+        TTTextContext context;
+        LayoutRegion region(10.f, 100.f);
+        layout.Layout(&paragraph, &region, context);
+
+        const auto min_width = type == PunctuationType::kOpen ? test.open_width
+                               : type == PunctuationType::kClose
+                                   ? test.close_width
+                                   : test.center_width;
+        ASSERT_EQ(region.GetLineCount(), 1u);
+        EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(),
+                        std::max(10.f * (1.f - ratio), min_width));
+        EXPECT_TRUE(testing::Mock::VerifyAndClearExpectations(typeface.get()));
+      }
+    }
+  }
+}
+
+TEST_F(TextLayoutTest, PunctuationInkBoundsAreSharedAcrossRunsAndLayouts) {
+  auto typeface = CreateFixedSizeMockTypeface();
+  auto* mock_typeface = static_cast<MockTypefaceHelper*>(typeface.get());
+  EXPECT_CALL(*mock_typeface, GetWidthBound(_, _, 10.f))
+      .Times(1)
+      .WillRepeatedly(Invoke([](float* ltwh, GlyphID, float) {
+        ltwh[0] = 3.f;
+        ltwh[1] = -7.5f;
+        ltwh[2] = 4.f;
+        ltwh[3] = 10.f;
+      }));
+  ParagraphImpl paragraph;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  auto& style = paragraph.GetParagraphStyle();
+  style.AllowBreakAroundPunctuation(true);
+  style.SetPunctuationCompressOptions(PunctuationCompressOption::kAll);
+  style.UpdatePunctuationCompressConfig(
+      {U'，', PunctuationType::kCenter, 1.f, 0.f, 0.f});
+  paragraph.AddTextRun(&text_style, u8"A，，B");
+  auto shaper = CreateFixedSizeMockShaper(typeface);
+  auto* mock_shaper = shaper.get();
+  TextLayout layout(std::move(shaper));
+  TTTextContext context;
+  LayoutRegion region(28.f, 100.f);
+  layout.Layout(&paragraph, &region, context);
+
+  ASSERT_EQ(region.GetLineCount(), 1u);
+  EXPECT_EQ(region.GetLine(0)->GetCharCount(), 4u);
+  EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), 28.f);
+  ASSERT_TRUE(testing::Mock::VerifyAndClearExpectations(mock_typeface));
+  EXPECT_CALL(*mock_typeface, GetWidthBound(_, _, _)).Times(0);
+
+  TTTextContext repeat_context;
+  LayoutRegion repeat_region(40.f, 100.f);
+  layout.Layout(&paragraph, &repeat_region, repeat_context);
+  ASSERT_EQ(repeat_region.GetLineCount(), 1u);
+  EXPECT_FLOAT_EQ(repeat_region.GetLine(0)->GetLineRight(), 28.f);
+
+  ParagraphImpl next_paragraph;
+  next_paragraph.SetParagraphStyle(&style);
+  next_paragraph.AddTextRun(&text_style, u8"，，");
+  TTTextContext next_context;
+  LayoutRegion next_region(40.f, 100.f);
+  layout.Layout(&next_paragraph, &next_region, next_context);
+  ASSERT_EQ(next_region.GetLineCount(), 1u);
+  EXPECT_FLOAT_EQ(next_region.GetLine(0)->GetLineRight(), 8.f);
+
+  // A new shaping result may select a different fallback font.
+  auto next_typeface = CreateFixedSizeMockTypeface();
+  EXPECT_CALL(*static_cast<MockTypefaceHelper*>(next_typeface.get()),
+              GetWidthBound(_, _, 10.f))
+      .Times(1)
+      .WillRepeatedly(Invoke([](float* ltwh, GlyphID, float) {
+        ltwh[0] = 1.f;
+        ltwh[1] = -7.5f;
+        ltwh[2] = 8.f;
+        ltwh[3] = 10.f;
+      }));
+  ON_CALL(*mock_shaper, OnShapeText(_, _))
+      .WillByDefault(
+          Invoke([next_typeface](const ShapeKey& key, ShapeResult* result) {
+            TestShapingResultReader reader(key.text_.size());
+            for (auto index = 0u; index < key.text_.size(); ++index) {
+              reader.glyphs_[index] = static_cast<GlyphID>(key.text_[index]);
+              reader.advances_[index] = {10.f, 0.f};
+            }
+            reader.font_ = next_typeface;
+            result->AppendPlatformShapingResult(reader);
+          }));
+  TTTextContext second_context;
+  second_context.EnableFeature(kDisableShapeCache, true);
+  LayoutRegion second_region(40.f, 100.f);
+  layout.Layout(&paragraph, &second_region, second_context);
+  ASSERT_EQ(second_region.GetLineCount(), 1u);
+  EXPECT_FLOAT_EQ(second_region.GetLine(0)->GetLineRight(), 36.f);
+  EXPECT_TRUE(testing::Mock::VerifyAndClearExpectations(next_typeface.get()));
+}
+
+TEST_F(TextLayoutTest, PunctuationInkBoundsCacheSeparatesCharacters) {
+  auto typeface = CreateFixedSizeMockTypeface();
+  EXPECT_CALL(*static_cast<MockTypefaceHelper*>(typeface.get()),
+              GetWidthBound(_, _, 10.f))
+      .Times(2)
+      .WillRepeatedly(Invoke([](float* ltwh, GlyphID glyph, float) {
+        ltwh[0] = glyph == U'，' ? 3.f : 2.f;
+        ltwh[1] = -7.5f;
+        ltwh[2] = glyph == U'，' ? 4.f : 6.f;
+        ltwh[3] = 10.f;
+      }));
+  ParagraphImpl paragraph;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  auto& style = paragraph.GetParagraphStyle();
+  style.SetPunctuationCompressOptions(PunctuationCompressOption::kAll);
+  for (const auto unicode : {U'，', U'。'}) {
+    style.UpdatePunctuationCompressConfig(
+        {unicode, PunctuationType::kCenter, 1.f, 0.f, 0.f});
+  }
+  paragraph.AddTextRun(&text_style, u8"，。，。");
+  TextLayout layout(CreateFixedSizeMockShaper(typeface));
+  TTTextContext context;
+  LayoutRegion region(40.f, 100.f);
+  layout.Layout(&paragraph, &region, context);
+
+  ASSERT_EQ(region.GetLineCount(), 1u);
+  EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), 20.f);
+  EXPECT_TRUE(testing::Mock::VerifyAndClearExpectations(typeface.get()));
+}
+
+TEST_F(TextLayoutTest, PunctuationInkBoundsAreSharedByGlyphAcrossCharacters) {
+  auto typeface = CreateFixedSizeMockTypeface();
+  auto* mock_typeface = static_cast<MockTypefaceHelper*>(typeface.get());
+  EXPECT_CALL(*mock_typeface, GetWidthBound(_, _, _)).Times(0);
+  EXPECT_CALL(*mock_typeface, GetWidthBounds(_, Pointee(1), 1u, 10.f))
+      .Times(1)
+      .WillOnce(Invoke([](float* ltrb, GlyphID[], uint32_t, float) {
+        ltrb[0] = 3.f;
+        ltrb[1] = -7.5f;
+        ltrb[2] = 7.f;
+        ltrb[3] = 2.5f;
+      }));
+  auto shaper = CreateFixedSizeMockShaper(typeface);
+  ON_CALL(*shaper, OnShapeText(_, _))
+      .WillByDefault(
+          Invoke([typeface](const ShapeKey& key, ShapeResult* result) {
+            TestShapingResultReader reader(key.text_.size());
+            for (auto index = 0u; index < key.text_.size(); ++index) {
+              reader.glyphs_[index] = 1;
+              reader.advances_[index] = {10.f, 0.f};
+            }
+            reader.font_ = typeface;
+            result->AppendPlatformShapingResult(reader);
+          }));
+  ParagraphImpl paragraph;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  auto& style = paragraph.GetParagraphStyle();
+  style.SetPunctuationCompressOptions(PunctuationCompressOption::kAll);
+  for (const auto unicode : {U'，', U'。'}) {
+    style.UpdatePunctuationCompressConfig(
+        {unicode, PunctuationType::kCenter, 1.f, 0.f, 0.f});
+  }
+  paragraph.AddTextRun(&text_style, u8"，。，。");
+  TextLayout layout(std::move(shaper));
+  TTTextContext context;
+  LayoutRegion region(40.f, 100.f);
+  layout.Layout(&paragraph, &region, context);
+
+  ASSERT_EQ(region.GetLineCount(), 1u);
+  EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), 16.f);
+  EXPECT_TRUE(testing::Mock::VerifyAndClearExpectations(mock_typeface));
+}
+
+TEST_F(TextLayoutTest, LineEndPunctuationCannotFitByCompressingInk) {
+  auto typeface = CreateFixedSizeMockTypeface();
+  EXPECT_CALL(*static_cast<MockTypefaceHelper*>(typeface.get()),
+              GetWidthBound(_, _, 10.f))
+      .Times(1)
+      .WillOnce(Invoke([](float* ltwh, GlyphID, float) {
+        ltwh[0] = 1.f;
+        ltwh[1] = -7.5f;
+        ltwh[2] = 7.f;
+        ltwh[3] = 10.f;
+      }));
+  ParagraphImpl paragraph;
+  Style text_style;
+  text_style.SetTextSize(10.f);
+  auto& style = paragraph.GetParagraphStyle();
+  style.AllowBreakAroundPunctuation(true);
+  style.SetPunctuationCompressOptions(PunctuationCompressOption::kLineEdge);
+  style.UpdatePunctuationCompressConfig(
+      {U'）', PunctuationType::kClose, 0.f, 1.f, 0.f});
+  paragraph.AddTextRun(&text_style, u8"A）");
+  TextLayout layout(CreateFixedSizeMockShaper(typeface));
+  TTTextContext context;
+  LayoutRegion region(15.f, 100.f);
+  layout.Layout(&paragraph, &region, context);
+
+  ASSERT_EQ(region.GetLineCount(), 2u);
+  EXPECT_EQ(region.GetLine(0)->GetCharCount(), 1u);
+  EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), 10.f);
+  EXPECT_FLOAT_EQ(region.GetLine(1)->GetLineRight(), 8.f);
+}
+
+TEST_F(TextLayoutTest, PunctuationCompressionBoundsRespectTextSizeAndSkew) {
+  struct TestCase {
+    float scale;
+    float skew;
+    float expected_width;
+  };
+  auto typeface = CreateFixedSizeMockTypeface();
+  for (const auto font_size : {10.f, 20.f}) {
+    EXPECT_CALL(*static_cast<MockTypefaceHelper*>(typeface.get()),
+                GetWidthBound(_, _, font_size))
+        .Times(1)
+        .WillOnce(Invoke([](float* ltwh, GlyphID, float size) {
+          ltwh[0] = 0.3f * size;
+          ltwh[1] = -0.75f * size;
+          ltwh[2] = 0.4f * size;
+          ltwh[3] = size;
+        }));
+  }
+  for (const auto test : {TestCase{1.f, 0.f, 4.f},
+                          {2.f, 0.f, 8.f},
+                          {1.f, 0.2f, 8.5f},
+                          {1.f, -0.2f, 8.5f}}) {
+    SCOPED_TRACE(test.scale);
+    SCOPED_TRACE(test.skew);
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(10.f);
+    text_style.SetTextScale(test.scale);
+    text_style.SetTextSkew(test.skew);
+    auto& style = paragraph.GetParagraphStyle();
+    style.SetPunctuationCompressOptions(PunctuationCompressOption::kAll);
+    style.UpdatePunctuationCompressConfig(
+        {U'，', PunctuationType::kCenter, 1.f, 0.f, 0.f});
+    paragraph.AddTextRun(&text_style, u8"，");
+    TextLayout layout(CreateFixedSizeMockShaper(typeface));
+    TTTextContext context;
+    LayoutRegion region(30.f, 100.f);
+    layout.Layout(&paragraph, &region, context);
+
+    ASSERT_EQ(region.GetLineCount(), 1u);
+    EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), test.expected_width);
+  }
+  EXPECT_TRUE(testing::Mock::VerifyAndClearExpectations(typeface.get()));
+}
+
 TEST_F(TextLayoutTest,
        AdjacentPunctuationCompressionIsIndependentOfLineBreaks) {
   for (const auto layout_width : {10.f, 20.f}) {
@@ -2112,10 +2417,11 @@ TEST_F(TextLayoutTest, PunctuationBoundarySingleCharacterAndRatioExtremes) {
       layout.Layout(&paragraph, &region, context);
       ASSERT_EQ(region.GetLineCount(), 1u);
       EXPECT_EQ(region.GetLine(0)->GetCharCount(), 1u);
-      EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), 10.f * (1.f - ratio));
+      const auto expected_width = 10.f * (1.f - std::min(ratio, 0.9f));
+      EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineRight(), expected_width);
       float rect[4];
       region.GetLine(0)->GetCharBoundingRect(rect, 0);
-      EXPECT_FLOAT_EQ(rect[2], 10.f * (1.f - ratio));
+      EXPECT_FLOAT_EQ(rect[2], expected_width);
     }
   }
 }
