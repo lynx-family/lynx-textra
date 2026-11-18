@@ -172,6 +172,10 @@ class BaseRun {
   bool CanBeAppendToShaping(const BaseRun& prev_run) const {
     TTASSERT(!prev_run.IsGhostRun() && !prev_run.IsBlockRun());
     if (&prev_run == this) return true;
+    // Compression measures and draws each punctuation run independently.
+    if (GetType() == RunType::kPunctuationRun ||
+        prev_run.GetType() == RunType::kPunctuationRun)
+      return false;
     if (IsGhostRun() || IsBlockRun() || IsObjectRun() || prev_run.IsObjectRun())
       return false;
     return prev_run.IsRtl() == IsRtl() &&

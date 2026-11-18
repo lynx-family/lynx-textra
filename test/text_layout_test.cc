@@ -1888,6 +1888,74 @@ TEST_F(TextLayoutTest, PunctuationCompressionModesAndFallback) {
   }
 }
 
+TEST_F(TextLayoutTest, PunctuationCompressionDoesNotReuseAdjacentKerning) {
+  class PunctuationTypeface : public FixedMetricsTypefaceHelper {
+   public:
+    void GetWidthBounds(float* rect, GlyphID glyphs[], uint32_t count,
+                        float size) override {
+      ASSERT_EQ(count, 1u);
+      rect[0] = (glyphs[0] == U'、' ? 0.125f : 0.375f) * size;
+      rect[1] = -0.75f * size;
+      rect[2] = (glyphs[0] == U'、' ? 0.375f : 0.65f) * size;
+      rect[3] = 0.25f * size;
+    }
+  };
+  for (const auto option :
+       {PunctuationCompressOption::kNone, PunctuationCompressOption::kAll,
+        PunctuationCompressOption::kAdjacent,
+        PunctuationCompressOption::kLineEdge}) {
+    SCOPED_TRACE(static_cast<int>(option));
+    auto typeface = std::make_shared<PunctuationTypeface>();
+    auto shaper = CreateFixedSizeMockShaper(typeface);
+    ON_CALL(*shaper, OnShapeText(_, _))
+        .WillByDefault(
+            Invoke([typeface](const ShapeKey& key, ShapeResult* result) {
+              TestShapingResultReader reader(key.text_.size());
+              for (size_t i = 0; i < key.text_.size(); ++i) {
+                const auto ch = key.text_[i];
+                reader.glyphs_[i] = static_cast<GlyphID>(ch);
+                float advance = ch == U'、' || ch == U'〔' ? 30.f : 40.f;
+                // Match the font's pair adjustment: 、 loses 20 before 〔.
+                if (ch == U'、' && i + 1 < key.text_.size() &&
+                    key.text_[i + 1] == U'〔') {
+                  advance -= 20.f;
+                }
+                reader.advances_[i] = {advance, 0};
+              }
+              reader.font_ = typeface;
+              result->AppendPlatformShapingResult(reader);
+            }));
+
+    ParagraphImpl paragraph;
+    Style text_style;
+    text_style.SetTextSize(40.f);
+    auto& style = paragraph.GetParagraphStyle();
+    style.SetPunctuationCompressOptions(option);
+    style.UpdatePunctuationCompressConfig(
+        {U'、', PunctuationType::kClose, 1.f, 1.f, 1.f});
+    style.UpdatePunctuationCompressConfig(
+        {U'〔', PunctuationType::kOpen, 1.f, 1.f, 1.f});
+    paragraph.AddTextRun(&text_style, u8"甲、〔乙");
+    TextLayout layout(std::move(shaper));
+    TTTextContext context;
+    LayoutRegion region(200.f, 100.f);
+    layout.Layout(&paragraph, &region, context);
+
+    ASSERT_EQ(region.GetLineCount(), 1u);
+    auto* line = region.GetLine(0);
+    float comma[4], bracket[4];
+    line->GetCharBoundingRect(comma, 1);
+    line->GetCharBoundingRect(bracket, 2);
+    const bool disabled = option == PunctuationCompressOption::kNone;
+    const bool edge_only = option == PunctuationCompressOption::kLineEdge;
+    EXPECT_FLOAT_EQ(comma[2], disabled ? 10.f : edge_only ? 30.f : 15.f);
+    EXPECT_FLOAT_EQ(bracket[2], disabled || edge_only ? 30.f : 15.f);
+    EXPECT_FLOAT_EQ(line->GetLineRight(), disabled    ? 120.f
+                                          : edge_only ? 140.f
+                                                      : 110.f);
+  }
+}
+
 TEST_F(TextLayoutTest, PunctuationCompressionRespectsInkBounds) {
   struct TestCase {
     float left;
