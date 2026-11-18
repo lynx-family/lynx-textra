@@ -13,12 +13,6 @@
 
 namespace ttoffice {
 namespace tttext {
-enum class FontHinting {
-  kNone,    //!< glyph outlines unchanged
-  kSlight,  //!< minimal modification to improve constrast
-  kNormal,  //!< glyph outlines modified to improve constrast
-  kFull,    //!< modifies glyph outlines for maximum constrast
-};
 class Font final {
  public:
   Font() = delete;
@@ -56,21 +50,12 @@ class Font final {
   bool IsSubpixel() const { return is_subpixel_; }
   void SetScaleX(float s) { scale_x_ = s; }
   float GetScaleX() const { return scale_x_; }
-  void SetFakeBold(bool fake_bold) { fake_bold_ = fake_bold; }
-  bool IsFakeBold() const { return fake_bold_; }
-  void SetSkewX(float skew_x) { skew_x_ = skew_x; }
-  float SkewX() const { return skew_x_; }
-  void SetHinting(FontHinting hinting) { hinting_ = hinting; }
-  FontHinting GetHinting() const { return hinting_; }
 
  private:
   std::shared_ptr<ITypefaceHelper> typeface_;
   float size_ = 24;
   bool is_subpixel_ = false;
-  bool fake_bold_ = false;
   float scale_x_ = 1.0f;
-  float skew_x_ = 0.f;
-  FontHinting hinting_ = FontHinting::kSlight;
 };
 }  // namespace tttext
 }  // namespace ttoffice

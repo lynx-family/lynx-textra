@@ -5,7 +5,10 @@
 #ifndef SRC_TEXTLAYOUT_UTILS_GRAPHEME_UTILS_H_
 #define SRC_TEXTLAYOUT_UTILS_GRAPHEME_UTILS_H_
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 namespace ttoffice {
 namespace tttext {
@@ -17,12 +20,13 @@ struct UnicodeRange {
 
 inline bool IsInUnicodeRanges(uint32_t codepoint, const UnicodeRange* ranges,
                               uint32_t count) {
-  for (uint32_t i = 0; i < count; ++i) {
-    if (codepoint >= ranges[i].start && codepoint <= ranges[i].end) {
-      return true;
-    }
-  }
-  return false;
+  // The tables are sorted and contain non-overlapping ranges.
+  const auto* end = ranges + count;
+  const auto* found = std::lower_bound(
+      ranges, end, codepoint, [](const UnicodeRange& range, uint32_t value) {
+        return range.end < value;
+      });
+  return found != end && found->start <= codepoint;
 }
 
 inline bool IsVariationSelector(uint32_t codepoint) {
@@ -117,6 +121,103 @@ inline bool IsZeroWidthNonJoiner(uint32_t codepoint) {
   return codepoint == 0x200C;
 }
 
+// Generated from Unicode Emoji 15.0 properties in
+// third_party/libcxx/utils/data/unicode/emoji-data.txt.
+// Unicode data terms: https://www.unicode.org/terms_of_use.html
+// Unknown/newer characters retain system fallback rather than being guessed
+// from broad symbol-block ranges.
+inline bool IsEmojiCodepoint(uint32_t codepoint) {
+  static constexpr UnicodeRange ranges[] = {
+      {0x0023, 0x0023},   {0x002A, 0x002A},   {0x0030, 0x0039},
+      {0x00A9, 0x00A9},   {0x00AE, 0x00AE},   {0x203C, 0x203C},
+      {0x2049, 0x2049},   {0x2122, 0x2122},   {0x2139, 0x2139},
+      {0x2194, 0x2199},   {0x21A9, 0x21AA},   {0x231A, 0x231B},
+      {0x2328, 0x2328},   {0x23CF, 0x23CF},   {0x23E9, 0x23F3},
+      {0x23F8, 0x23FA},   {0x24C2, 0x24C2},   {0x25AA, 0x25AB},
+      {0x25B6, 0x25B6},   {0x25C0, 0x25C0},   {0x25FB, 0x25FE},
+      {0x2600, 0x2604},   {0x260E, 0x260E},   {0x2611, 0x2611},
+      {0x2614, 0x2615},   {0x2618, 0x2618},   {0x261D, 0x261D},
+      {0x2620, 0x2620},   {0x2622, 0x2623},   {0x2626, 0x2626},
+      {0x262A, 0x262A},   {0x262E, 0x262F},   {0x2638, 0x263A},
+      {0x2640, 0x2640},   {0x2642, 0x2642},   {0x2648, 0x2653},
+      {0x265F, 0x2660},   {0x2663, 0x2663},   {0x2665, 0x2666},
+      {0x2668, 0x2668},   {0x267B, 0x267B},   {0x267E, 0x267F},
+      {0x2692, 0x2697},   {0x2699, 0x2699},   {0x269B, 0x269C},
+      {0x26A0, 0x26A1},   {0x26A7, 0x26A7},   {0x26AA, 0x26AB},
+      {0x26B0, 0x26B1},   {0x26BD, 0x26BE},   {0x26C4, 0x26C5},
+      {0x26C8, 0x26C8},   {0x26CE, 0x26CF},   {0x26D1, 0x26D1},
+      {0x26D3, 0x26D4},   {0x26E9, 0x26EA},   {0x26F0, 0x26F5},
+      {0x26F7, 0x26FA},   {0x26FD, 0x26FD},   {0x2702, 0x2702},
+      {0x2705, 0x2705},   {0x2708, 0x270D},   {0x270F, 0x270F},
+      {0x2712, 0x2712},   {0x2714, 0x2714},   {0x2716, 0x2716},
+      {0x271D, 0x271D},   {0x2721, 0x2721},   {0x2728, 0x2728},
+      {0x2733, 0x2734},   {0x2744, 0x2744},   {0x2747, 0x2747},
+      {0x274C, 0x274C},   {0x274E, 0x274E},   {0x2753, 0x2755},
+      {0x2757, 0x2757},   {0x2763, 0x2764},   {0x2795, 0x2797},
+      {0x27A1, 0x27A1},   {0x27B0, 0x27B0},   {0x27BF, 0x27BF},
+      {0x2934, 0x2935},   {0x2B05, 0x2B07},   {0x2B1B, 0x2B1C},
+      {0x2B50, 0x2B50},   {0x2B55, 0x2B55},   {0x3030, 0x3030},
+      {0x303D, 0x303D},   {0x3297, 0x3297},   {0x3299, 0x3299},
+      {0x1F004, 0x1F004}, {0x1F0CF, 0x1F0CF}, {0x1F170, 0x1F171},
+      {0x1F17E, 0x1F17F}, {0x1F18E, 0x1F18E}, {0x1F191, 0x1F19A},
+      {0x1F1E6, 0x1F1FF}, {0x1F201, 0x1F202}, {0x1F21A, 0x1F21A},
+      {0x1F22F, 0x1F22F}, {0x1F232, 0x1F23A}, {0x1F250, 0x1F251},
+      {0x1F300, 0x1F321}, {0x1F324, 0x1F393}, {0x1F396, 0x1F397},
+      {0x1F399, 0x1F39B}, {0x1F39E, 0x1F3F0}, {0x1F3F3, 0x1F3F5},
+      {0x1F3F7, 0x1F4FD}, {0x1F4FF, 0x1F53D}, {0x1F549, 0x1F54E},
+      {0x1F550, 0x1F567}, {0x1F56F, 0x1F570}, {0x1F573, 0x1F57A},
+      {0x1F587, 0x1F587}, {0x1F58A, 0x1F58D}, {0x1F590, 0x1F590},
+      {0x1F595, 0x1F596}, {0x1F5A4, 0x1F5A5}, {0x1F5A8, 0x1F5A8},
+      {0x1F5B1, 0x1F5B2}, {0x1F5BC, 0x1F5BC}, {0x1F5C2, 0x1F5C4},
+      {0x1F5D1, 0x1F5D3}, {0x1F5DC, 0x1F5DE}, {0x1F5E1, 0x1F5E1},
+      {0x1F5E3, 0x1F5E3}, {0x1F5E8, 0x1F5E8}, {0x1F5EF, 0x1F5EF},
+      {0x1F5F3, 0x1F5F3}, {0x1F5FA, 0x1F64F}, {0x1F680, 0x1F6C5},
+      {0x1F6CB, 0x1F6D2}, {0x1F6D5, 0x1F6D7}, {0x1F6DC, 0x1F6E5},
+      {0x1F6E9, 0x1F6E9}, {0x1F6EB, 0x1F6EC}, {0x1F6F0, 0x1F6F0},
+      {0x1F6F3, 0x1F6FC}, {0x1F7E0, 0x1F7EB}, {0x1F7F0, 0x1F7F0},
+      {0x1F90C, 0x1F93A}, {0x1F93C, 0x1F945}, {0x1F947, 0x1F9FF},
+      {0x1FA70, 0x1FA7C}, {0x1FA80, 0x1FA88}, {0x1FA90, 0x1FABD},
+      {0x1FABF, 0x1FAC5}, {0x1FACE, 0x1FADB}, {0x1FAE0, 0x1FAE8},
+      {0x1FAF0, 0x1FAF8},
+  };
+  return IsInUnicodeRanges(codepoint, ranges,
+                           sizeof(ranges) / sizeof(ranges[0]));
+}
+
+inline bool HasDefaultEmojiPresentation(uint32_t codepoint) {
+  static constexpr UnicodeRange ranges[] = {
+      {0x231A, 0x231B},   {0x23E9, 0x23EC},   {0x23F0, 0x23F0},
+      {0x23F3, 0x23F3},   {0x25FD, 0x25FE},   {0x2614, 0x2615},
+      {0x2648, 0x2653},   {0x267F, 0x267F},   {0x2693, 0x2693},
+      {0x26A1, 0x26A1},   {0x26AA, 0x26AB},   {0x26BD, 0x26BE},
+      {0x26C4, 0x26C5},   {0x26CE, 0x26CE},   {0x26D4, 0x26D4},
+      {0x26EA, 0x26EA},   {0x26F2, 0x26F3},   {0x26F5, 0x26F5},
+      {0x26FA, 0x26FA},   {0x26FD, 0x26FD},   {0x2705, 0x2705},
+      {0x270A, 0x270B},   {0x2728, 0x2728},   {0x274C, 0x274C},
+      {0x274E, 0x274E},   {0x2753, 0x2755},   {0x2757, 0x2757},
+      {0x2795, 0x2797},   {0x27B0, 0x27B0},   {0x27BF, 0x27BF},
+      {0x2B1B, 0x2B1C},   {0x2B50, 0x2B50},   {0x2B55, 0x2B55},
+      {0x1F004, 0x1F004}, {0x1F0CF, 0x1F0CF}, {0x1F18E, 0x1F18E},
+      {0x1F191, 0x1F19A}, {0x1F1E6, 0x1F1FF}, {0x1F201, 0x1F201},
+      {0x1F21A, 0x1F21A}, {0x1F22F, 0x1F22F}, {0x1F232, 0x1F236},
+      {0x1F238, 0x1F23A}, {0x1F250, 0x1F251}, {0x1F300, 0x1F320},
+      {0x1F32D, 0x1F335}, {0x1F337, 0x1F37C}, {0x1F37E, 0x1F393},
+      {0x1F3A0, 0x1F3CA}, {0x1F3CF, 0x1F3D3}, {0x1F3E0, 0x1F3F0},
+      {0x1F3F4, 0x1F3F4}, {0x1F3F8, 0x1F43E}, {0x1F440, 0x1F440},
+      {0x1F442, 0x1F4FC}, {0x1F4FF, 0x1F53D}, {0x1F54B, 0x1F54E},
+      {0x1F550, 0x1F567}, {0x1F57A, 0x1F57A}, {0x1F595, 0x1F596},
+      {0x1F5A4, 0x1F5A4}, {0x1F5FB, 0x1F64F}, {0x1F680, 0x1F6C5},
+      {0x1F6CC, 0x1F6CC}, {0x1F6D0, 0x1F6D2}, {0x1F6D5, 0x1F6D7},
+      {0x1F6DC, 0x1F6DF}, {0x1F6EB, 0x1F6EC}, {0x1F6F4, 0x1F6FC},
+      {0x1F7E0, 0x1F7EB}, {0x1F7F0, 0x1F7F0}, {0x1F90C, 0x1F93A},
+      {0x1F93C, 0x1F945}, {0x1F947, 0x1F9FF}, {0x1FA70, 0x1FA7C},
+      {0x1FA80, 0x1FA88}, {0x1FA90, 0x1FABD}, {0x1FABF, 0x1FAC5},
+      {0x1FACE, 0x1FADB}, {0x1FAE0, 0x1FAE8}, {0x1FAF0, 0x1FAF8},
+  };
+  return IsInUnicodeRanges(codepoint, ranges,
+                           sizeof(ranges) / sizeof(ranges[0]));
+}
+
 inline bool IsCommonEmoji(uint32_t codepoint) {
   static constexpr UnicodeRange kCommonEmojiRanges[] = {
       {0x00A9, 0x00A9}, {0x00AE, 0x00AE}, {0x203C, 0x203C},   {0x2049, 0x2049},
@@ -165,6 +266,118 @@ inline uint32_t EmojiFallbackKey(const char32_t* text, uint32_t start,
   }
 
   return text[start];
+}
+
+enum class EmojiPresentation { kDefault, kText, kEmoji };
+
+struct EmojiClusterInfo {
+  EmojiPresentation presentation = EmojiPresentation::kDefault;
+};
+
+// Analyze the emoji presentation of one grapheme.
+inline EmojiClusterInfo GetEmojiClusterInfo(const char32_t* text,
+                                            uint32_t start, uint32_t end) {
+  EmojiClusterInfo info;
+  if (text == nullptr || start >= end) {
+    return info;
+  }
+  uint32_t emoji_base_index = end;
+  bool text_presentation = false;
+  bool emoji_sequence = false;
+  bool keycap = false;
+  for (uint32_t i = start; i < end; ++i) {
+    const auto ch = text[i];
+    if (emoji_base_index == end && IsEmojiCodepoint(ch) &&
+        !IsEmojiModifier(ch)) {
+      emoji_base_index = i;
+    }
+    text_presentation |= ch == 0xFE0E;
+    emoji_sequence |= ch == 0xFE0F || IsZeroWidthJoiner(ch) ||
+                      IsEmojiModifier(ch) || IsEmojiTagCharacter(ch);
+    keycap |= IsCombiningEnclosingKeycap(ch);
+  }
+  if (text_presentation) {
+    info.presentation = EmojiPresentation::kText;
+  } else if (emoji_base_index != end) {
+    const auto base = text[emoji_base_index];
+    if ((IsEmojiKeycapBase(base) && keycap) ||
+        HasDefaultEmojiPresentation(base) || emoji_sequence) {
+      info.presentation = EmojiPresentation::kEmoji;
+    }
+  }
+  return info;
+}
+
+enum class DefaultFontKind : size_t {
+  kChinese = 0,
+  kEmoji,
+  kThai,
+  kArabic,
+  kSystem,
+  kFallback,
+  kInherited,
+};
+
+inline DefaultFontKind ClassifyDefaultFontCodepoint(uint32_t codepoint) {
+  struct FontRange {
+    uint32_t start;
+    uint32_t end;
+    DefaultFontKind kind;
+  };
+  static constexpr FontRange ranges[] = {
+      {0x0000, 0x007F, DefaultFontKind::kSystem},
+      {0x0600, 0x06FF, DefaultFontKind::kArabic},
+      {0x0750, 0x077F, DefaultFontKind::kArabic},
+      {0x0870, 0x08FF, DefaultFontKind::kArabic},
+      {0x0E00, 0x0E7F, DefaultFontKind::kThai},
+      {0x3001, 0x303F, DefaultFontKind::kChinese},
+      {0x3400, 0x4DBF, DefaultFontKind::kChinese},
+      {0x4E00, 0x9FFF, DefaultFontKind::kChinese},
+      {0xF900, 0xFAFF, DefaultFontKind::kChinese},
+      {0xFB50, 0xFDFF, DefaultFontKind::kArabic},
+      {0xFE10, 0xFE1F, DefaultFontKind::kChinese},
+      {0xFE30, 0xFE6F, DefaultFontKind::kChinese},
+      {0xFE70, 0xFEFC, DefaultFontKind::kArabic},
+      {0xFF01, 0xFF0F, DefaultFontKind::kChinese},
+      {0xFF1A, 0xFF20, DefaultFontKind::kChinese},
+      {0xFF3B, 0xFF40, DefaultFontKind::kChinese},
+      {0xFF5B, 0xFF65, DefaultFontKind::kChinese},
+      {0x10EC0, 0x10EFF, DefaultFontKind::kArabic},
+      {0x1EE00, 0x1EEFF, DefaultFontKind::kArabic},
+      {0x20000, 0x2FFFF, DefaultFontKind::kChinese},
+  };
+  const auto* end = ranges + sizeof(ranges) / sizeof(ranges[0]);
+  const auto* found = std::lower_bound(
+      ranges, end, codepoint,
+      [](const FontRange& range, uint32_t value) { return range.end < value; });
+  return found != end && found->start <= codepoint ? found->kind
+                                                   : DefaultFontKind::kFallback;
+}
+
+// Classify a complete grapheme using emoji presentation before script ranges.
+inline DefaultFontKind ClassifyDefaultFontCluster(std::u32string_view content) {
+  const auto cluster = GetEmojiClusterInfo(
+      content.data(), 0, static_cast<uint32_t>(content.size()));
+  if (cluster.presentation == EmojiPresentation::kText) {
+    return DefaultFontKind::kFallback;
+  }
+  if (cluster.presentation == EmojiPresentation::kEmoji) {
+    return DefaultFontKind::kEmoji;
+  }
+  auto kind = DefaultFontKind::kInherited;
+  for (char32_t ch : content) {
+    if (IsVariationSelector(ch) || IsCombiningMark(ch) ||
+        IsZeroWidthJoiner(ch) || IsZeroWidthNonJoiner(ch)) {
+      continue;
+    }
+    const auto current = ClassifyDefaultFontCodepoint(ch);
+    if (kind == DefaultFontKind::kInherited) {
+      kind = current;
+    } else if (kind != current) {
+      return DefaultFontKind::kFallback;
+    }
+  }
+  return kind;
 }
 
 inline bool IsDevanagari(uint32_t codepoint) {

@@ -20,6 +20,7 @@
 namespace ttoffice {
 namespace tttext {
 class RunStyle;
+class EncodedShapeText;
 constexpr uint32_t SHAPER_BUFF_SIZE = 1024;
 class ShaperCoreText : public TTShaper {
  public:
@@ -39,17 +40,11 @@ class ShaperCoreText : public TTShaper {
   struct CachedSafeFontKey {
     FontDescriptor font_descriptor_;
     float text_size_ = 0.0f;
-    bool fake_bold_ = false;
-    bool fake_italic_ = false;
 
     struct Hasher {
       size_t operator()(const CachedSafeFontKey& key) const {
         size_t seed = FontDescriptor::Hasher()(key.font_descriptor_);
         seed ^= std::hash<float>()(key.text_size_) + 0x9e3779b9 + (seed << 6) +
-                (seed >> 2);
-        seed ^= std::hash<bool>()(key.fake_bold_) + 0x9e3779b9 + (seed << 6) +
-                (seed >> 2);
-        seed ^= std::hash<bool>()(key.fake_italic_) + 0x9e3779b9 + (seed << 6) +
                 (seed >> 2);
         return seed;
       }
@@ -57,8 +52,7 @@ class ShaperCoreText : public TTShaper {
 
     bool operator==(const CachedSafeFontKey& rhs) const {
       return font_descriptor_ == rhs.font_descriptor_ &&
-             text_size_ == rhs.text_size_ && fake_bold_ == rhs.fake_bold_ &&
-             fake_italic_ == rhs.fake_italic_;
+             text_size_ == rhs.text_size_;
     }
   };
 
@@ -76,15 +70,14 @@ class ShaperCoreText : public TTShaper {
     size_t max_entries_ = 256;
   };
 
-  CFAttributedStringRef GenerateAttributeString(const char16_t* content,
-                                                uint32_t length,
-                                                uint32_t* u16char_map,
-                                                CFDictionaryRef key) const;
+  CFAttributedStringRef GenerateAttributeString(const EncodedShapeText& text,
+                                                CFDictionaryRef attributes,
+                                                const ShapeStyle& style) const;
   CFDictionaryRef GenerateAttributes(const ShapeKey& key) const;
   CTFontRef CreateSafeFontUnified(CTFontRef existing_font,
                                   const FontDescriptor& fd) const;
-  CTFontRef GetOrCreateSafeFont(const FontDescriptor& fd, float text_size,
-                                bool fake_bold, bool fake_italic) const;
+  CTFontRef GetOrCreateSafeFont(const FontDescriptor& fd,
+                                float text_size) const;
   static SafeFontCacheState& GetSafeFontCacheState();
   static void TrimSafeFontCacheLocked(SafeFontCacheState& state);
 

@@ -693,24 +693,7 @@ bool OneLineShaper::shape(const char32_t* content, uint32_t len,
   matchResolvedFonts(style, [&](std::shared_ptr<ITypefaceHelper> typeface) {
     // Create one more font to try
     Font font(typeface, style.GetFontSize());
-    // font.setEdging(SkFont::Edging::kAntiAlias);
-    font.SetHinting(FontHinting::kSlight);
     font.SetSubpixel(true);
-
-    // Apply fake bold and/or italic settings to the font if the
-    // typeface's attributes do not match the intended font style.
-    auto wanted_weight = style.GetFontDescriptor().font_style_.GetWeight();
-    const bool fakeBold =
-        wanted_weight >= FontStyle::kSemiBold_Weight &&
-        static_cast<int32_t>(wanted_weight) -
-                static_cast<int32_t>(typeface->FontStyle().GetWeight()) >=
-            200;
-    auto need_italic = style.GetFontDescriptor().font_style_.GetSlant() ==
-                       FontStyle::kItalic_Slant;
-    const bool fakeItalic = need_italic && typeface->FontStyle().GetSlant() !=
-                                               FontStyle::kItalic_Slant;
-    font.SetFakeBold(fakeBold);
-    font.SetSkewX(fakeItalic ? FAKE_ITALIC_SKEW : 0);
 
     // Walk through all the currently unresolved blocks
     // (ignoring those that appear later)

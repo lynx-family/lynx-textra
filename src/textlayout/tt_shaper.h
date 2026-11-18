@@ -67,19 +67,14 @@ class ShapeStyle {
  public:
   ShapeStyle() : hash_(UpdateHash()) {}
 
-  ShapeStyle(const FontDescriptor& font_descriptor, float font_size,
-             bool fake_bold, bool fake_italic)
+  ShapeStyle(const FontDescriptor& font_descriptor, float font_size)
       : font_descriptor_(font_descriptor),
         font_size_(font_size),
-        fake_bold_(fake_bold),
-        fake_italic_(fake_italic),
         hash_(UpdateHash()) {}
 
  public:
   const FontDescriptor& GetFontDescriptor() const { return font_descriptor_; }
   float GetFontSize() const { return font_size_; }
-  bool FakeBold() const { return fake_bold_; }
-  bool FakeItalic() const { return fake_italic_; }
   void SetFontDescriptor(const FontDescriptor& font_descriptor) {
     font_descriptor_ = font_descriptor;
     hash_ = UpdateHash();
@@ -101,8 +96,6 @@ class ShapeStyle {
     hash_combine(std::hash<uint64_t>()(font_descriptor_.platform_font_));
     hash_combine(std::hash<int32_t>()(font_descriptor_.font_style_.Value()));
     hash_combine(std::hash<float>()(font_size_));
-    hash_combine(std::hash<bool>()(fake_bold_));
-    hash_combine(std::hash<bool>()(fake_italic_));
     return seed;
   }
 
@@ -111,8 +104,7 @@ class ShapeStyle {
     TTASSERT(hash_ == UpdateHash());
     TTASSERT(o.hash_ == o.UpdateHash());
     return hash_ == o.hash_ && font_descriptor_ == o.font_descriptor_ &&
-           font_size_ == o.font_size_ && fake_bold_ == o.fake_bold_ &&
-           fake_italic_ == o.fake_italic_;
+           font_size_ == o.font_size_;
   }
   std::size_t operator()(const ShapeStyle& k) const {
     TTASSERT(hash_ == UpdateHash());
@@ -122,8 +114,6 @@ class ShapeStyle {
  private:
   FontDescriptor font_descriptor_{};
   float font_size_ = 0;
-  bool fake_bold_ = false;
-  bool fake_italic_ = false;
   std::size_t hash_ = 0;
 };
 }  // namespace tttext
@@ -147,9 +137,9 @@ class ShapeKey {
  public:
   ShapeKey() : text_(), style_(), rtl_(false), hash_(UpdateHash()) {}
   ShapeKey(const char32_t* text, uint32_t length, FontDescriptor&& p_font_list,
-           float font_size, bool fake_bold, bool fake_italic, bool rtl)
+           float font_size, bool rtl)
       : text_(text, length),
-        style_(std::move(p_font_list), font_size, fake_bold, fake_italic),
+        style_(std::move(p_font_list), font_size),
         rtl_(rtl),
         hash_(UpdateHash()) {}
   ShapeKey(const char32_t* text, uint32_t length, const ShapeStyle* shape_style,

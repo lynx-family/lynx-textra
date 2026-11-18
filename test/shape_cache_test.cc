@@ -44,13 +44,11 @@ TEST(ShapeCache, AddToCacheAndFind) {
   FontDescriptor font1;
   FontDescriptor font2;
   font2.font_style_ = FontStyle::Bold();
-  ShapeKey key1(U"1", 2, FontDescriptor(font1), 10.f, false, false, false);
-  ShapeKey key2(U"A", 2, FontDescriptor(font1), 10.f, false, false, false);
-  ShapeKey key3(U"1", 2, FontDescriptor(font2), 10.f, false, false, false);
-  ShapeKey key4(U"1", 2, FontDescriptor(font1), 20.f, false, false, false);
-  ShapeKey key5(U"1", 2, FontDescriptor(font1), 10.f, true, false, false);
-  ShapeKey key6(U"1", 2, FontDescriptor(font1), 10.f, false, true, false);
-  ShapeKey key7(U"1", 2, FontDescriptor(font1), 10.f, false, false, true);
+  ShapeKey key1(U"1", 2, FontDescriptor(font1), 10.f, false);
+  ShapeKey key2(U"A", 2, FontDescriptor(font1), 10.f, false);
+  ShapeKey key3(U"1", 2, FontDescriptor(font2), 10.f, false);
+  ShapeKey key4(U"1", 2, FontDescriptor(font1), 20.f, false);
+  ShapeKey key5(U"1", 2, FontDescriptor(font1), 10.f, true);
 
   const auto create_fake_shape_result = [](std::vector<GlyphID> glyphs) {
     auto result = std::make_shared<ShapeResult>(glyphs.size(), false);
@@ -64,8 +62,6 @@ TEST(ShapeCache, AddToCacheAndFind) {
   const ShapeResultRef result3 = create_fake_shape_result({3});
   const ShapeResultRef result4 = create_fake_shape_result({4});
   const ShapeResultRef result5 = create_fake_shape_result({5});
-  const ShapeResultRef result6 = create_fake_shape_result({6});
-  const ShapeResultRef result7 = create_fake_shape_result({7});
 
   ShapeCache& cache = ShapeCache::GetInstance();
   cache.AddToCache(key1, result1);
@@ -73,16 +69,12 @@ TEST(ShapeCache, AddToCacheAndFind) {
   cache.AddToCache(key3, result3);
   cache.AddToCache(key4, result4);
   cache.AddToCache(key5, result5);
-  cache.AddToCache(key6, result6);
-  cache.AddToCache(key7, result7);
 
   EXPECT_EQ(cache.Find(key1), result1);
   EXPECT_EQ(cache.Find(key2), result2);
   EXPECT_EQ(cache.Find(key3), result3);
   EXPECT_EQ(cache.Find(key4), result4);
   EXPECT_EQ(cache.Find(key5), result5);
-  EXPECT_EQ(cache.Find(key6), result6);
-  EXPECT_EQ(cache.Find(key7), result7);
 }
 
 TEST(ShapeCache, Singleton) {
@@ -92,7 +84,7 @@ TEST(ShapeCache, Singleton) {
 }
 
 TEST(ShapeCache, ClearRemovesAllEntries) {
-  ShapeKey key(U"clear", 5, FontDescriptor(), 10.f, false, false, false);
+  ShapeKey key(U"clear", 5, FontDescriptor(), 10.f, false);
   auto result = std::make_shared<ShapeResult>(1, false);
   ShapeCache& cache = ShapeCache::GetInstance();
   cache.Clear();
@@ -104,7 +96,7 @@ TEST(ShapeCache, ClearRemovesAllEntries) {
 }
 
 TEST(ShapeCache, ClearRejectsAnInFlightResultFromThePreviousEpoch) {
-  ShapeKey key(U"stale", 5, FontDescriptor(), 10.f, false, false, false);
+  ShapeKey key(U"stale", 5, FontDescriptor(), 10.f, false);
   auto result = std::make_shared<ShapeResult>(1, false);
   ShapeCache& cache = ShapeCache::GetInstance();
   cache.Clear();
@@ -150,7 +142,7 @@ TEST(ShapeCache, LruCacheCapacity) {
       u32str.push_back(static_cast<char32_t>(c));
     }
     return ShapeKey(u32str.c_str(), u32str.length(), FontDescriptor(), 10.f,
-                    false, false, false);
+                    false);
   };
   constexpr int kDefaultCapacity =
       android::LruCache<const ShapeKey,

@@ -2079,31 +2079,28 @@ class Bidi {
 
   void setParaRunsOnly(const std::u32string& parmText, short parmParaLevel);
 
-  void setPara(const std::u32string& text, short paraLevel,
+  void setPara(const char32_t* chars, short paraLevel,
                std::vector<short> embeddingLevels) {
-    if (text.length() == 0) return;
-    setPara(text.c_str(), paraLevel, embeddingLevels);
+    if (chars == nullptr) return;
+    setPara(std::u32string(chars), paraLevel, embeddingLevels);
   }
 
-  void setPara(const char32_t* chars, short paraLevel,
+  void setPara(const std::u32string& text, short paraLevel,
                std::vector<short> embeddingLevels) {
     /* check the argument values */
     if (paraLevel < LEVEL_DEFAULT_LTR) {
       verifyRange(paraLevel, 0, MAX_EXPLICIT_LEVEL + 1);
     }
-    if (chars == nullptr) {
-      return;
-    }
 
     /* special treatment for RUNS_ONLY mode */
     if (reorderingMode == REORDER_RUNS_ONLY) {
-      setParaRunsOnly(chars, paraLevel);
+      setParaRunsOnly(text, paraLevel);
       return;
     }
 
     /* initialize the Bidi object */
     // this.paraBidi = null;          /* mark unfinished setPara */
-    text_ = std::u32string(chars);
+    text_ = text;
     auto len = text_.length();
     length = originalLength = resultLength = static_cast<int>(len);
     this->paraLevel = paraLevel;

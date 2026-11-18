@@ -85,8 +85,8 @@ void StyleImpl::SetTextStrokeStyle(const TTColor& color, float thickness) {
 }
 const ShapeStyle& StyleImpl::GetShapeStyle() const {
   if (shape_style_ == nullptr) {
-    shape_style_ = std::make_unique<ShapeStyle>(
-        font_descriptor_, GetScaledTextSize(), false, false);
+    shape_style_ =
+        std::make_unique<ShapeStyle>(font_descriptor_, GetScaledTextSize());
   }
   return *shape_style_;
 }
