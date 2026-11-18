@@ -60,8 +60,6 @@ class ShaperCoreTextSelfRendering : public TTShaper {
   struct CachedSafeFontKey {
     FontDescriptor font_descriptor_;
     float text_size_ = 0.0f;
-    bool fake_bold_ = false;
-    bool fake_italic_ = false;
 
     struct Hasher {
       size_t operator()(const CachedSafeFontKey& key) const {
@@ -82,16 +80,13 @@ class ShaperCoreTextSelfRendering : public TTShaper {
           hash_combine(std::hash<int32_t>()(value));
         }
         hash_combine(std::hash<float>()(key.text_size_));
-        hash_combine(std::hash<bool>()(key.fake_bold_));
-        hash_combine(std::hash<bool>()(key.fake_italic_));
         return seed;
       }
     };
 
     bool operator==(const CachedSafeFontKey& rhs) const {
       return font_descriptor_ == rhs.font_descriptor_ &&
-             text_size_ == rhs.text_size_ && fake_bold_ == rhs.fake_bold_ &&
-             fake_italic_ == rhs.fake_italic_;
+             text_size_ == rhs.text_size_;
     }
   };
 
@@ -122,8 +117,8 @@ class ShaperCoreTextSelfRendering : public TTShaper {
       CTFontRef existing_font,
       const std::vector<TypefaceRef>& resolved_typefaces,
       const FontDescriptor& fd) const;
-  CTFontRef GetOrCreateSafeFont(const FontDescriptor& fd, float text_size,
-                                bool fake_bold, bool fake_italic) const;
+  CTFontRef GetOrCreateSafeFont(const FontDescriptor& fd,
+                                float text_size) const;
   static SafeFontCacheState& GetSafeFontCacheState();
   static void TrimSafeFontCacheLocked(SafeFontCacheState& state);
 

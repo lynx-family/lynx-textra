@@ -9,6 +9,8 @@
 #import <CoreText/CoreText.h>
 #include <textra/i_typeface_helper.h>
 #include <textra/macro.h>
+
+#include <cmath>
 namespace ttoffice {
 namespace tttext {
 /**
@@ -90,13 +92,6 @@ class TypefaceCoreText : public ITypefaceHelper {
     return 0;
   };
 
-  // CTFontCreateCopyWithAttributes or CTFontCreateCopyWithSymbolicTraits cannot
-  // be used on 10.10 and later, as they will return different underlying fonts
-  // depending on the size requested. It is not possible to use descriptors with
-  // CTFontCreateWithFontDescriptor, since that does not work with non-system
-  // fonts. As a result, create the strike specific CTFonts from the underlying
-  // CGFont.
-
   void OnCreateFontInfo(FontInfo* info, float font_size) const override {
     if (font_size == CTFontGetSize(font_ref_)) {
       *info =
@@ -104,23 +99,44 @@ class TypefaceCoreText : public ITypefaceHelper {
                    static_cast<float>(CTFontGetDescent(font_ref_)), font_size};
       return;
     }
-    auto baseCGFont = CTFontCopyGraphicsFont(font_ref_, nullptr);
-    // The last parameter (CTFontDescriptorRef attributes) *must* be nullptr.
-    // If non-nullptr then with fonts with variation axes, the copy will fail in
-    // CGFontVariationFromDictCallback when it assumes kCGFontVariationAxisName
-    // is CFNumberRef which it quite obviously is not. Because we cannot setup
-    // the CTFont descriptor to match, the same restriction applies here as
-    // other uses of CTFontCreateWithGraphicsFont which is that such CTFonts
-    // should not escape the scaler context, since they aren't 'normal'.
+    auto graphics_font = CTFontCopyGraphicsFont(font_ref_, nullptr);
+    if (graphics_font == nullptr) {
+      *info = FontInfo{0, 0, 0};
+      return;
+    }
 
-    auto ct_font =
-        CTFontCreateWithGraphicsFont(baseCGFont, font_size, nullptr, nullptr);
+    // Read metrics from the same underlying graphics font without constructing
+    // a new CTFont. CGFont metrics are in font units; FontInfo stores a
+    // negative ascent and a positive descent in layout units.
+    const int units_per_em = CGFontGetUnitsPerEm(graphics_font);
+    // Color fonts can use size-specific bitmap metrics rather than linear
+    // scaling.
+    const bool color_font =
+        CTFontGetSymbolicTraits(font_ref_) & kCTFontColorGlyphsTrait;
+    if (!color_font && units_per_em > 0 && font_size > 0 &&
+        std::isfinite(font_size)) {
+      const double scale = static_cast<double>(font_size) / units_per_em;
+      *info =
+          FontInfo{static_cast<float>(-CGFontGetAscent(graphics_font) * scale),
+                   static_cast<float>(-CGFontGetDescent(graphics_font) * scale),
+                   font_size};
+      CFRelease(graphics_font);
+      return;
+    }
+
+    // Preserve CoreText's size handling when direct scaling is unavailable.
+    // Keep the descriptor null, as required for fonts with variation axes.
+    auto ct_font = CTFontCreateWithGraphicsFont(graphics_font, font_size,
+                                                nullptr, nullptr);
+    CFRelease(graphics_font);
     *info = ct_font == nullptr
                 ? FontInfo{0, 0, 0}
                 : FontInfo{static_cast<float>(-CTFontGetAscent(ct_font)),
                            static_cast<float>(CTFontGetDescent(ct_font)),
                            font_size};
-    CFRelease(ct_font);
+    if (ct_font != nullptr) {
+      CFRelease(ct_font);
+    }
   };
 
   CTFontRef GetFontRef() const { return font_ref_; }

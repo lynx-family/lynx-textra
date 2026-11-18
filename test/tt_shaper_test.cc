@@ -208,15 +208,13 @@ TEST(BidiWrapper, BuildsInverseMapsForMixedDirectionText) {
 
 TEST(ShapeStyle, Constructor) {
   FontDescriptor font_descriptor;
-  ShapeStyle style(font_descriptor, 10.f, true, true);
+  ShapeStyle style(font_descriptor, 10.f);
   EXPECT_EQ(style.GetFontDescriptor(), font_descriptor);
   EXPECT_FLOAT_EQ(style.GetFontSize(), 10.f);
-  EXPECT_TRUE(style.FakeBold());
-  EXPECT_TRUE(style.FakeItalic());
 }
 
 TEST(ShapeStyle, CopyAndAssignment) {
-  ShapeStyle source(FontDescriptor(), 10.f, true, true);
+  ShapeStyle source(FontDescriptor(), 10.f);
   ShapeStyle copy_by_constructor(source);  // NOLINT(performance-*)
   EXPECT_EQ(copy_by_constructor, source);
   ShapeStyle copy_by_assignment;
@@ -226,7 +224,7 @@ TEST(ShapeStyle, CopyAndAssignment) {
 
 TEST(ShapeStyle, SetFontDescriptor) {
   FontDescriptor old_font;
-  ShapeStyle old_style(old_font, 10.f, false, false);
+  ShapeStyle old_style(old_font, 10.f);
   EXPECT_EQ(old_style.GetFontDescriptor(), old_font);
   ShapeStyle new_style = old_style;
 
@@ -242,35 +240,34 @@ TEST(ShapeStyle, FamilyOrderAndAllFieldsParticipateInIdentity) {
   FontDescriptor descriptor_ab{{"A", "B"}, FontStyle::Normal(), 0};
   FontDescriptor descriptor_ba{{"B", "A"}, FontStyle::Normal(), 0};
 
-  ShapeStyle style_ab(descriptor_ab, 10.f, false, false);
-  ShapeStyle style_ba(descriptor_ba, 10.f, false, false);
-  ShapeStyle different_size(descriptor_ab, 11.f, false, false);
-  ShapeStyle fake_bold(descriptor_ab, 10.f, true, false);
-  ShapeStyle fake_italic(descriptor_ab, 10.f, false, true);
+  ShapeStyle style_ab(descriptor_ab, 10.f);
+  ShapeStyle style_ba(descriptor_ba, 10.f);
+  ShapeStyle different_size(descriptor_ab, 11.f);
+  auto bold_descriptor = descriptor_ab;
+  bold_descriptor.font_style_ = FontStyle::Bold();
+  ShapeStyle different_weight(bold_descriptor, 10.f);
 
   EXPECT_FALSE(style_ab == style_ba);
   EXPECT_NE(std::hash<ShapeStyle>()(style_ab),
             std::hash<ShapeStyle>()(style_ba));
   EXPECT_FALSE(style_ab == different_size);
-  EXPECT_FALSE(style_ab == fake_bold);
-  EXPECT_FALSE(style_ab == fake_italic);
+  EXPECT_FALSE(style_ab == different_weight);
 }
 
 TEST(ShapeKey, Constructor) {
   const std::u32string text = U"Hello world";
   const float font_size = 10.f;
   {
-    ShapeStyle style(FontDescriptor(), font_size, false, false);
+    ShapeStyle style(FontDescriptor(), font_size);
     ShapeKey key(text.c_str(), text.size(), &style, true);
     EXPECT_EQ(key.style_, style);
     EXPECT_EQ(key.text_, text);
     EXPECT_TRUE(key.rtl_);
   }
   {
-    ShapeKey key(text.c_str(), text.size(), FontDescriptor(), font_size, true,
-                 true, true);
+    ShapeKey key(text.c_str(), text.size(), FontDescriptor(), font_size, true);
     EXPECT_EQ(key.text_, text);
-    EXPECT_EQ(key.style_, ShapeStyle(FontDescriptor(), font_size, true, true));
+    EXPECT_EQ(key.style_, ShapeStyle(FontDescriptor(), font_size));
     EXPECT_TRUE(key.rtl_);
   }
 }
@@ -278,8 +275,8 @@ TEST(ShapeKey, Constructor) {
 TEST(ShapeKey, UsedAsMapKey) {
   const std::u32string text1 = U"Hello world";
   const std::u32string text2 = U"Different text";
-  const ShapeStyle style1(FontDescriptor(), 10.f, false, false);
-  const ShapeStyle style2(FontDescriptor(), 10.f, true, true);
+  const ShapeStyle style1(FontDescriptor(), 10.f);
+  const ShapeStyle style2(FontDescriptor(), 11.f);
 
   ShapeKey key1(text1.c_str(), text1.size(), &style1, false);
   ShapeKey key2(text1.c_str(), text1.size(), &style1, false);  // Same as key1
@@ -306,9 +303,9 @@ TEST(ShapeKey, UsedAsMapKey) {
 TEST(ShapeKey, FamilyOrderAlwaysParticipatesInIdentity) {
   const std::u32string text = U"same text";
   const ShapeStyle style_ab(FontDescriptor{{"A", "B"}, FontStyle::Normal(), 0},
-                            10.f, false, false);
+                            10.f);
   const ShapeStyle style_ba(FontDescriptor{{"B", "A"}, FontStyle::Normal(), 0},
-                            10.f, false, false);
+                            10.f);
 
   ShapeKey system_ab(text.c_str(), text.size(), &style_ab, false);
   ShapeKey system_ba(text.c_str(), text.size(), &style_ba, false);
@@ -340,17 +337,14 @@ class ShaperCoreTextSelfRenderingTestAccess {
   }
 
   static size_t CacheKeyHash(const FontDescriptor& descriptor) {
-    ShaperCoreTextSelfRendering::CachedSafeFontKey key{descriptor, 10.f, false,
-                                                       false};
+    ShaperCoreTextSelfRendering::CachedSafeFontKey key{descriptor, 10.f};
     return ShaperCoreTextSelfRendering::CachedSafeFontKey::Hasher()(key);
   }
 
   static bool CacheKeysEqual(const FontDescriptor& lhs_descriptor,
                              const FontDescriptor& rhs_descriptor) {
-    ShaperCoreTextSelfRendering::CachedSafeFontKey lhs{lhs_descriptor, 10.f,
-                                                       false, false};
-    ShaperCoreTextSelfRendering::CachedSafeFontKey rhs{rhs_descriptor, 10.f,
-                                                       false, false};
+    ShaperCoreTextSelfRendering::CachedSafeFontKey lhs{lhs_descriptor, 10.f};
+    ShaperCoreTextSelfRendering::CachedSafeFontKey rhs{rhs_descriptor, 10.f};
     return lhs == rhs;
   }
 };
@@ -596,7 +590,7 @@ TEST(TTShaper, ShapeTextCallsOnShapeText) {
   FontmgrCollection font_collection = TestUtils::getFontmgrCollection();
   MockTTShaper mock_shaper(font_collection);
   const std::u32string text = U"test";
-  ShapeStyle style(FontDescriptor(), 12.0f, false, false);
+  ShapeStyle style(FontDescriptor(), 12.0f);
   const bool rtl = false;
   ShapeKey key(text.c_str(), text.length(), &style, rtl);
 
@@ -616,7 +610,7 @@ TEST(TTShaper, UsesSeparateFallbackFontsForAdjacentFlagClusters) {
   FontmgrCollection font_collection(font_manager);
   ShaperSkShaper shaper(font_collection);
   const std::u32string text = U"🏳️‍🌈🇨🇳";
-  const ShapeStyle style(FontDescriptor(), 12.f, false, false);
+  const ShapeStyle style(FontDescriptor(), 12.f);
   const ShapeKey key(text.c_str(), text.size(), &style, false);
   ShapeResult result(text.size(), false);
 

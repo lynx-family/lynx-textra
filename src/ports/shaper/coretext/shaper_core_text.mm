@@ -5,6 +5,7 @@
 #include "shaper_core_text.h"
 
 #include "font_feature_settings.h"
+#include "shape_text_encoding.h"
 
 #ifndef MIN
 #import <objc/NSObjCRuntime.h>
@@ -30,6 +31,9 @@
 #include <textra/style.h>
 
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <mutex>
 
 #include "src/textlayout/icu_substitute/bidi/bidi_wrapper.h"
 #include "src/textlayout/utils/grapheme_utils.h"
@@ -38,8 +42,8 @@
 namespace ttoffice {
 namespace tttext {
 namespace {
-
-CFDictionaryRef GetSafeFontCascadeAttributes() {
+#ifdef USE_APPKIT
+CFDictionaryRef GetLegacyFontCascadeAttributes() {
   static CFDictionaryRef attributes = []() -> CFDictionaryRef {
     const CFStringRef fallback_names[] = {
         CFSTR("PingFang SC"),        // Simplified Chinese
@@ -71,55 +75,276 @@ CFDictionaryRef GetSafeFontCascadeAttributes() {
 
   return attributes;
 }
-
-static float ConvertFontWeight(tttext::Weight weight) {
-#ifdef USE_APPKIT
-  switch (weight) {
-    case FontStyle::kThin_Weight:
-      return NSFontWeightUltraLight;
-    case FontStyle::kExtraLight_Weight:
-      return NSFontWeightThin;
-    case FontStyle::kLight_Weight:
-      return NSFontWeightLight;
-    case FontStyle::kNormal_Weight:
-      return NSFontWeightRegular;
-    case FontStyle::kMedium_Weight:
-      return NSFontWeightMedium;
-    case FontStyle::kSemiBold_Weight:
-      return NSFontWeightSemibold;
-    case FontStyle::kBold_Weight:
-      return NSFontWeightBold;
-    case FontStyle::kExtraBold_Weight:
-      return NSFontWeightHeavy;
-    case FontStyle::kBlack_Weight:
-      return NSFontWeightBlack;
-    default:
-      return NSFontWeightRegular;
-  }
 #endif
+
 #ifdef USE_UIKIT
-  switch (weight) {
-    case FontStyle::kThin_Weight:
-      return UIFontWeightUltraLight;
-    case FontStyle::kExtraLight_Weight:
-      return UIFontWeightThin;
-    case FontStyle::kLight_Weight:
-      return UIFontWeightLight;
-    case FontStyle::kNormal_Weight:
-      return UIFontWeightRegular;
-    case FontStyle::kMedium_Weight:
-      return UIFontWeightMedium;
-    case FontStyle::kSemiBold_Weight:
-      return UIFontWeightSemibold;
-    case FontStyle::kBold_Weight:
-      return UIFontWeightBold;
-    case FontStyle::kExtraBold_Weight:
-      return UIFontWeightHeavy;
-    case FontStyle::kBlack_Weight:
-      return UIFontWeightBlack;
-    default:
-      return UIFontWeightRegular;
+// A finite set of system weights, independent of caller UIFont instances and
+// text sizes. The table is initialized once and shared by cascade and active
+// CJK fallback. Size 14 is only used to obtain system UI descriptors; CoreText
+// inherits the actual size (including Text/Display selection) from the parent.
+const std::array<CGFloat, 9>& GetUIFontWeights() {
+  static const std::array<CGFloat, 9> weights = {
+      UIFontWeightUltraLight, UIFontWeightThin,   UIFontWeightLight,
+      UIFontWeightRegular,    UIFontWeightMedium, UIFontWeightSemibold,
+      UIFontWeightBold,       UIFontWeightHeavy,  UIFontWeightBlack};
+  return weights;
+}
+
+size_t GetUIFontWeightIndex(CTFontRef font) {
+  CGFloat weight = UIFontWeightRegular;
+  CFDictionaryRef traits = CTFontCopyTraits(font);
+  if (traits) {
+    auto value = static_cast<CFNumberRef>(
+        CFDictionaryGetValue(traits, kCTFontWeightTrait));
+    if (value) CFNumberGetValue(value, kCFNumberCGFloatType, &weight);
+    CFRelease(traits);
   }
+  const auto& weights = GetUIFontWeights();
+  size_t closest = 3;
+  CGFloat distance = std::abs(weight - weights[closest]);
+  for (size_t i = 0; i < weights.size(); ++i) {
+    CGFloat candidate = std::abs(weight - weights[i]);
+    if (candidate < distance) {
+      closest = i;
+      distance = candidate;
+    }
+  }
+  return closest;
+}
+
+class SystemUIFontFallbacks {
+ public:
+  SystemUIFontFallbacks(const SystemUIFontFallbacks&) = delete;
+  SystemUIFontFallbacks& operator=(const SystemUIFontFallbacks&) = delete;
+
+  static const SystemUIFontFallbacks& GetInstance() {
+    // Process lifetime: 9 system UI fonts and 9 x 4 fallback fonts, initialized
+    // together by the first caller (normally TextService's generic background
+    // warm).
+    static const auto* instance = new SystemUIFontFallbacks();
+    return *instance;
+  }
+
+  CFDictionaryRef Attributes(size_t weight_index) const {
+    return entries_[weight_index].attributes;
+  }
+  // Returns a retained font. Sized derivatives are bounded per calling thread.
+  CTFontRef CopyFont(DefaultFontKind kind, size_t weight, CGFloat size) const;
+
+ private:
+  struct Entry {
+    CTFontRef system_font = nullptr;
+    std::array<CTFontRef, 4> fonts{};
+    CFDictionaryRef attributes = nullptr;
+  };
+
+  SystemUIFontFallbacks() {
+    for (size_t weight = 0; weight < entries_.size(); ++weight) {
+      @autoreleasepool {
+        auto& entry = entries_[weight];
+        UIFont* system_font =
+            [UIFont systemFontOfSize:14 weight:GetUIFontWeights()[weight]];
+        entry.system_font =
+            static_cast<CTFontRef>(CFRetain((__bridge CTFontRef)system_font));
+        const CFStringRef samples[] = {CFSTR("\u4E2D"), CFSTR("\U0001F600"),
+                                       CFSTR("\u0E01"), CFSTR("\u0627")};
+        CFMutableArrayRef descriptors =
+            CFArrayCreateMutable(nullptr, 4, &kCFTypeArrayCallBacks);
+        if (!descriptors) continue;
+        for (size_t script = 0; script < entry.fonts.size(); ++script) {
+          CFStringRef sample = samples[script];
+          entry.fonts[script] =
+              CTFontCreateForString((__bridge CTFontRef)system_font, sample,
+                                    CFRangeMake(0, CFStringGetLength(sample)));
+          CTFontDescriptorRef descriptor =
+              entry.fonts[script]
+                  ? CTFontCopyFontDescriptor(entry.fonts[script])
+                  : nullptr;
+          if (!descriptor) break;
+          CFArrayAppendValue(descriptors, descriptor);
+          CFRelease(descriptor);
+        }
+        if (CFArrayGetCount(descriptors) == 4) {
+          const void* keys[] = {kCTFontCascadeListAttribute};
+          const void* values[] = {descriptors};
+          entry.attributes = CFDictionaryCreate(
+              nullptr, keys, values, 1, &kCFTypeDictionaryKeyCallBacks,
+              &kCFTypeDictionaryValueCallBacks);
+        }
+        CFRelease(descriptors);
+        if (!entry.attributes) {
+          for (auto& font : entry.fonts) {
+            if (font) CFRelease(font);
+            font = nullptr;
+          }
+        }
+      }
+    }
+  }
+  std::array<Entry, 9> entries_{};
+};
+
+CFDictionaryRef GetSystemUIFontCascadeAttributes(size_t weight_index) {
+  return SystemUIFontFallbacks::GetInstance().Attributes(weight_index);
+}
+
+CTFontRef SystemUIFontFallbacks::CopyFont(DefaultFontKind kind, size_t weight,
+                                          CGFloat size) const {
+  TTASSERT(kind < DefaultFontKind::kInherited && weight < entries_.size());
+  TTASSERT(size > 0 && std::isfinite(size));
+  const auto& entry = entries_[weight];
+  const size_t script = static_cast<size_t>(kind);
+  CTFontRef base =
+      script < entry.fonts.size() ? entry.fonts[script] : entry.system_font;
+  if (!base) {
+    base = entry.system_font;
+    kind = DefaultFontKind::kFallback;
+  }
+  if (!base) return nullptr;
+  if (kind != DefaultFontKind::kFallback && size == CTFontGetSize(base)) {
+    return static_cast<CTFontRef>(CFRetain(base));
+  }
+  struct SizedFont {
+    DefaultFontKind kind = DefaultFontKind::kSystem;
+    size_t weight = 0;
+    CGFloat size = 0;
+    CTFontRef font = nullptr;
+  };
+  struct SizedFonts {
+    std::array<SizedFont, 32> entries{};
+    size_t next = 0;
+    ~SizedFonts() {
+      for (auto& entry : entries) {
+        if (entry.font) CFRelease(entry.font);
+      }
+    }
+  };
+  // No shared cache lock on the default-font shaping path. Retained results
+  // remain valid when this thread evicts an entry or exits.
+  static thread_local SizedFonts cache;
+  for (const auto& cached : cache.entries) {
+    if (cached.font && cached.kind == kind && cached.weight == weight &&
+        cached.size == size) {
+      return static_cast<CTFontRef>(CFRetain(cached.font));
+    }
+  }
+  CTFontRef font = nullptr;
+  if (kind == DefaultFontKind::kFallback && entry.attributes) {
+    auto descriptor = CTFontCopyFontDescriptor(base);
+    auto safe_descriptor =
+        CTFontDescriptorCreateCopyWithAttributes(descriptor, entry.attributes);
+    font = CTFontCreateWithFontDescriptor(safe_descriptor, size, nullptr);
+    CFRelease(safe_descriptor);
+    CFRelease(descriptor);
+  } else {
+    font = CTFontCreateCopyWithAttributes(base, size, nullptr, nullptr);
+  }
+  if (!font) return nullptr;
+  auto& cached = cache.entries[cache.next];
+  if (cached.font) CFRelease(cached.font);
+  cached = {kind, weight, size, font};
+  cache.next = (cache.next + 1) % cache.entries.size();
+  return static_cast<CTFontRef>(CFRetain(font));
+}
+
+bool HasExplicitFont(const FontDescriptor& fd) {
+  return fd.platform_font_ != 0 ||
+         std::any_of(fd.font_family_list_.begin(), fd.font_family_list_.end(),
+                     [](const std::string& family) { return !family.empty(); });
+}
+
+bool UseDefaultFontPool(const FontDescriptor& fd, float size) {
+  return fd.font_feature_settings_.empty() && !HasExplicitFont(fd) &&
+         size > 0 && std::isfinite(size) &&
+         fd.font_style_.GetSlant() == FontStyle::kUpright_Slant &&
+         fd.font_style_.GetWidth() == FontStyle::kNormal_Width;
+}
+
+size_t GetDefaultUIFontWeightIndex(const FontDescriptor& fd) {
+  const auto weight = fd.font_style_.GetWeight();
+  // Preserve regular weight for unsupported numeric weights.
+  return weight >= 100 && weight <= 900 && weight % 100 == 0 ? weight / 100 - 1
+                                                             : 3;
+}
+
+CFAttributedStringRef CreateStringWithDefaultFonts(
+    CFStringRef text, const EncodedShapeText& encoded,
+    CFDictionaryRef attributes, const FontDescriptor& fd, float size) {
+  // Explicit fonts (including system UIFont handles) and special styles have
+  // already been resolved. Do not rewrite any of their font attributes.
+  if (!UseDefaultFontPool(fd, size)) {
+    return CFAttributedStringCreate(nullptr, text, attributes);
+  }
+  const auto length = static_cast<CFIndex>(encoded.Utf16().size());
+  auto result = CFAttributedStringCreateMutable(nullptr, 0);
+  if (!result) return nullptr;
+  CFAttributedStringReplaceString(result, CFRangeMake(0, 0), text);
+  CFAttributedStringSetAttributes(result, CFRangeMake(0, length), attributes,
+                                  false);
+  const auto& pool = SystemUIFontFallbacks::GetInstance();
+  const size_t weight = GetDefaultUIFontWeightIndex(fd);
+  std::array<CTFontRef, 6> fonts{};
+  auto apply = [&](DefaultFontKind kind, CFIndex start, CFIndex end) {
+    auto index = static_cast<size_t>(kind);
+    if (!fonts[index]) fonts[index] = pool.CopyFont(kind, weight, size);
+    if (!fonts[index]) return false;
+    CFAttributedStringSetAttribute(result, CFRangeMake(start, end - start),
+                                   kCTFontAttributeName, fonts[index]);
+    return true;
+  };
+  CFIndex start = 0;
+  CFIndex offset = 0;
+  auto previous = DefaultFontKind::kFallback;
+  bool complete = true;
+  if (encoded.IsAscii()) {
+    previous = DefaultFontKind::kSystem;
+    offset = length;
+  }
+  while (offset < length) {
+    // CoreFoundation handles surrogate pairs, emoji ZWJ/tag/keycap sequences,
+    // and combining marks. Never introduce a font boundary inside a grapheme.
+    auto range = CFStringGetRangeOfComposedCharactersAtIndex(text, offset);
+    auto end = range.location + range.length;
+    TTASSERT(range.location == offset && end > offset && end <= length);
+    const auto start32 = encoded.Map()[offset];
+    const auto end32 = encoded.Map()[end];
+    auto kind = ClassifyDefaultFontCluster(
+        encoded.Text().substr(start32, end32 - start32));
+    if (kind == DefaultFontKind::kInherited) kind = previous;
+    if (offset > start && kind != previous) {
+      if (!apply(previous, start, offset)) {
+        complete = false;
+        break;
+      }
+      start = offset;
+    }
+    previous = kind;
+    offset = end;
+  }
+  if (complete && length > 0) complete = apply(previous, start, length);
+  if (!complete) {
+    // Resolve the entire text uniformly if a script font cannot be created.
+    // Partially assigned font attributes must not leak into shaping.
+    complete = apply(DefaultFontKind::kFallback, 0, length);
+  }
+  for (auto font : fonts) {
+    if (font) CFRelease(font);
+  }
+  if (!complete) {
+    CFRelease(result);
+    return nullptr;
+  }
+  return result;
+}
+
+#endif
+
+CFDictionaryRef GetSafeFontCascadeAttributes(CTFontRef font) {
+#ifdef USE_UIKIT
+  return GetSystemUIFontCascadeAttributes(GetUIFontWeightIndex(font));
+#elif defined(USE_APPKIT)
+  (void)font;
+  return GetLegacyFontCascadeAttributes();
 #endif
 }
 
@@ -166,25 +391,26 @@ void ShaperCoreText::TrimSafeFontCacheLocked(SafeFontCacheState& state) {
   }
 }
 
-/**
- * Creates a "Safe Font" by injecting a mandatory Font Cascade List.
- * This bypasses the global (and thread-unsafe) _CTFontFallbacksArray in
- * CoreText.
- */
 CTFontRef ShaperCoreText::CreateSafeFontUnified(
     CTFontRef existing_font, const FontDescriptor& fd) const {
-  if (!existing_font) return nullptr;
-
-  CGFloat font_size = CTFontGetSize(existing_font);
-  CTFontDescriptorRef current_desc = CTFontCopyFontDescriptor(existing_font);
-  CFDictionaryRef attributes = GetSafeFontCascadeAttributes();
+  TTASSERT(existing_font != nullptr);
+  CFDictionaryRef attributes = GetSafeFontCascadeAttributes(existing_font);
   CFMutableDictionaryRef feature_attributes = nullptr;
   if (!fd.font_feature_settings_.empty()) {
     feature_attributes =
-        CFDictionaryCreateMutableCopy(kCFAllocatorDefault, 0, attributes);
+        attributes
+            ? CFDictionaryCreateMutableCopy(kCFAllocatorDefault, 0, attributes)
+            : CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
+                                        &kCFTypeDictionaryKeyCallBacks,
+                                        &kCFTypeDictionaryValueCallBacks);
     AddFontFeatureSettings(feature_attributes, fd);
     attributes = feature_attributes;
+  } else if (!attributes) {
+    return static_cast<CTFontRef>(CFRetain(existing_font));
   }
+
+  CGFloat font_size = CTFontGetSize(existing_font);
+  CTFontDescriptorRef current_desc = CTFontCopyFontDescriptor(existing_font);
   CTFontDescriptorRef safe_desc =
       CTFontDescriptorCreateCopyWithAttributes(current_desc, attributes);
   CTFontRef safe_font =
@@ -199,12 +425,16 @@ CTFontRef ShaperCoreText::CreateSafeFontUnified(
 }
 
 CTFontRef ShaperCoreText::GetOrCreateSafeFont(const FontDescriptor& fd,
-                                              float text_size, bool fake_bold,
-                                              bool fake_italic) const {
-  CachedSafeFontKey cache_key{fd, text_size, fake_bold, fake_italic};
+                                              float text_size) const {
+#ifdef USE_UIKIT
+  if (UseDefaultFontPool(fd, text_size)) return nullptr;
+#endif
+
+  CachedSafeFontKey cache_key{fd, text_size};
   auto& state = GetSafeFontCacheState();
   {
     std::lock_guard<std::mutex> lock(state.mutex_);
+
     auto iter = state.cache_.find(cache_key);
     if (iter != state.cache_.end()) {
       state.lru_.splice(state.lru_.begin(), state.lru_, iter->second.lru_it_);
@@ -218,17 +448,13 @@ CTFontRef ShaperCoreText::GetOrCreateSafeFont(const FontDescriptor& fd,
 #ifdef USE_APPKIT
     CTFontRef platform_font =
         reinterpret_cast<CTFontRef>(static_cast<uintptr_t>(fd.platform_font_));
-    if (platform_font != nullptr) {
-      base_font = CTFontCreateCopyWithAttributes(platform_font, text_size,
-                                                 nullptr, nullptr);
-    }
+    base_font = CTFontCreateCopyWithAttributes(platform_font, text_size,
+                                               nullptr, nullptr);
 #endif
 #ifdef USE_UIKIT
     UIFont* ui_font = (__bridge UIFont*)((void*)fd.platform_font_);
-    if (ui_font != nullptr) {
-      base_font = (__bridge_retained CTFontRef)
-          [UIFont fontWithDescriptor:ui_font.fontDescriptor size:text_size];
-    }
+    base_font = (__bridge_retained CTFontRef)
+        [UIFont fontWithDescriptor:ui_font.fontDescriptor size:text_size];
 #endif
   } else if (!fd.font_family_list_.empty()) {
     bool has_valid_font_family = false;
@@ -252,29 +478,14 @@ CTFontRef ShaperCoreText::GetOrCreateSafeFont(const FontDescriptor& fd,
 
   if (base_font == nullptr) {
 #ifdef USE_APPKIT
-    if (fake_bold) {
-      base_font =
-          CTFontCreateWithName(CFSTR("Helvetica-Bold"), text_size, NULL);
-    } else if (fake_italic) {
-      base_font =
-          CTFontCreateWithName(CFSTR("Helvetica-Oblique"), text_size, NULL);
-    } else {
-      base_font = CTFontCreateWithName(CFSTR("Helvetica"), text_size, NULL);
-    }
+    base_font = CTFontCreateWithName(CFSTR("Helvetica"), text_size, nullptr);
 #endif
 #ifdef USE_UIKIT
-    CGFloat font_weight = ConvertFontWeight(fd.font_style_.GetWeight());
-    if (fake_bold) {
-      base_font =
-          (__bridge_retained CTFontRef)[UIFont boldSystemFontOfSize:text_size];
-    } else if (fake_italic) {
-      base_font = (__bridge_retained CTFontRef)
-          [UIFont italicSystemFontOfSize:text_size];
-    } else {
-      base_font =
-          (__bridge_retained CTFontRef)[UIFont systemFontOfSize:text_size
-                                                         weight:font_weight];
-    }
+    const auto font_weight =
+        GetUIFontWeights()[GetDefaultUIFontWeightIndex(fd)];
+    base_font =
+        (__bridge_retained CTFontRef)[UIFont systemFontOfSize:text_size
+                                                       weight:font_weight];
 #endif
   }
 
@@ -289,6 +500,7 @@ CTFontRef ShaperCoreText::GetOrCreateSafeFont(const FontDescriptor& fd,
   }
 
   std::lock_guard<std::mutex> lock(state.mutex_);
+
   auto iter = state.cache_.find(cache_key);
   if (iter != state.cache_.end()) {
     CFRelease(safe_font);
@@ -376,15 +588,9 @@ class CTShapingResult : public PlatformShapingResultReader {
 void ShaperCoreText::OnShapeText(const ShapeKey& key,
                                  ShapeResult* result) const {
   CFDictionaryRef attributes = GenerateAttributes(key);
-  auto u16_str = base::U32StringToU16(
-      key.text_.data(), static_cast<uint32_t>(key.text_.length()));
-  uint32_t* u16_char_map = tmp_buf_;
-  if (u16_str.length() + 1 > SHAPER_BUFF_SIZE) {
-    u16_char_map = new uint32_t[u16_str.length() + 1];
-  }
-  auto cfa = GenerateAttributeString(u16_str.data(),
-                                     static_cast<uint32_t>(u16_str.length()),
-                                     u16_char_map, attributes);
+  const EncodedShapeText encoded(key.text_, tmp_buf_, SHAPER_BUFF_SIZE);
+  const auto* u16_char_map = encoded.Map();
+  auto cfa = GenerateAttributeString(encoded, attributes, key.style_);
   auto line = CTLineCreateWithAttributedString(cfa);
   CFArrayRef array_ref = CTLineGetGlyphRuns(line);
   auto array_count = CFArrayGetCount(array_ref);
@@ -435,8 +641,7 @@ void ShaperCoreText::OnShapeText(const ShapeKey& key,
     }
     for (auto k = 0; k < glyph_count; k++) {
       ct_indices[k] = u16_char_map[ct_indices[k]];
-      if (ct_indices[k] >= 0 &&
-          static_cast<size_t>(ct_indices[k]) < key.text_.length() &&
+      if (static_cast<size_t>(ct_indices[k]) < key.text_.length() &&
           IsZeroWidthJoiner(key.text_[static_cast<size_t>(ct_indices[k])])) {
         ct_advances[k].width = 0;
         ct_advances[k].height = 0;
@@ -457,39 +662,29 @@ void ShaperCoreText::OnShapeText(const ShapeKey& key,
                            static_cast<int32_t>(char_count), is_rtl);
   }
   result->AppendPlatformShapingResult(ct_result);
-  if (u16_char_map != tmp_buf_) {
-    delete[] u16_char_map;
-  }
   CFRelease(attributes);
   CFRelease(cfa);
   CFRelease(line);
 }
 
 CFAttributedStringRef ShaperCoreText::GenerateAttributeString(
-    const char16_t* content, uint32_t length, uint32_t* u16char_map,
-    CFDictionaryRef attribute) const {
-  CFStringRef cf_string =
-      CFStringCreateWithBytes(kCFAllocatorDefault, (const UInt8*)content,
-                              length * 2, kCFStringEncodingUTF16LE, false);
+    const EncodedShapeText& text, CFDictionaryRef attribute,
+    const ShapeStyle& style) const {
+  const auto length = static_cast<CFIndex>(text.Utf16().size());
+  CFStringRef cf_string = CFStringCreateWithCharacters(
+      kCFAllocatorDefault,
+      reinterpret_cast<const UniChar*>(text.Utf16().data()), length);
   TTASSERT(length == CFStringGetLength(cf_string));
+#ifdef USE_UIKIT
+  auto attr_text = CreateStringWithDefaultFonts(cf_string, text, attribute,
+                                                style.GetFontDescriptor(),
+                                                style.GetFontSize());
+#else
+  (void)style;
   auto attr_text =
       CFAttributedStringCreate(kCFAllocatorDefault, cf_string, attribute);
+#endif
 
-  // Given NSString internally uses utf16 encoding, in the sentence
-  // “给，也是在这条街，珍𤨩楼！”, the character *𤨩* will produce a surrogate
-  // character, causing the number of characters and the number of internal
-  // utf32 characters to be inconsistent, resulting in array out-of-bounds read
-  // and write. Here, we first calculate the mapping from utf16 to utf32.
-  uint32_t u32_id = 0;
-  uint32_t u16_id = 0;
-  while (u16_id < length) {
-    auto ch = content[u16_id];
-    u16char_map[u16_id++] = u32_id;
-    if (!ttoffice::base::IsLeadSurrogate(ch)) {
-      u32_id++;
-    }
-  }
-  u16char_map[u16_id] = u32_id;
   CFRelease(cf_string);
   return attr_text;
 }
@@ -500,8 +695,7 @@ CFDictionaryRef ShaperCoreText::GenerateAttributes(const ShapeKey& key) const {
   auto style = key.style_;
   auto text_size = style.GetFontSize();
   auto& fd = style.GetFontDescriptor();
-  CTFontRef safe_font =
-      GetOrCreateSafeFont(fd, text_size, style.FakeBold(), style.FakeItalic());
+  CTFontRef safe_font = GetOrCreateSafeFont(fd, text_size);
   if (safe_font != nullptr) {
     CFDictionaryAddValue(attributes, kCTFontAttributeName, safe_font);
     CFRelease(safe_font);
