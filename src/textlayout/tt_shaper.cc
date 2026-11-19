@@ -103,9 +103,9 @@ void TTShaper::ProcessBidirection(const char32_t* text, uint32_t length,
     dir_vec[i] = 0;
   }
 }
-ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
-                                   const ShapeStyle* shape_style,
-                                   bool rtl) const {
+ShapeResultRef TTShaper::ShapeText(
+    const char32_t* text, uint32_t length, const ShapeStyle* shape_style,
+    bool rtl, const base::UnicodeProperties* cached) const {
   const ShapeKey key(text, length, shape_style, rtl);
   const auto disable_shape_cache =
       context_ != nullptr && context_->GetImpl().IsShapeCacheDisabled();
@@ -115,7 +115,7 @@ ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
                     : ShapeCache::GetInstance().Find(key, &cache_epoch);
   if (result == nullptr) {
     result = std::make_shared<ShapeResult>(length, rtl);
-    OnShapeText(key, result.get());
+    OnShapeText(key, result.get(), cached);
     TTASSERT(result->GlyphCount() > 0);
 
     for (auto k = 0u; k < length; k++) {

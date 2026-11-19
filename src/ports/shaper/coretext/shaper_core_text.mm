@@ -78,6 +78,58 @@ CFDictionaryRef GetLegacyFontCascadeAttributes() {
 #endif
 
 #ifdef USE_UIKIT
+enum class DefaultFontKind : size_t {
+  kChinese = 0,
+  kEmoji,
+  kThai,
+  kArabic,
+  kSystem,
+  kFallback,
+  kInherited,
+};
+
+DefaultFontKind ClassifyDefaultFontCodepoint(UnicodeProperties properties) {
+  if (properties.Has(UnicodeProperties::kBlockBasicLatin))
+    return DefaultFontKind::kSystem;
+  if (properties.IsCJKIdeograph() || properties.IsCJKPunctuation()) {
+    return DefaultFontKind::kChinese;
+  }
+  if (properties.Has(UnicodeProperties::kScriptThai))
+    return DefaultFontKind::kThai;
+  if (properties.Has(UnicodeProperties::kScriptArabic))
+    return DefaultFontKind::kArabic;
+  return DefaultFontKind::kFallback;
+}
+
+// Classify a complete grapheme using emoji presentation before script ranges.
+DefaultFontKind ClassifyDefaultFontCluster(
+    const char32_t* text, uint32_t start, uint32_t end,
+    const base::UnicodeProperties* cached) {
+  const auto cluster = GetEmojiClusterInfo(text, start, end, cached);
+  if (cluster.presentation == EmojiPresentation::kText) {
+    return DefaultFontKind::kFallback;
+  }
+  if (cluster.presentation == EmojiPresentation::kEmoji) {
+    return DefaultFontKind::kEmoji;
+  }
+  auto kind = DefaultFontKind::kInherited;
+  for (auto i = start; i < end; ++i) {
+    const char32_t ch = text[i];
+    if (IsZeroWidthJoiner(ch) || IsZeroWidthNonJoiner(ch)) {
+      continue;
+    }
+    const auto properties = base::GetUnicodePropertiesAt(cached, i, ch);
+    if (properties.Has(UnicodeProperties::kGeneralCategoryMark)) continue;
+    const auto current = ClassifyDefaultFontCodepoint(properties);
+    if (kind == DefaultFontKind::kInherited) {
+      kind = current;
+    } else if (kind != current) {
+      return DefaultFontKind::kFallback;
+    }
+  }
+  return kind;
+}
+
 // A finite set of system weights, independent of caller UIFont instances and
 // text sizes. The table is initialized once and shared by cascade and active
 // CJK fallback. Size 14 is only used to obtain system UI descriptors; CoreText
@@ -269,7 +321,8 @@ size_t GetDefaultUIFontWeightIndex(const FontDescriptor& fd) {
 
 CFAttributedStringRef CreateStringWithDefaultFonts(
     CFStringRef text, const EncodedShapeText& encoded,
-    CFDictionaryRef attributes, const FontDescriptor& fd, float size) {
+    CFDictionaryRef attributes, const FontDescriptor& fd, float size,
+    const base::UnicodeProperties* cached) {
   // Explicit fonts (including system UIFont handles) and special styles have
   // already been resolved. Do not rewrite any of their font attributes.
   if (!UseDefaultFontPool(fd, size)) {
@@ -308,8 +361,8 @@ CFAttributedStringRef CreateStringWithDefaultFonts(
     TTASSERT(range.location == offset && end > offset && end <= length);
     const auto start32 = encoded.Map()[offset];
     const auto end32 = encoded.Map()[end];
-    auto kind = ClassifyDefaultFontCluster(
-        encoded.Text().substr(start32, end32 - start32));
+    auto kind = ClassifyDefaultFontCluster(encoded.Text().data(), start32,
+                                           end32, cached);
     if (kind == DefaultFontKind::kInherited) kind = previous;
     if (offset > start && kind != previous) {
       if (!apply(previous, start, offset)) {
@@ -585,12 +638,12 @@ class CTShapingResult : public PlatformShapingResultReader {
   std::vector<TypefaceRef> typeface_;
   uint32_t text_length_{0};
 };
-void ShaperCoreText::OnShapeText(const ShapeKey& key,
-                                 ShapeResult* result) const {
+void ShaperCoreText::OnShapeText(const ShapeKey& key, ShapeResult* result,
+                                 const base::UnicodeProperties* cached) const {
   CFDictionaryRef attributes = GenerateAttributes(key);
   const EncodedShapeText encoded(key.text_, tmp_buf_, SHAPER_BUFF_SIZE);
   const auto* u16_char_map = encoded.Map();
-  auto cfa = GenerateAttributeString(encoded, attributes, key.style_);
+  auto cfa = GenerateAttributeString(encoded, attributes, key.style_, cached);
   auto line = CTLineCreateWithAttributedString(cfa);
   CFArrayRef array_ref = CTLineGetGlyphRuns(line);
   auto array_count = CFArrayGetCount(array_ref);
@@ -669,7 +722,7 @@ void ShaperCoreText::OnShapeText(const ShapeKey& key,
 
 CFAttributedStringRef ShaperCoreText::GenerateAttributeString(
     const EncodedShapeText& text, CFDictionaryRef attribute,
-    const ShapeStyle& style) const {
+    const ShapeStyle& style, const base::UnicodeProperties* cached) const {
   const auto length = static_cast<CFIndex>(text.Utf16().size());
   CFStringRef cf_string = CFStringCreateWithCharacters(
       kCFAllocatorDefault,
@@ -678,7 +731,7 @@ CFAttributedStringRef ShaperCoreText::GenerateAttributeString(
 #ifdef USE_UIKIT
   auto attr_text = CreateStringWithDefaultFonts(cf_string, text, attribute,
                                                 style.GetFontDescriptor(),
-                                                style.GetFontSize());
+                                                style.GetFontSize(), cached);
 #else
   (void)style;
   auto attr_text =

@@ -14,15 +14,14 @@ namespace tttext {
 class JustifyAnalyst {
  public:
   JustifyAnalyst() = delete;
-  explicit JustifyAnalyst(const TTString& content);
+  explicit JustifyAnalyst(
+      const std::vector<base::UnicodeProperties>& properties);
 
  public:
   CharPos FindNextJustifyOpportunity(CharPos start_char) const;
   bool CanInsertJustifySpaceAfter(CharPos char_pos) const;
 
  private:
-  static bool CanInsertJustifySpaceAfterChars(char32_t ch, char32_t next_ch);
-
   std::vector<char> justify_opportunity_;
 };
 }  // namespace tttext

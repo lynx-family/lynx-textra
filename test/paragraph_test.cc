@@ -191,6 +191,18 @@ TEST(ParagraphTest, GetContentString_SpecialCharacters) {
   EXPECT_EQ(paragraph->GetContentString(15, 1), std::string("😊"));
 }
 
+TEST(ParagraphTest, AddTextRun_PreservesCharactersAfterEmbeddedNull) {
+  auto paragraph = Paragraph::Create();
+  paragraph->AddTextRun(nullptr, "A");
+  constexpr char run[] = u8"中\0e\u0301";
+  paragraph->AddTextRun(nullptr, run, sizeof(run) - 1);
+
+  ASSERT_EQ(paragraph->GetCharCount(), 5u);
+  EXPECT_EQ(paragraph->GetContentString(1, 4),
+            std::string(run, sizeof(run) - 1));
+  EXPECT_EQ(paragraph->GetGraphemeBoundary(4), std::make_pair(3u, 5u));
+}
+
 TEST(ParagraphTest, GetGraphemeBoundary_Ascii) {
   auto paragraph = Paragraph::Create();
   paragraph->AddTextRun(nullptr, "hello");

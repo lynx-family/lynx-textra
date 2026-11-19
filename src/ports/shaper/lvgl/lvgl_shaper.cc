@@ -51,7 +51,8 @@ class LVGLShapingResult final : public PlatformShapingResultReader {
 LVGLShaper::LVGLShaper(FontmgrCollection font_collection) noexcept
     : TTShaper(font_collection) {}
 
-void LVGLShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
+void LVGLShaper::OnShapeText(const ShapeKey& key, ShapeResult* result,
+                             const base::UnicodeProperties*) const {
   LVGLShapingResult reader;
   auto text = key.text_.c_str();
   auto text_len = key.text_.length();

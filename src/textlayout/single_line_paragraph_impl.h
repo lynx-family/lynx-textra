@@ -10,9 +10,11 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "src/textlayout/style/style_impl.h"
 #include "src/textlayout/tt_shaper.h"
+#include "src/textlayout/utils/u_8_string.h"
 
 namespace ttoffice {
 namespace tttext {
@@ -57,6 +59,7 @@ class L_HIDDEN SingleLineParagraphImpl final : public Paragraph {
   StyleImpl style;
   StyleImpl input_style;
   std::u32string text;
+  std::vector<base::UnicodeProperties> unicode_properties;
   mutable std::shared_ptr<const ShapeResult> shaped;
   mutable float width = 0;
   mutable float baseline = 0;

@@ -67,15 +67,18 @@ void AddProtectedRange(std::vector<TextRange>* ranges, TextIndex start,
 bool NextFallbackCodepoint(const char32_t* text, TextRange range,
                            TextIndex* index,
                            std::unordered_set<Unichar>* alreadyTried,
-                           Unichar* codepoint) {
+                           Unichar* codepoint,
+                           const base::UnicodeProperties* cached) {
   if (text == nullptr || index == nullptr || alreadyTried == nullptr ||
       codepoint == nullptr) {
     return false;
   }
 
   while (*index < range.GetEnd()) {
-    Unichar candidate = text[(*index)++];
-    if (IsEmojiFallbackIgnorable(candidate)) {
+    const auto pos = (*index)++;
+    Unichar candidate = text[pos];
+    if (IsEmojiFallbackIgnorable(
+            candidate, base::GetUnicodePropertiesAt(cached, pos, candidate))) {
       continue;
     }
     auto inserted = alreadyTried->emplace(candidate).second;
@@ -346,11 +349,12 @@ TextRange OneLineShaper::normalizeTextRange(GlyphRange glyphRange) {
   }
 }
 
-void OneLineShaper::buildProtectedTextRanges() {
+void OneLineShaper::buildProtectedTextRanges(
+    const base::UnicodeProperties* cached) {
   fProtectedTextRanges.clear();
   for (TextIndex i = 0; i < len_;) {
     const TextIndex end = FindGraphemeClusterEnd(
-        i, len_, [this](uint32_t idx) { return content_[idx]; });
+        i, len_, [this](uint32_t idx) { return content_[idx]; }, cached);
     if (end > i + 1) {
       AddProtectedRange(&fProtectedTextRanges, i, end);
     }
@@ -563,6 +567,7 @@ void OneLineShaper::sortOutGlyphs(
 #endif
 
 void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
+                                       const base::UnicodeProperties* cached,
                                        const TypefaceVisitor& visitor) {
   std::vector<std::shared_ptr<ITypefaceHelper>> typefaces;
   auto fd = textStyle.GetFontDescriptor();
@@ -606,7 +611,7 @@ void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
       auto idx = unresolvedRange.GetStart();
       std::unordered_set<Unichar> alreadyTried;
       Unichar unicode = EmojiFallbackKey(content_, unresolvedRange.GetStart(),
-                                         unresolvedRange.GetEnd());
+                                         unresolvedRange.GetEnd(), cached);
       if (unicode != 0) {
         alreadyTried.emplace(unicode);
       }
@@ -656,7 +661,7 @@ void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
 
         // We can stop here or we can switch to another DIFFERENT codepoint
         if (!NextFallbackCodepoint(content_, unresolvedRange, &idx,
-                                   &alreadyTried, &unicode)) {
+                                   &alreadyTried, &unicode, cached)) {
           hopelessBlocks.push_back(fUnresolvedBlocks.front());
           fUnresolvedBlocks.pop_front();
           break;
@@ -672,12 +677,13 @@ void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
 }
 
 bool OneLineShaper::shape(const char32_t* content, uint32_t len,
-                          const ShapeStyle& style, bool rtl) {
+                          const ShapeStyle& style, bool rtl,
+                          const base::UnicodeProperties* cached) {
   content_ = content;
   len_ = len;
   fUnresolvedBlocks.clear();
   fResolvedBlocks.clear();
-  buildProtectedTextRanges();
+  buildProtectedTextRanges(cached);
   fCurrentRun = nullptr;
   // The text can be broken into many shaping sequences
   // (by placeholders, possibly, by hard line breaks or tabs, too)
@@ -690,43 +696,45 @@ bool OneLineShaper::shape(const char32_t* content, uint32_t len,
   fCurrentText = TextRange{0, len};
   fUnresolvedBlocks.emplace_back(RunBlock(fRange));
 
-  matchResolvedFonts(style, [&](std::shared_ptr<ITypefaceHelper> typeface) {
-    // Create one more font to try
-    Font font(typeface, style.GetFontSize());
-    font.SetSubpixel(true);
+  matchResolvedFonts(style, cached,
+                     [&](std::shared_ptr<ITypefaceHelper> typeface) {
+                       // Create one more font to try
+                       Font font(typeface, style.GetFontSize());
+                       font.SetSubpixel(true);
 
-    // Walk through all the currently unresolved blocks
-    // (ignoring those that appear later)
-    auto resolvedCount = fResolvedBlocks.size();
-    auto unresolvedCount = fUnresolvedBlocks.size();
-    while (unresolvedCount-- > 0) {
-      auto unresolvedRange = fUnresolvedBlocks.front().fText;
-      if (unresolvedRange == EMPTY_TEXT) {
-        // Duplicate blocks should be ignored
-        fUnresolvedBlocks.pop_front();
-        continue;
-      }
+                       // Walk through all the currently unresolved blocks
+                       // (ignoring those that appear later)
+                       auto resolvedCount = fResolvedBlocks.size();
+                       auto unresolvedCount = fUnresolvedBlocks.size();
+                       while (unresolvedCount-- > 0) {
+                         auto unresolvedRange = fUnresolvedBlocks.front().fText;
+                         if (unresolvedRange == EMPTY_TEXT) {
+                           // Duplicate blocks should be ignored
+                           fUnresolvedBlocks.pop_front();
+                           continue;
+                         }
 
-      SkShaper::TrivialFontRunIterator fontIter(font,
-                                                unresolvedRange.GetLength());
-      fCurrentText = unresolvedRange;
-      shaper_->shape(content_ + unresolvedRange.GetStart(),
-                     unresolvedRange.GetLength(), &fontIter, !rtl,
-                     limitlessWidth, this);
+                         SkShaper::TrivialFontRunIterator fontIter(
+                             font, unresolvedRange.GetLength());
+                         fCurrentText = unresolvedRange;
+                         shaper_->shape(content_ + unresolvedRange.GetStart(),
+                                        unresolvedRange.GetLength(), &fontIter,
+                                        !rtl, limitlessWidth, this);
 
-      // Take off the queue the block we tried to resolved -
-      // whatever happened, we have now smaller pieces of it to deal with
-      fUnresolvedBlocks.pop_front();
-    }
+                         // Take off the queue the block we tried to resolved -
+                         // whatever happened, we have now smaller pieces of it
+                         // to deal with
+                         fUnresolvedBlocks.pop_front();
+                       }
 
-    if (fUnresolvedBlocks.empty()) {
-      return Resolved::Everything;
-    } else if (resolvedCount < fResolvedBlocks.size()) {
-      return Resolved::Something;
-    } else {
-      return Resolved::Nothing;
-    }
-  });
+                       if (fUnresolvedBlocks.empty()) {
+                         return Resolved::Everything;
+                       } else if (resolvedCount < fResolvedBlocks.size()) {
+                         return Resolved::Something;
+                       } else {
+                         return Resolved::Nothing;
+                       }
+                     });
 
   this->finish(fRange);
   return true;

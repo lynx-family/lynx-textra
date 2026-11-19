@@ -57,7 +57,7 @@ void TTString::AppendString(const char* data, uint32_t length) {
     utf8_to_char_vec_.emplace_back(current_char_pos - 1);
   }
   char_to_utf8_vec_.shrink_to_fit();
-  string_ += data;
+  string_.append(data, length);
 }
 std::u32string TTString::ToUTF32() const {
   const auto* start = Data() + CharPosToUtf8Pos(0);

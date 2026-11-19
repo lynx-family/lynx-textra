@@ -44,7 +44,8 @@ class JavaShaper final : public TTShaper {
   explicit JavaShaper(const FontmgrCollection& font_collection);
   ~JavaShaper() override = default;
 
-  void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
+  void OnShapeText(const ShapeKey& key, ShapeResult* result,
+                   const base::UnicodeProperties* cached) const override;
   void ProcessBidirection(const char32_t* text, uint32_t length,
                           ttoffice::tttext::WriteDirection write_direction,
                           uint32_t* visual_map, uint32_t* logical_map,

@@ -7,8 +7,6 @@
 #include <textra/macro.h>
 
 #include <algorithm>
-#include <memory>
-#include <string>
 
 #include "src/textlayout/style/style_manager.h"
 #ifdef BOUNDARY_ANALYST_ICU
@@ -17,53 +15,48 @@
 namespace ttoffice {
 namespace tttext {
 
-enum class CharType {
-  kNone,
-  kWhiteSpace,
-  kCJK,
-  kLeftPunctuation,
-  kNeutralPunctuation,
-  kRightPunctuation
-};
+using base::UnicodeProperties;
+
 class SimpleBreak {
  public:
   static void SimpleBoundaryBreak(const char32_t* u32_content,
+                                  const UnicodeProperties* properties,
                                   uint32_t char_count, BoundaryType* boundary,
                                   LineBreakStrategy line_break_strategy) {
-    auto char_type = std::make_unique<CharType[]>(char_count);
     for (auto k = 0u; k < char_count; k++) {
-      char_type[k] = GetCharType(u32_content[k]);
-    }
-    for (auto k = 0u; k < char_count; k++) {
-      const auto type = char_type[k];
-      if (type == CharType::kNone) {
-        if (k < char_count - 1 && char_type[k + 1] == CharType::kNone) {
+      const auto current = properties[k];
+      const bool is_word_character = IsWordCharacter(u32_content[k], current);
+      const bool is_cjk = is_word_character && current.IsCJK();
+      if (is_word_character && !is_cjk) {
+        if (k < char_count - 1 &&
+            IsOrdinaryText(u32_content[k + 1], properties[k + 1])) {
           // avoid break between normal character
           boundary[k] = BoundaryType::kGraphme;
         } else {
           // word
           boundary[k] = BoundaryType::kWord;
         }
-      } else if (type == CharType::kCJK) {
+      } else if (is_cjk) {
         boundary[k] = BoundaryType::kLineBreakable;
-        if (k > 0 && char_type[k - 1] == CharType::kNone) {
+        if (k > 0 && IsOrdinaryText(u32_content[k - 1], properties[k - 1])) {
           boundary[k - 1] = BoundaryType::kLineBreakable;
         }
-      } else if (type == CharType::kWhiteSpace) {
+      } else if (IsBoundarySpace(u32_content[k], current)) {
         boundary[k] = BoundaryType::kLineBreakable;
         if (k > 0 && boundary[k - 1] == BoundaryType::kLineBreakable &&
-            char_type[k - 1] != CharType::kWhiteSpace) {
+            !IsBoundarySpace(u32_content[k - 1], properties[k - 1])) {
           boundary[k - 1] = BoundaryType::kWord;
         }
       }
       if (line_break_strategy & kAvoidBreakAroundPunctuation) {
-        if (type == CharType::kNeutralPunctuation) {
+        if (current.bits & UnicodeProperties::kNeutralPunctuation) {
           boundary[k] = BoundaryType::kLineBreakable;
-        } else if (type == CharType::kLeftPunctuation) {
+        } else if (current.bits & UnicodeProperties::kLeftPunctuation) {
           // avoid break after left punctuation
           boundary[k] = BoundaryType::kWord;
-        } else if (type == CharType::kRightPunctuation) {
-          if (k > 0 && char_type[k - 1] != CharType::kWhiteSpace) {
+        } else if (current.bits & UnicodeProperties::kRightPunctuation) {
+          if (k > 0 &&
+              !IsBoundarySpace(u32_content[k - 1], properties[k - 1])) {
             // avoid break before right punctuation
             boundary[k - 1] = BoundaryType::kWord;
           }
@@ -75,78 +68,65 @@ class SimpleBreak {
     }
   }
 
-  static void ApplyWordBreak(const char32_t* u32_content, uint32_t char_count,
-                             BoundaryType* boundary,
+  static void ApplyWordBreak(const char32_t* u32_content,
+                             const UnicodeProperties* properties,
+                             uint32_t char_count, BoundaryType* boundary,
                              const StyleManager& style_manager) {
-    auto type = GetCharType(u32_content[0]);
+    bool is_word_character = IsWordCharacter(u32_content[0], properties[0]);
     for (auto k = 0u; k + 1 < char_count; ++k) {
-      const auto next_type = GetCharType(u32_content[k + 1]);
-      if (boundary[k] == BoundaryType::kLineBreakable &&
-          (type == CharType::kNone || type == CharType::kCJK) &&
-          (next_type == CharType::kNone || next_type == CharType::kCJK) &&
+      const bool next_is_word_character =
+          IsWordCharacter(u32_content[k + 1], properties[k + 1]);
+      if (boundary[k] == BoundaryType::kLineBreakable && is_word_character &&
+          next_is_word_character &&
           style_manager.GetWordBreak(k) == WordBreakType::kKeepAll) {
         boundary[k] = BoundaryType::kWord;
       }
-      type = next_type;
+      is_word_character = next_is_word_character;
     }
   }
 
  private:
-  static CharType GetCharType(char32_t ch32) {
-    if (ch32 == 0) {
-      return CharType::kWhiteSpace;
-    }
-    if (base::IsSpaceChar(ch32)) {
-      return CharType::kWhiteSpace;
-    }
-    if (StrFind(base::LeftPunctuation(), ch32) ||
-        StrFind(base::CJKLeftPunctuation(), ch32)) {
-      return CharType::kLeftPunctuation;
-    }
-    if (StrFind(base::NeutralPunctuation(), ch32)) {
-      return CharType::kNeutralPunctuation;
-    }
-    if (StrFind(base::RightPunctuation(), ch32) ||
-        StrFind(base::CJKRightPunctuation(), ch32)) {
-      return CharType::kRightPunctuation;
-    }
-    if (base::IsCJK(ch32)) {
-      return CharType::kCJK;
-    }
-    return CharType::kNone;
+  static constexpr uint32_t kPunctuation =
+      UnicodeProperties::kLeftPunctuation |
+      UnicodeProperties::kRightPunctuation |
+      UnicodeProperties::kNeutralPunctuation;
+
+  static bool IsBoundarySpace(char32_t ch, UnicodeProperties properties) {
+    return ch == U'\0' ||
+           (properties.bits & UnicodeProperties::kTrimmableSpace);
   }
-  static bool StrFind(const char32_t* string, char32_t ch32) {
-    while (*string != 0) {
-      if (*string == ch32) {
-        return true;
-      }
-      string++;
-    }
-    return false;
+
+  static bool IsWordCharacter(char32_t ch, UnicodeProperties properties) {
+    return !IsBoundarySpace(ch, properties) &&
+           !(properties.bits & kPunctuation);
+  }
+
+  static bool IsOrdinaryText(char32_t ch, UnicodeProperties properties) {
+    return IsWordCharacter(ch, properties) && !properties.IsCJK();
   }
 };
 
 BoundaryAnalyst::BoundaryAnalyst(const char32_t* u32_content,
                                  uint32_t char_count,
+                                 const base::UnicodeProperties* properties,
                                  LineBreakStrategy line_break_strategy,
                                  const StyleManager& style_manager) {
   // runs are left-closed right-open intervals, the last charpos of text is \0
   // character
   if (u32_content == nullptr || char_count == 0) {
-    boundary_.resize(char_count, BoundaryType::kLineBreakable);
+    boundary_.assign(char_count, BoundaryType::kLineBreakable);
     return;
   }
+  boundary_.assign(char_count, BoundaryType::kNone);
 #ifdef BOUNDARY_ANALYST_ICU
-  boundary_.resize(char_count, BoundaryType::kNone);
   auto& icu_wrapper = ICUWrapper::GetInstance();
   icu_wrapper.icu_boundary_breaker(u32_content, char_count, boundary_);
 #else
-  boundary_.resize(char_count);
-  SimpleBreak::SimpleBoundaryBreak(u32_content, char_count, boundary_.data(),
-                                   line_break_strategy);
+  SimpleBreak::SimpleBoundaryBreak(u32_content, properties, char_count,
+                                   boundary_.data(), line_break_strategy);
 #endif
-  SimpleBreak::ApplyWordBreak(u32_content, char_count, boundary_.data(),
-                              style_manager);
+  SimpleBreak::ApplyWordBreak(u32_content, properties, char_count,
+                              boundary_.data(), style_manager);
 }
 uint32_t BoundaryAnalyst::FindNextBoundary(uint32_t start,
                                            BoundaryType type) const {

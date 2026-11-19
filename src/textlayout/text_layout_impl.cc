@@ -573,8 +573,8 @@ LayoutPosition TextLayoutImpl::FindBreakPosInWord(
             : break_run->GetCharCount();
     auto start_char = break_run->GetStartCharPos();
     while (break_pos_in_run < max_break_pos_in_run) {
-      auto ch32 = paragraph.content_.GetUnicode(start_char + break_pos_in_run);
-      if (!base::IsSpaceChar(ch32)) {
+      if (!paragraph.GetUnicodePropertiesAt(start_char + break_pos_in_run)
+               .IsSpaceChar()) {
         break;
       }
       break_pos_in_run++;

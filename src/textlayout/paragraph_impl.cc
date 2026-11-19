@@ -90,6 +90,17 @@ ParagraphHorizontalAlignment ParagraphImpl::ResolveHorizontalAlignment(
   return is_rtl ? ParagraphHorizontalAlignment::kLeft
                 : ParagraphHorizontalAlignment::kRight;
 }
+uint32_t ParagraphImpl::AddTextContent(const std::string& text) {
+  const auto start = GetCharCount();
+  content_ += text;
+  const auto end = GetCharCount();
+  unicode_properties_.resize(end);
+  for (auto i = start; i < end; ++i) {
+    unicode_properties_[i] = base::GetUnicodeProperties(content_.GetUnicode(i));
+  }
+  return end;
+}
+
 void ParagraphImpl::AddTextRun(const StyleImpl& style, const char* content,
                                uint32_t length, bool ghost_text) {
   if (length == 0) {
@@ -164,7 +175,7 @@ void ParagraphImpl::FormatRunList() {
     }
     TTASSERT(!content_.Empty() || !run_lst_.empty());
     boundary_analyst_ = std::make_unique<BoundaryAnalyst>(
-        u32_content.data(), u32_content.length(),
+        u32_content.data(), u32_content.length(), unicode_properties_.data(),
         paragraph_style_.line_break_strategy_, *style_manager_);
     TTASSERT(u32_content.length() == GetCharCount());
 
@@ -313,7 +324,8 @@ void ParagraphImpl::FormatRunList() {
       auto end_pos = shape_list_.back()->GetEndCharPos();
       auto shape_result = shaper_->ShapeText(
           u32_content.data() + start_pos, end_pos - start_pos,
-          &run->GetShapeStyle(), run->IsRtl());
+          &run->GetShapeStyle(), run->IsRtl(),
+          unicode_properties_.data() + start_pos);
       for (auto& shape_run : shape_list_) {
         shape_run->shape_result_.InitWithShapeResult(
             shape_result, shape_run->GetStartCharPos() - start_pos,
@@ -462,7 +474,7 @@ LayoutPosition ParagraphImpl::FindPrevBoundary(const LayoutPosition& start,
 }
 void ParagraphImpl::InitJustifyAnalyst() const {
   if (justify_analyst_ != nullptr) return;
-  justify_analyst_ = std::make_unique<JustifyAnalyst>(content_);
+  justify_analyst_ = std::make_unique<JustifyAnalyst>(unicode_properties_);
 }
 CharPos ParagraphImpl::FindNextJustifyOpportunity(CharPos start_char) const {
   InitJustifyAnalyst();
@@ -529,8 +541,8 @@ float ParagraphImpl::GetMinIntrinsicWidth() const {
                                      uint32_t end, bool end_unit) {
     auto trimmed_end = end;
     while (trimmed_end > start &&
-           base::IsSpaceChar(
-               content_.GetUnicode(run->GetStartCharPos() + trimmed_end - 1))) {
+           GetUnicodePropertiesAt(run->GetStartCharPos() + trimmed_end - 1)
+               .IsSpaceChar()) {
       --trimmed_end;
     }
     if (trimmed_end > start) {
@@ -605,7 +617,8 @@ std::pair<uint32_t, uint32_t> ParagraphImpl::GetGraphemeBoundary(
   }
   auto range = FindGraphemeCluster(
       offset, char_count,
-      [this](uint32_t char_idx) { return content_.GetUnicode(char_idx); });
+      [this](uint32_t char_idx) { return content_.GetUnicode(char_idx); },
+      unicode_properties_.data());
   return RefineGraphemeByGlyphs(offset, range.start, range.end);
 }
 

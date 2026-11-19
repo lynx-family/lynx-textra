@@ -6,6 +6,7 @@
 #define SRC_TEXTLAYOUT_UTILS_U_8_STRING_H_
 
 #include <cassert>
+#include <cstdint>
 #include <cstring>
 #include <string>
 
@@ -23,17 +24,6 @@ static constexpr const CHAR* SPACE_STR() { return " "; }     // Space
 static constexpr const CHAR* ZWS_STR() { return "\u200b"; }  // Zero Width Space
 static constexpr const CHAR* NBS_STR() { return "\u00a0"; }  // No Break Space
 static constexpr char16_t kReplacementU16() { return u'\xFFFD'; }
-static constexpr const char32_t* NeutralPunctuation() {
-  return U"-_–+=/*@#·゠・^&|\\";
-}
-static constexpr const char32_t* LeftPunctuation() { return U"([{<"; }
-static constexpr const char32_t* RightPunctuation() {
-  return U"],.;!?:\"')>}%~`";
-}
-static constexpr const char32_t* CJKLeftPunctuation() { return U"“（《[【‘"; }
-static constexpr const char32_t* CJKRightPunctuation() {
-  return U"）】”’》？、，。！：；……～";
-}
 
 inline uint32_t Utf8CharBytes(const char* c) {
   /**
@@ -226,6 +216,68 @@ inline std::u32string U16StringToU32(const std::u16string& u16str) {
 }
 uint32_t U32IndexToU16(const char32_t* content, uint32_t length,
                        uint32_t index);
+
+// Unicode properties and property combinations used by text layout.
+struct UnicodeProperties {
+  enum Flag : uint32_t {
+    kEmoji = 1u << 0,
+    kEmojiPresentation = 1u << 1,
+    kVariationSelector = 1u << 2,
+    kUnifiedIdeograph = 1u << 3,
+    kTrimmableSpace = 1u << 4,
+    kGeneralCategoryMark = 1u << 5,
+    kCJKPunctuation = 1u << 6,
+    kCJKCompatibilityIdeograph = 1u << 7,
+    kScriptDevanagari = 1u << 8,
+    kScriptArabic = 1u << 9,
+    kScriptThai = 1u << 10,
+    kScriptHangul = 1u << 11,
+    kKana = 1u << 12,
+    kGraphemeExtender = 1u << 13,
+    kDevanagariConsonant = 1u << 14,
+    kCJKSymbolsAndFullwidthForms = 1u << 15,
+    kBlockBasicLatin = 1u << 16,
+    // Word separator used for inter-word justification.
+    kWordSeparator = 1u << 17,
+    // Punctuation roles used by the simple line breaker.
+    kLeftPunctuation = 1u << 18,
+    kRightPunctuation = 1u << 19,
+    kNeutralPunctuation = 1u << 20,
+  };
+
+  uint32_t bits = 0;
+  bool Has(uint32_t mask) const;
+
+  bool IsGraphemeExtender() const;
+  bool IsCJKCompatibilityIdeograph() const;
+  bool IsCJKIdeograph() const;
+  bool IsCJKSymbolsAndFullwidthForms() const;
+  bool IsKana() const;
+  bool IsCJK() const;
+  bool IsCJKPunctuation() const;
+  // Layout trims breakable whitespace and ZERO WIDTH SPACE.
+  bool IsSpaceChar() const;
+};
+
+UnicodeProperties GetUnicodeProperties(uint32_t codepoint);
+UnicodeProperties GetUnicodePropertiesAt(const UnicodeProperties* cached,
+                                         uint32_t index, uint32_t codepoint);
+
+bool IsVariationSelector(uint32_t codepoint);
+bool IsGraphemeExtender(uint32_t codepoint);
+bool IsCombiningMark(uint32_t codepoint);
+bool IsEmojiModifier(uint32_t codepoint);
+bool IsEmojiRegionalIndicator(uint32_t codepoint);
+bool IsEmojiKeycapBase(uint32_t codepoint);
+bool IsCombiningEnclosingKeycap(uint32_t codepoint);
+bool IsEmojiTagCharacter(uint32_t codepoint);
+bool IsZeroWidthJoiner(uint32_t codepoint);
+bool IsZeroWidthNonJoiner(uint32_t codepoint);
+bool IsEmojiCodepoint(uint32_t codepoint);
+bool HasDefaultEmojiPresentation(uint32_t codepoint);
+bool IsDevanagari(uint32_t codepoint);
+bool IsDevanagariVirama(uint32_t codepoint);
+bool IsDevanagariConsonant(uint32_t codepoint);
 bool IsCJKUnifiedIdeographBMP(char32_t code);
 bool IsCJKCompatibilityIdeographBMP(char32_t code);
 bool IsCJKSupplementaryIdeograph(char32_t code);
@@ -233,7 +285,6 @@ bool IsCJKSymbolsAndFullwidthForms(char32_t code);
 bool IsKana(char32_t code);
 bool IsHangul(char32_t code);
 bool IsCJK(char32_t code);
-bool IsWordSeparator(char32_t code);
 bool IsCJKPunctuation(char32_t code);
 bool IsSpaceChar(char32_t code);
 inline bool IsNoneVisibleASCII(char32_t code) { return code < 32; }

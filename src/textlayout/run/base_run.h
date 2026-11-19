@@ -110,10 +110,11 @@ class BaseRun {
 
   uint32_t LastNoneSpaceCharPos() const {
     auto ret = GetEndCharPos();
-    while (--ret >= GetStartCharPos()) {
-      if (!base::IsSpaceChar(paragraph_->content_[ret])) break;
+    while (ret > GetStartCharPos() &&
+           paragraph_->GetUnicodePropertiesAt(ret - 1).IsSpaceChar()) {
+      --ret;
     }
-    return ret + 1;
+    return ret;
   }
   LayoutMetrics GetMetrics() const { return metrics_; }
   BoundaryType GetBoundaryType() const { return boundary_type_; }

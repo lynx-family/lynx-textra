@@ -27,16 +27,14 @@ namespace {
 constexpr uint32_t kChineseFont = 1;
 constexpr uint32_t kSupplementaryChineseFont = 2;
 
-uint32_t GetChineseFontMask(char32_t ch) {
+uint32_t GetChineseFontMask(char32_t ch, base::UnicodeProperties properties) {
   // Han, CJK punctuation and fullwidth forms. This is a range-based estimate
   // for the system default fallback, not a lookup of the actual glyph font.
-  if (base::IsCJKUnifiedIdeographBMP(ch) ||
-      base::IsCJKCompatibilityIdeographBMP(ch) ||
-      base::IsCJKSymbolsAndFullwidthForms(ch)) {
-    return kChineseFont;
+  if (properties.IsCJKIdeograph()) {
+    return ch <= 0xFFFF ? kChineseFont : kSupplementaryChineseFont;
   }
-  if (base::IsCJKSupplementaryIdeograph(ch)) {
-    return kSupplementaryChineseFont;
+  if (properties.IsCJKSymbolsAndFullwidthForms()) {
+    return kChineseFont;
   }
   return 0;
 }
@@ -66,7 +64,8 @@ JavaShaper::JavaShaper(const FontmgrCollection& font_collection)
   env->DeleteLocalRef(inst);
 }
 
-void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
+void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result,
+                             const base::UnicodeProperties* cached) const {
   auto& fd = key.style_.GetFontDescriptor();
   auto& proxy = TTTextJNIProxy::GetInstance();
   auto* env = proxy.GetCurrentJNIEnv();
@@ -85,7 +84,8 @@ void JavaShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
   uint32_t char32_index = 0;
   for (auto utf32 : key.text_) {
     if (use_fallback_metrics) {
-      chinese_fonts |= GetChineseFontMask(utf32);
+      chinese_fonts |= GetChineseFontMask(
+          utf32, base::GetUnicodePropertiesAt(cached, char32_index, utf32));
     }
     if (utf32 <= 0xD7FF || (utf32 >= 0xE000 && utf32 <= 0xFFFF)) {
       u16str.push_back(static_cast<GlyphID>(utf32));

@@ -416,8 +416,9 @@ class CTShapingResult : public PlatformShapingResultReader {
   std::vector<TypefaceRef> typeface_;
   uint32_t text_length_{0};
 };
-void ShaperCoreTextSelfRendering::OnShapeText(const ShapeKey& key,
-                                              ShapeResult* result) const {
+void ShaperCoreTextSelfRendering::OnShapeText(
+    const ShapeKey& key, ShapeResult* result,
+    const base::UnicodeProperties*) const {
   CFDictionaryRef attributes = GenerateAttributes(key);
 
   // CoreText returns platform fonts for each run. Preserve the exact

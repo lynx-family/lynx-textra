@@ -106,8 +106,8 @@ bool TextLayout::LayoutSingleLine(Paragraph* paragraph,
       layout_style.GetTextSize() <= 0 || layout_style.GetTextScale() <= 0) {
     return false;
   }
-  auto shaped =
-      shaper_->ShapeText(text, length, &layout_style.GetShapeStyle(), false);
+  auto shaped = shaper_->ShapeText(text, length, &layout_style.GetShapeStyle(),
+                                   false, result->unicode_properties.data());
   if (!shaped || !shaped->GlyphCount() || shaped->CharCount() != length) {
     return false;
   }
@@ -202,6 +202,9 @@ void SingleLineParagraphImpl::AddTextRun(const Style* value,
   }
   input_style = value ? value->GetImpl() : StyleImpl::DefaultStyle();
   text = base::U8StringToU32(content, length);
+  unicode_properties.resize(text.size());
+  std::transform(text.begin(), text.end(), unicode_properties.begin(),
+                 base::GetUnicodeProperties);
   Invalidate();
 }
 void SingleLineParagraphImpl::AddShapeRun(const Style*,
@@ -225,7 +228,8 @@ const BoundaryAnalyst& SingleLineParagraphImpl::GetBoundaries() const {
     StyleManager styles;
     styles.SetParagraphStyle(input_style);
     boundaries_ = std::make_unique<BoundaryAnalyst>(
-        text.data(), GetCharCount(), kLineBreakStrategyDefault, styles);
+        text.data(), GetCharCount(), unicode_properties.data(),
+        kLineBreakStrategyDefault, styles);
   }
   return *boundaries_;
 }
@@ -243,7 +247,7 @@ float SingleLineParagraphImpl::GetMinIntrinsicWidth() const {
           input_style.GetWordBreak() == WordBreakType::kBreakAll))
       continue;
     auto end = pos + 1;
-    while (end > start && base::IsSpaceChar(text[end - 1])) --end;
+    while (end > start && unicode_properties[end - 1].IsSpaceChar()) --end;
     if (end > start) {
       minimum = std::max(
           minimum,
@@ -265,7 +269,8 @@ std::pair<uint32_t, uint32_t> SingleLineParagraphImpl::GetGraphemeBoundary(
     uint32_t pos) const {
   if (unsupported_ || pos >= GetCharCount()) return {0, 0};
   const auto range = FindGraphemeCluster(
-      pos, GetCharCount(), [this](uint32_t index) { return text[index]; });
+      pos, GetCharCount(), [this](uint32_t index) { return text[index]; },
+      unicode_properties.data());
   auto start = range.start;
   auto end = range.end;
   if (shaped) {

@@ -32,7 +32,8 @@ class ShaperCoreText : public TTShaper {
   void ProcessBidirection(const char32_t* text, uint32_t length,
                           WriteDirection write_direction, uint32_t* visual_map,
                           uint32_t* logical_map, uint8_t* dir_vec) override;
-  void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
+  void OnShapeText(const ShapeKey& key, ShapeResult* result,
+                   const base::UnicodeProperties* cached) const override;
   static void SetSafeFontCacheMaxEntries(size_t max_entries);
   static size_t GetSafeFontCacheMaxEntries();
 
@@ -70,9 +71,9 @@ class ShaperCoreText : public TTShaper {
     size_t max_entries_ = 256;
   };
 
-  CFAttributedStringRef GenerateAttributeString(const EncodedShapeText& text,
-                                                CFDictionaryRef attributes,
-                                                const ShapeStyle& style) const;
+  CFAttributedStringRef GenerateAttributeString(
+      const EncodedShapeText& text, CFDictionaryRef attributes,
+      const ShapeStyle& style, const base::UnicodeProperties* cached) const;
   CFDictionaryRef GenerateAttributes(const ShapeKey& key) const;
   CTFontRef CreateSafeFontUnified(CTFontRef existing_font,
                                   const FontDescriptor& fd) const;
