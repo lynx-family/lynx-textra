@@ -10,12 +10,11 @@
 #endif
 #include <textra/layout_definition.h>
 #include <textra/macro.h>
+#include <unicode/ubidi.h>
+#include <unicode/uchar.h>
+#include <unicode/uscript.h>
 
 #include <vector>
-
-#include "unicode/ubidi.h"
-#include "unicode/uchar.h"
-#include "unicode/uscript.h"
 
 #define ICU_WRAPPER_GET_GC_MASK(c) \
   U_MASK(tttext::ICUWrapper::GetInstance().icu_charType(c))

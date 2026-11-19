@@ -11,15 +11,10 @@ import android.util.AttributeSet;
 import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import com.lynx.textra.JavaCanvasHelper;
-import com.lynx.textra.JavaFontManager;
 
 public class TTTextView extends View {
-  private byte[] drawer_buffer_;
   private long manager_handler = 0;
   private long region_handler = 0;
-  private JavaFontManager font_manager = null;
-  JavaCanvasHelper canvas_helper = null;
   private String content;
   private Rect clip_rect = new Rect();
 
@@ -48,8 +43,6 @@ public class TTTextView extends View {
     if (manager_handler == 0) {
       manager_handler = nativeCreateManager();
     }
-    font_manager = nativeGetFontManager(manager_handler);
-    canvas_helper = new JavaCanvasHelper(font_manager);
   }
 
   public void CreateParagraph() {
@@ -67,10 +60,7 @@ public class TTTextView extends View {
   public void DrawContent(Canvas canvas) {
     if (region_handler == 0)
       return;
-    drawer_buffer_ = nativeDrawContent(canvas, manager_handler, region_handler, drawer_buffer_);
-    if (drawer_buffer_ == null)
-      return;
-    canvas_helper.drawBuffer(canvas, drawer_buffer_);
+    nativeDrawContent(canvas, manager_handler, region_handler);
   }
 
   @Override
@@ -80,8 +70,6 @@ public class TTTextView extends View {
 
   native long nativeCreateManager();
 
-  native JavaFontManager nativeGetFontManager(long manager_handler);
-
   native void nativeCreateParagraph(long manager_handler);
 
   native void nativeAddText(long manager_handler, String content, float font_size, int color);
@@ -90,6 +78,5 @@ public class TTTextView extends View {
 
   native long nativeLayoutContent(long handler, float height);
 
-  native byte[] nativeDrawContent(
-      Canvas canvas, long manager_handler, long region_handler, byte[] reusable_buffer);
+  native void nativeDrawContent(Canvas canvas, long manager_handler, long region_handler);
 }

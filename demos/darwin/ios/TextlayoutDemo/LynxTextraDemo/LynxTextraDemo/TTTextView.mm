@@ -8,8 +8,7 @@
 #include <textra/layout_drawer.h>
 #include <textra/layout_region.h>
 #include <textra/paragraph.h>
-#include <textra/platform/ios/ios_canvas_base.h>
-#include <textra/platform/ios/ios_font_manager.h>
+#include <textra/platform_helper.h>
 #include <textra/style.h>
 #include <textra/text_layout.h>
 #include <textra/tttext_context.h>
@@ -31,10 +30,10 @@
 
 - (instancetype)initWithFrame:(CGRect)frame {
   self = [super initWithFrame:frame];
-  auto fontmgr = std::make_shared<FontManagerCoreText>();
+  auto fontmgr = PlatformHelper::CreateFontManager();
   font_collection_ = std::make_unique<FontmgrCollection>(fontmgr);
-  layout_ =
-      std::make_unique<TextLayout>(font_collection_.get(), ShaperType::kSystem);
+  layout_ = std::make_unique<TextLayout>(font_collection_.get(),
+                                         RenderingBackend::kIOS);
   context_ = std::make_unique<TTTextContext>();
   paragraph_ = Paragraph::Create();
   return self;
@@ -70,9 +69,10 @@
 - (void)drawRect:(CGRect)rect {
   [super drawRect:rect];
   UIGraphicsGetCurrentContext();
-  IOSCanvasBase ios_canvas(UIGraphicsGetCurrentContext());
-  ios_canvas.DrawColor(0xFFFFFFFF);
-  LayoutDrawer layout_drawer(&ios_canvas);
+  auto ios_canvas =
+      PlatformHelper::CreateCanvasHelper(UIGraphicsGetCurrentContext());
+  ios_canvas->DrawColor(0xFFFFFFFF);
+  LayoutDrawer layout_drawer(ios_canvas.get());
   layout_drawer.DrawLayoutPage(layout_region_.get());
 }
 
@@ -84,7 +84,8 @@
 + (void)TestWithId:(int32_t)id
           onCanvas:(ICanvasHelper*)canvas
     fontCollection:(FontmgrCollection*)font_collection {
-  ParagraphTest paragraph_test(kSelfRendering, font_collection);
+  ParagraphTest paragraph_test(RenderingBackend::kIOSSelfRendering,
+                               font_collection);
   paragraph_test.TestWithId(canvas, 500, id);
 }
 @end

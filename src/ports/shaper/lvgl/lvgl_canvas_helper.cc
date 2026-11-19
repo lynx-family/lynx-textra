@@ -2,6 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+#include "src/ports/native/lvgl/lvgl_canvas_helper.h"
+
 #include <lvgl/src/draw/lv_draw.h>
 #include <lvgl/src/draw/lv_draw_arc.h>
 #include <lvgl/src/draw/lv_draw_label.h>
@@ -10,18 +12,16 @@
 #include <lvgl/src/draw/lv_draw_vector.h>
 #include <lvgl/src/misc/lv_area.h>
 #include <lvgl/src/misc/lv_area_private.h>
-#include <textra/platform/lvgl/lvgl_canvas_helper.h>
 
 #include <cmath>
 
-#include "src/textlayout/utils/u_8_string.h"
-#include "textra/platform/lvgl/lvgl_typeface.h"
+#include "src/ports/native/lvgl/lvgl_typeface.h"
 
 #define RELAX_USE_LV_MATRIX 0
 
 namespace ttoffice {
 namespace tttext {
-namespace {
+namespace lvgl_cpp_detail {
 
 lv_color_t ToLvColor(tttext::TTColor color) {
   return lv_color_make(color.GetRed(), color.GetGreen(), color.GetBlue());
@@ -83,7 +83,7 @@ bool InitRectDscFromPainter(lv_draw_rect_dsc_t* rect_dsc,
   return true;
 }
 
-}  // namespace
+}  // namespace lvgl_cpp_detail
 
 LVGLCanvasHelper::LVGLCanvasHelper(lv_layer_t* layer) : layer_(layer) {
   lv_matrix_identity(&current_);
@@ -238,8 +238,8 @@ void LVGLCanvasHelper::DrawColor(uint32_t color) {
   lv_draw_rect_dsc_t rect_dsc;
   lv_draw_rect_dsc_init(&rect_dsc);
   tttext::TTColor tt_color(color);
-  rect_dsc.bg_color = ToLvColor(tt_color);
-  rect_dsc.bg_opa = ToLvOpa(tt_color);
+  rect_dsc.bg_color = lvgl_cpp_detail::ToLvColor(tt_color);
+  rect_dsc.bg_opa = lvgl_cpp_detail::ToLvOpa(tt_color);
   rect_dsc.border_width = 0;
   rect_dsc.border_opa = LV_OPA_TRANSP;
   lv_draw_rect(layer_, &rect_dsc, &layer_->buf_area);
@@ -250,7 +250,7 @@ void LVGLCanvasHelper::DrawLine(float x1, float y1, float x2, float y2,
   if (layer_ == nullptr || painter == nullptr) {
     return;
   }
-  auto color = ResolveLineColor(painter);
+  auto color = lvgl_cpp_detail::ResolveLineColor(painter);
   if (color == tttext::TTColor::UNDEFINED) {
     return;
   }
@@ -262,10 +262,11 @@ void LVGLCanvasHelper::DrawLine(float x1, float y1, float x2, float y2,
   line_dsc.p1.y = static_cast<int32_t>(std::lround(p1.y));
   line_dsc.p2.x = static_cast<int32_t>(std::lround(p2.x));
   line_dsc.p2.y = static_cast<int32_t>(std::lround(p2.y));
-  line_dsc.color = ToLvColor(color);
-  line_dsc.opa = ToLvOpa(color);
-  line_dsc.width = NormalizeLineWidth(painter->GetStrokeWidth());
-  line_dsc.round_start = ShouldRoundCap(painter->GetCap());
+  line_dsc.color = lvgl_cpp_detail::ToLvColor(color);
+  line_dsc.opa = lvgl_cpp_detail::ToLvOpa(color);
+  line_dsc.width =
+      lvgl_cpp_detail::NormalizeLineWidth(painter->GetStrokeWidth());
+  line_dsc.round_start = lvgl_cpp_detail::ShouldRoundCap(painter->GetCap());
   line_dsc.round_end = line_dsc.round_start;
   lv_draw_line(layer_, &line_dsc);
 }
@@ -276,7 +277,7 @@ void LVGLCanvasHelper::DrawRect(float left, float top, float right,
     return;
   }
   lv_draw_rect_dsc_t rect_dsc;
-  if (!InitRectDscFromPainter(&rect_dsc, painter)) {
+  if (!lvgl_cpp_detail::InitRectDscFromPainter(&rect_dsc, painter)) {
     return;
   }
   lv_area_t coords = TransformRectToArea(left, top, right, bottom);
@@ -290,7 +291,7 @@ void LVGLCanvasHelper::DrawRoundRect(float left, float top, float right,
     return;
   }
   lv_draw_rect_dsc_t rect_dsc;
-  if (!InitRectDscFromPainter(&rect_dsc, painter)) {
+  if (!lvgl_cpp_detail::InitRectDscFromPainter(&rect_dsc, painter)) {
     return;
   }
   rect_dsc.radius = static_cast<int32_t>(std::lround(radius));
@@ -309,7 +310,7 @@ void LVGLCanvasHelper::DrawCircle(float x, float y, float radius,
     return;
   }
   lv_draw_rect_dsc_t rect_dsc;
-  if (!InitRectDscFromPainter(&rect_dsc, painter)) {
+  if (!lvgl_cpp_detail::InitRectDscFromPainter(&rect_dsc, painter)) {
     return;
   }
   rect_dsc.radius = LV_RADIUS_CIRCLE;
@@ -324,7 +325,7 @@ void LVGLCanvasHelper::DrawArc(float left, float top, float right, float bottom,
   if (layer_ == nullptr || painter == nullptr) {
     return;
   }
-  auto color = ResolveLineColor(painter);
+  auto color = lvgl_cpp_detail::ResolveLineColor(painter);
   if (color == tttext::TTColor::UNDEFINED) {
     return;
   }
@@ -337,10 +338,11 @@ void LVGLCanvasHelper::DrawArc(float left, float top, float right, float bottom,
   }
   lv_draw_arc_dsc_t arc_dsc;
   lv_draw_arc_dsc_init(&arc_dsc);
-  arc_dsc.color = ToLvColor(color);
-  arc_dsc.opa = ToLvOpa(color);
-  arc_dsc.width = NormalizeLineWidth(painter->GetStrokeWidth());
-  arc_dsc.rounded = ShouldRoundCap(painter->GetCap());
+  arc_dsc.color = lvgl_cpp_detail::ToLvColor(color);
+  arc_dsc.opa = lvgl_cpp_detail::ToLvOpa(color);
+  arc_dsc.width =
+      lvgl_cpp_detail::NormalizeLineWidth(painter->GetStrokeWidth());
+  arc_dsc.rounded = lvgl_cpp_detail::ShouldRoundCap(painter->GetCap());
   arc_dsc.center.x = area.x1 + width / 2;
   arc_dsc.center.y = area.y1 + height / 2;
   arc_dsc.radius = static_cast<uint16_t>(radius);
@@ -374,7 +376,7 @@ void LVGLCanvasHelper::DrawGlyphs(const tttext::ITypefaceHelper* font,
   if (layer_ == nullptr || painter == nullptr) {
     return;
   }
-  TTColor color = ResolveLineColor(painter);
+  TTColor color = lvgl_cpp_detail::ResolveLineColor(painter);
   if (color == TTColor::UNDEFINED) {
     return;
   }
@@ -382,8 +384,8 @@ void LVGLCanvasHelper::DrawGlyphs(const tttext::ITypefaceHelper* font,
   auto* lv_typeface = static_cast<const LVGLTypeface*>(font);
   lv_draw_letter_dsc_t letter_dsc;
   lv_draw_letter_dsc_init(&letter_dsc);
-  letter_dsc.color = ToLvColor(color);
-  letter_dsc.opa = ToLvOpa(color);
+  letter_dsc.color = lvgl_cpp_detail::ToLvColor(color);
+  letter_dsc.opa = lvgl_cpp_detail::ToLvOpa(color);
   letter_dsc.font = lv_typeface->GetLvFont(painter->GetTextSize());
   if (painter->IsUnderLine()) {
     letter_dsc.decor = LV_TEXT_DECOR_UNDERLINE;
@@ -396,8 +398,11 @@ void LVGLCanvasHelper::DrawGlyphs(const tttext::ITypefaceHelper* font,
   while (idx < glyph_count) {
     lv_point_t point = {static_cast<int32_t>(std::lround(xx + x[idx])),
                         static_cast<int32_t>(std::lround(yy + y[idx]))};
-    idx += base::U16CharToU32(reinterpret_cast<const char16_t*>(glyphs + idx),
-                              glyph_count - idx, &char32);
+    char32 = glyphs[idx++];
+    if (char32 >= 0xd800 && char32 <= 0xdbff && idx < glyph_count &&
+        glyphs[idx] >= 0xdc00 && glyphs[idx] <= 0xdfff) {
+      char32 = 0x10000 + ((char32 - 0xd800) << 10) + (glyphs[idx++] - 0xdc00);
+    }
     letter_dsc.unicode = static_cast<uint32_t>(char32);
     letter_dsc.color = lv_color_hex(painter->GetFillColor());
     lv_draw_letter(layer_, &letter_dsc, &point);

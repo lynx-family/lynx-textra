@@ -7,6 +7,7 @@ package com.lynx.textra.demo;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Rect;
@@ -14,13 +15,13 @@ import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.view.View;
 import androidx.annotation.Nullable;
-import com.lynx.textra.JavaCanvasHelper;
 import com.lynx.textra.JavaFontManager;
+import com.lynx.textra.TTText;
 
 public class PageView extends View implements IDrawerCallback {
   private JavaDrawerCallback drawer;
   private JavaFontManager font_manager = null;
-  private byte[] mDrawBuffer;
+  private Bitmap renderedPage;
   private final float x_ = getContext().getResources().getDisplayMetrics().widthPixels * 0.01f;
   private final float y_ = getContext().getResources().getDisplayMetrics().heightPixels * 0.01f;
   private final float width_px_ =
@@ -49,19 +50,18 @@ public class PageView extends View implements IDrawerCallback {
   @Override
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
-    if (mDrawBuffer == null)
+    if (renderedPage == null)
       return;
     canvas.save();
     canvas.translate(x_, y_);
     canvas.drawColor(Color.WHITE);
-    JavaCanvasHelper helper = new JavaCanvasHelper(font_manager);
-    helper.drawBuffer(canvas, mDrawBuffer);
+    canvas.drawBitmap(renderedPage, 0, 0, null);
     canvas.restore();
   }
 
   @SuppressLint("ClickableViewAccessibility")
   private void Initial() {
-    font_manager = nativeCreateFontManager();
+    font_manager = TTText.mFontManager;
     AssetManager assetManager = getContext().getAssets();
     Typeface typeface = Typeface.createFromAsset(
         getContext().getAssets(), "Inter/Inter-VariableFont_opsz,wght.ttf");
@@ -71,33 +71,39 @@ public class PageView extends View implements IDrawerCallback {
     font_manager.CreateOrRegisterTypeface(typeface, "NotoSansCJK", 400, false);
   }
 
-  private native JavaFontManager nativeCreateFontManager();
-
   /**
    * Get C++ test case list
    */
   public static native TestCaseListFragment.CppTestItem[] getCppTestList();
 
   /**
-   * Set C++ test case and update draw buffer
+   * Set C++ test case and update rendered page
    */
   public void setCppTestCase(int case_id) {
-    mDrawBuffer = drawCppTestCase(font_manager.GetNativeHandler(), case_id, width_px_);
+    Bitmap page = createPage();
+    drawCppTestCase(new Canvas(page), case_id, width_px_);
+    renderedPage = page;
     invalidate();
   }
 
   /**
-   * Set JSON test case and update draw buffer
+   * Set JSON test case and update rendered page
    */
   public void setJsonTestCase(byte[] jsonBytes) {
-    mDrawBuffer = drawJsonTestCase(font_manager.GetNativeHandler(), jsonBytes, width_px_);
+    Bitmap page = createPage();
+    drawJsonTestCase(new Canvas(page), jsonBytes, width_px_);
+    renderedPage = page;
     invalidate();
   }
 
-  private native byte[] drawCppTestCase(long font_manager_handler, int case_id, float width_px);
+  private Bitmap createPage() {
+    return Bitmap.createBitmap(Math.max(1, (int) Math.ceil(width_px_)),
+        Math.max(1, (int) Math.ceil(height_)), Bitmap.Config.ARGB_8888);
+  }
 
-  private native byte[] drawJsonTestCase(
-      long font_manager_handler, byte[] jsonBytes, float width_px);
+  private native void drawCppTestCase(Canvas canvas, int case_id, float width_px);
+
+  private native void drawJsonTestCase(Canvas canvas, byte[] jsonBytes, float width_px);
 
   @Override
   public int fetchThemeColor(int type, String extra) {

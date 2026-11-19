@@ -34,3 +34,6 @@ Gemfile.lock
 # OpenHarmony
 **/harmony/**/.preview/
 **/harmony/**/BuildProfile.ets
+
+# Xcode personal workspace and debugger state
+**/xcuserdata/

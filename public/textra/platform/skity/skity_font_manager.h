@@ -32,7 +32,7 @@ class SkityFontManager : public IFontManager {
         static_cast<skity::FontStyle::Slant>(style.GetSlant()));
     // Retain this adapter's actual sans-serif default policy; do not ask
     // dynamic or asset managers for a literal font named sans-serif.
-    auto face = strcmp(generic, "sans-serif") == 0
+    auto face = (!generic || strcmp(generic, "sans-serif") == 0)
                     ? font_manager_->GetDefaultTypeface(skity_style)
                     : font_manager_->MatchFamilyStyle(generic, skity_style);
     return face ? std::make_shared<skity::textlayout::SkityTypefaceHelper>(face)
@@ -80,8 +80,8 @@ class SkityFontManager : public IFontManager {
     std::shared_ptr<skity::Typeface> typeface = nullptr;
 
     auto len = strlen("sans-serif");
-    if (strlen(familyName) == len &&
-        strncmp(familyName, "sans-serif", len) == 0) {
+    if (!familyName || (strlen(familyName) == len &&
+                        strncmp(familyName, "sans-serif", len) == 0)) {
       typeface = font_manager_->GetDefaultTypeface(skity_style);
     } else {
       typeface = font_manager_->MatchFamilyStyle(familyName, skity_style);

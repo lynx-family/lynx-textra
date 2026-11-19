@@ -16,7 +16,8 @@ class AndroidGLExample : public Renderer {
   AndroidGLExample() {
     font_manager_ = std::make_shared<SkityFontManager>();
     collection_.SetDefaultFontManager(font_manager_);
-    text_layout_ = std::make_unique<TextLayout>(&collection_, kSelfRendering);
+    text_layout_ =
+        std::make_unique<TextLayout>(&collection_, RenderingBackend::kSkity);
     paragraph_ = Paragraph::Create();
     Style style;
     style.SetFontDescriptor({{""}, FontStyle::Normal(), 0});

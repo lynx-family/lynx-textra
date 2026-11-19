@@ -32,7 +32,17 @@ public class MainActivity extends AppCompatActivity {
   }
 
   @Override
+  public boolean onCreateOptionsMenu(android.view.Menu menu) {
+    menu.add(0, 10001, 0, "C API rendering comparison");
+    return true;
+  }
+
+  @Override
   public boolean onOptionsItemSelected(MenuItem item) {
+    if (item.getItemId() == 10001) {
+      startActivity(new android.content.Intent(this, CapiDemoActivity.class));
+      return true;
+    }
     if (item.getItemId() == android.R.id.home) {
       popBackStack();
       return true;

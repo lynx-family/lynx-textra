@@ -4,20 +4,22 @@
 
 #include "src/textlayout/tt_shaper.h"
 
+#include "src/ports/rendering_backend_internal.h"
+
 #ifdef ENABLE_SKSHAPER
 #include "shaper/skshaper/shaper_skshaper.h"
 #endif
-#ifdef ENABLE_JAVASHAPER
+#ifdef TEXTRA_ENABLE_ANDROID_BACKEND
 #include "shaper/java/java_shaper.h"
 #endif
-#if defined(ENABLE_CTSHAPER) || defined(ENABLE_CTSHAPER_SKITY)
+#if defined(ENABLE_CTSHAPER)
 #include "src/ports/shaper/coretext/shaper_core_text.h"
 #include "src/ports/shaper/coretext/shaper_core_text_self_rendering.h"
 #endif
-#if defined(ENABLE_OHOS)
+#if defined(TEXTRA_ENABLE_OHOS_BACKEND)
 #include "src/ports/shaper/ark_graphics/shaper_ark_graphics.h"
 #endif
-#ifdef ENABLE_LVGL
+#ifdef TEXTRA_ENABLE_LVGL_BACKEND
 #include "src/ports/shaper/lvgl/lvgl_shaper.h"
 #endif
 #include <textra/macro.h>
@@ -31,61 +33,59 @@
 namespace ttoffice {
 namespace tttext {
 std::unique_ptr<TTShaper> TTShaper::CreateShaper(
-    FontmgrCollection* font_collection, ShaperType type) {
-  switch (type) {
-    case kSystem: {
-#ifdef ENABLE_JAVASHAPER
-      return std::make_unique<JavaShaper>(*font_collection);
+    FontmgrCollection* font_collection, RenderingBackend backend) {
+  if (!font_collection || !internal::IsBackendCompiled(backend)) return nullptr;
+  auto create = [&]() -> std::unique_ptr<TTShaper> {
+    switch (backend) {
+#ifdef TEXTRA_ENABLE_ANDROID_BACKEND
+      case RenderingBackend::kAndroid:
+        return std::make_unique<JavaShaper>(*font_collection);
 #endif
 #ifdef ENABLE_CTSHAPER
-      return std::make_unique<ShaperCoreText>(*font_collection);
+      case RenderingBackend::kIOS:
+      case RenderingBackend::kMacOS:
+        return std::make_unique<ShaperCoreText>(*font_collection);
+      case RenderingBackend::kIOSSelfRendering:
+      case RenderingBackend::kMacOSSelfRendering:
+      case RenderingBackend::kSkityCoreText:
+        return std::make_unique<ShaperCoreTextSelfRendering>(*font_collection);
 #endif
-#ifdef ENABLE_OHOS
-      return std::make_unique<ShaperArkGraphics>(*font_collection);
+#ifdef TEXTRA_ENABLE_OHOS_BACKEND
+      case RenderingBackend::kOHOS:
+        return std::make_unique<ShaperArkGraphics>(*font_collection);
 #endif
-#ifdef ENABLE_LVGL
-      return std::make_unique<LVGLShaper>(*font_collection);
+#ifdef TEXTRA_ENABLE_LVGL_BACKEND
+      case RenderingBackend::kLVGL:
+        return std::make_unique<LVGLShaper>(*font_collection);
 #endif
-      break;
-    }
-    case kSelfRendering: {
 #ifdef ENABLE_SKSHAPER
-      return std::make_unique<ShaperSkShaper>(*font_collection);
-      break;
+      case RenderingBackend::kSkia:
+      case RenderingBackend::kSkity:
+        if (ShaperSkShaper::Preload())
+          return std::make_unique<ShaperSkShaper>(*font_collection);
+        break;
 #endif
-#ifdef ENABLE_CTSHAPER
-      // Ordered CoreText family matching is intentionally isolated to the
-      // self-rendering path. Keep kSystem on the legacy shaper so TextService
-      // and other system-rendered callers retain their existing behavior.
-      return std::make_unique<ShaperCoreTextSelfRendering>(*font_collection);
-      break;
-#endif
-      break;
+      default:
+        break;
     }
-    default:
-      break;
-  }
-  TTASSERT(false);
-  return nullptr;
+    return nullptr;
+  };
+  auto shaper = create();
+  if (shaper) shaper->backend_ = backend;
+  return shaper;
 }
 
-bool TTShaper::Preload(ShaperType type) {
-  switch (type) {
-    case kSelfRendering: {
+bool TTShaper::Preload(RenderingBackend backend) {
+  if (!internal::IsBackendCompiled(backend)) return false;
 #ifdef ENABLE_SKSHAPER
-      return ShaperSkShaper::Preload();
+  if (backend == RenderingBackend::kSkia || backend == RenderingBackend::kSkity)
+    return ShaperSkShaper::Preload();
 #endif
-      return true;
-    }
-    case kSystem:
-      return true;
-    default:
-      return false;
-  }
+  return true;
 }
 
 void TTShaper::ClearFontCache() {
-#if defined(ENABLE_CTSHAPER) || defined(ENABLE_CTSHAPER_SKITY)
+#if defined(ENABLE_CTSHAPER)
   ShaperCoreTextSelfRendering::ClearSafeFontCache();
 #endif
 }
@@ -106,7 +106,9 @@ void TTShaper::ProcessBidirection(const char32_t* text, uint32_t length,
 ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
                                    const ShapeStyle* shape_style,
                                    bool rtl) const {
-  const ShapeKey key(text, length, shape_style, rtl);
+  const ShapeKey key(text, length, shape_style, rtl, backend_,
+                     font_collection_.typeface_cache_,
+                     context_ && context_->IsAndroidMetricsRound());
   const auto disable_shape_cache =
       context_ != nullptr && context_->GetImpl().IsShapeCacheDisabled();
   ShapeCache::Epoch cache_epoch = 0;

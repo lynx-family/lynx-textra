@@ -5,12 +5,11 @@
 #ifndef PUBLIC_TEXTRA_PLATFORM_SKIA_SKIA_GRADIENT_H_
 #define PUBLIC_TEXTRA_PLATFORM_SKIA_SKIA_GRADIENT_H_
 
+#include <include/core/SkMatrix.h>
+#include <include/effects/SkGradientShader.h>
 #include <textra/gradient.h>
 
 #include <algorithm>
-
-#include "include/core/SkMatrix.h"
-#include "include/effects/SkGradientShader.h"
 
 namespace ttoffice {
 namespace tttext {

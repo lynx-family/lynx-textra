@@ -64,27 +64,18 @@ Java_com_lynx_textra_perftest_TTTextView_nativeLayoutContent(
   return reinterpret_cast<jlong>(ret);
 }
 
-extern "C" JNIEXPORT jobject JNICALL
-Java_com_lynx_textra_perftest_TTTextView_nativeGetFontManager(
-    JNIEnv* env, jobject thiz, jlong manager_handler) {
-  auto* manager = reinterpret_cast<TTTextManager*>(manager_handler);
-  auto font_manager = manager->GetDefaultFontManager();
-  auto java_font_manager =
-      std::static_pointer_cast<JavaFontManager>(font_manager);
-  return java_font_manager->GetInstance();
-}
-extern "C" JNIEXPORT jbyteArray JNICALL
+extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_textra_perftest_TTTextView_nativeDrawContent(
-    JNIEnv* env, jobject thiz, jobject canvas, jlong manager_handler,
-    jlong region_handler, jbyteArray reusable_buffer) {
+    JNIEnv* env, jobject thiz, jobject target, jlong manager_handler,
+    jlong region_handler) {
   auto* manager = reinterpret_cast<TTTextManager*>(manager_handler);
-  auto* canvas_helper = manager->GetCanvas();
-  LayoutDrawer drawer(reinterpret_cast<ICanvasHelper*>(canvas_helper));
   auto* region = manager->GetRetgion();
-  if (region == nullptr) {
-    return nullptr;
-  }
-  canvas_helper->ClearBuffer();
+  if (!region) return;
+  auto canvas = PlatformHelper::CreateCanvasHelper(
+      target, manager->GetDefaultFontManager());
+  if (!canvas) return;
+  canvas->StartPaint();
+  LayoutDrawer drawer(canvas.get());
   drawer.DrawLayoutPage(region);
-  return canvas_helper->CopyBufferToJava(env, reusable_buffer);
+  canvas->EndPaint();
 }

@@ -25,7 +25,7 @@ constexpr uint32_t SELF_RENDERING_SHAPER_BUFF_SIZE = 1024;
 
 // CoreText shaper for callers that render the returned glyphs themselves.
 // This class deliberately forks ShaperCoreText so ordered web-font matching
-// cannot change the legacy kSystem path. Keep its cache state independent as
+// cannot change the native CoreText path. Keep its cache state independent as
 // well: custom typefaces can be app-owned even though CoreText registration is
 // process-wide.
 class ShaperCoreTextSelfRendering : public TTShaper {

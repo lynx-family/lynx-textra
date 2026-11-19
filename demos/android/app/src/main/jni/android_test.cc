@@ -5,8 +5,7 @@
 #include <jni.h>
 #include <textra/fontmgr_collection.h>
 #include <textra/i_font_manager.h>
-#include <textra/platform/java/java_canvas_helper.h>
-#include <textra/platform/java/java_font_manager.h>
+#include <textra/platform_helper.h>
 
 #include "paragraph_test.h"
 
@@ -32,29 +31,17 @@ Java_com_lynx_textra_demo_PageView_getCppTestList(JNIEnv* env, jclass clazz) {
   return result;
 }
 
-extern "C" JNIEXPORT jbyteArray JNICALL
+extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_textra_demo_PageView_drawCppTestCase(JNIEnv* env, jobject thiz,
-                                                   jlong font_manager_handler,
+                                                   jobject native_canvas,
                                                    jint case_id,
                                                    float width_px) {
-  auto java_font_manager =
-      ((JavaFontManager*)font_manager_handler)->shared_from_this();
-  JavaCanvasHelper canvas_helper;
-  tttext::FontmgrCollection font_collection(java_font_manager);
-  ParagraphTest paragraph_test(kSystem, &font_collection);
-  paragraph_test.TestWithId(&canvas_helper, width_px, case_id);
-  auto& buffer = canvas_helper.GetBuffer();
-  auto* data = buffer.GetBuffer();
-  auto length = buffer.GetSize();
-  auto array = env->NewByteArray(length);
-  env->SetByteArrayRegion(array, 0, length, reinterpret_cast<jbyte*>(data));
-  return array;
-}
-
-extern "C" JNIEXPORT jobject JNICALL
-Java_com_lynx_textra_demo_PageView_nativeCreateFontManager(JNIEnv* env,
-                                                           jobject thiz) {
-  auto java_font_manager =
-      TTTextJNIProxy::GetInstance().GetDefaultFontManager();
-  return java_font_manager->GetInstance();
+  auto manager = PlatformHelper::CreateFontManager();
+  auto canvas = PlatformHelper::CreateCanvasHelper(native_canvas, manager);
+  if (!canvas) return;
+  tttext::FontmgrCollection font_collection(manager);
+  ParagraphTest paragraph_test(RenderingBackend::kAndroid, &font_collection);
+  canvas->StartPaint();
+  paragraph_test.TestWithId(canvas.get(), width_px, case_id);
+  canvas->EndPaint();
 }

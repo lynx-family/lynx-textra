@@ -63,8 +63,10 @@ public class JavaTypeface {
     mFontKey = fontKey;
     mNativeHandler = nativeHandler;
     InitFontMetrics(24);
-    BindNativeHandler(nativeHandler, this, mIndex, mFontMetrics.ascent / mTextSize,
-        mFontMetrics.descent / mTextSize);
+    if (nativeHandler != 0) {
+      BindNativeHandler(nativeHandler, this, mIndex, mFontMetrics.ascent / mTextSize,
+          mFontMetrics.descent / mTextSize);
+    }
   }
 
   public JavaTypeface(int index, Font typeface, FontKey fontKey, long nativeHandler) {
@@ -73,8 +75,10 @@ public class JavaTypeface {
     mFontKey = fontKey;
     mNativeHandler = nativeHandler;
     InitFontMetrics(24);
-    BindNativeHandler(nativeHandler, this, mIndex, mFontMetrics.ascent / mTextSize,
-        mFontMetrics.descent / mTextSize);
+    if (nativeHandler != 0) {
+      BindNativeHandler(nativeHandler, this, mIndex, mFontMetrics.ascent / mTextSize,
+          mFontMetrics.descent / mTextSize);
+    }
   }
 
   @Override

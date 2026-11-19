@@ -103,7 +103,7 @@ void SkiaAppDemo::onPaint(SkSurface* surface) {
   auto font_mgr = std::make_shared<TestFontMgr>(
       std::vector<std::shared_ptr<ITypefaceHelper>>{TFH_DEFAULT});
   tttext::FontmgrCollection font_collection(font_mgr);
-  ParagraphTest paragraph_test(kSelfRendering, &font_collection);
+  ParagraphTest paragraph_test(RenderingBackend::kSkia, &font_collection);
   paragraph_test.TestWithId(&skia_canvas_helper, test_width_, test_id_);
   //  SkPaint paint;
   //  paint.setColor(0xFF00FF00);

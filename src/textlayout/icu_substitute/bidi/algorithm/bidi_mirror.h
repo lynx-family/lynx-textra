@@ -9,10 +9,10 @@
 // Modifications 2021 The Lynx Authors.
 // Modifications licensed under the same terms as the original ICU license.
 
-#include <unordered_map>
-
 #ifndef SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_MIRROR_H_
 #define SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_MIRROR_H_
+
+#include <unordered_map>
 class BidiMirror {
   typedef std::unordered_map<int, int> DtMap;
 

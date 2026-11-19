@@ -4,16 +4,15 @@
 
 #include "tt_text_manager.h"
 
-#include <textra/platform/java/java_font_manager.h>
+#include <textra/platform_helper.h>
 
 TTTextManager::TTTextManager()
-    : font_collection_(std::make_shared<tttext::JavaFontManager>()) {
-  layout_ =
-      std::make_unique<TextLayout>(&font_collection_, ShaperType::kSystem);
+    : font_collection_(PlatformHelper::CreateFontManager()) {
+  layout_ = std::make_unique<TextLayout>(&font_collection_,
+                                         RenderingBackend::kAndroid);
   context_ = std::make_unique<TTTextContext>();
   context_->SetSkipSpacingBeforeFirstLine(false);
   context_->SetLastLineCanOverflow(false);
-  canvas_ = std::make_unique<JavaCanvasHelper>();
 }
 void TTTextManager::CreateParagraph() {
   paragraph = Paragraph::Create();

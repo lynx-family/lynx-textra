@@ -17,27 +17,20 @@ set(skia_include
         ${TEXTLAYOUT_DIRECTORY}/include/skia/modules/skunicode/include
         )
 
-add_library(lynxtextra SHARED
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_canvas_helper.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_typeface_helper.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_font_manager.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_painter.cc
-        )
-target_link_libraries(lynxtextra
+# Header-only adapters have no library objects. Keep a consumer target that
+# forwards the actual core/SDK dependencies without producing an empty dylib.
+add_library(lynxtextra INTERFACE)
+target_link_libraries(lynxtextra INTERFACE
         textlayout
         skia
         skunicode
         skshaper
         skparagraph)
-target_include_directories(lynxtextra PUBLIC ${skia_include})
+target_include_directories(lynxtextra INTERFACE ${skia_include})
 
 add_executable(sk_app_demo
         ttreaderdemo/SkiaAppDemo.cpp
         ttreaderdemo/paragraph_test.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_canvas_helper.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_typeface_helper.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_font_manager.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_painter.cc
         ${TEXTLAYOUT_DIRECTORY}/include/skia/tools/sk_app/Window.cpp
         ${TEXTLAYOUT_DIRECTORY}/include/skia/tools/sk_app/GLWindowContext.cpp
         ${TEXTLAYOUT_DIRECTORY}/include/skia/tools/sk_app/WindowContext.cpp
@@ -69,9 +62,6 @@ add_executable(skparagraph_demo
         skparagraph_demo/skparagraph_test.cc
         skparagraph_demo/test_font_mgr.cc
         skparagraph_demo/test_font_mgr.h
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_canvas_helper.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_typeface_helper.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_painter.cc
         ${TEXTLAYOUT_DIRECTORY}/include/skia/tools/sk_app/Window.cpp
         ${TEXTLAYOUT_DIRECTORY}/include/skia/tools/sk_app/GLWindowContext.cpp
         ${TEXTLAYOUT_DIRECTORY}/include/skia/tools/sk_app/WindowContext.cpp
@@ -101,10 +91,6 @@ target_link_options(skparagraph_demo PRIVATE ${ASAN_COMPILE_OPTION})
 add_executable(ttreaderdemo
         ttreaderdemo/TTReaderDemo.cc
         ttreaderdemo/paragraph_test.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_canvas_helper.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_typeface_helper.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_font_manager.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_painter.cc
         )
 target_compile_features(ttreaderdemo PRIVATE cxx_noexcept)
 target_link_libraries(ttreaderdemo
@@ -134,7 +120,7 @@ function(init_target target)
             ${TEXTLAYOUT_DIRECTORY}/include/skia
             ${TEXTLAYOUT_DIRECTORY}/include/skia/include
             ${TEXTLAYOUT_DIRECTORY}/include/freetype/include
-            ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skity/
+            ${TEXTLAYOUT_DIRECTORY}/public/textra/platform/skity/
             ${TEXTLAYOUT_DIRECTORY}/thirdparty/skity/include
             ${TEXTLAYOUT_DIRECTORY}/thirdparty/skity/third_party/glm
             ${TEXTLAYOUT_DIRECTORY}/thirdparty/glfw-3.3.7/include
@@ -164,9 +150,6 @@ add_executable(glappdemo_skity
         glfw/gl_app/gl_app.cc
         glfw/gl_app_demo_skity.cc
         ttreaderdemo/paragraph_test.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skity/skity_canvas_helper.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skity/skity_font_manager.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skity/skity_typeface_helper.cc
         )
 target_link_libraries(glappdemo_skity PRIVATE skity-static)
 init_target(glappdemo_skity)
@@ -175,9 +158,6 @@ add_executable(glappdemo_skia
         glfw/gl_app/gl_app.cc
         glfw/gl_app_demo_skia.cc
         ttreaderdemo/paragraph_test.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_canvas_helper.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_font_manager.cc
-        ${TEXTLAYOUT_DIRECTORY}/src/ports/platform/skia/skia_typeface_helper.cc
         )
 init_target(glappdemo_skia)
 

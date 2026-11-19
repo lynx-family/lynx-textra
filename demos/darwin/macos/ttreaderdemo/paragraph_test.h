@@ -86,7 +86,8 @@ class ParagraphTest {
   friend ParagraphImageTest;
 
  public:
-  explicit ParagraphTest(ShaperType type, FontmgrCollection* font_collection);
+  explicit ParagraphTest(RenderingBackend type,
+                         FontmgrCollection* font_collection);
 
  private:
   void DrawParagraph(
@@ -169,7 +170,7 @@ class ParagraphTest {
   mutable bool draw_tight_bound_ = false;
 
  private:
-  ShaperType shaper_type_;
+  RenderingBackend shaper_type_;
   FontmgrCollection* font_collection_;
   std::unique_ptr<Painter> painter_;
 };

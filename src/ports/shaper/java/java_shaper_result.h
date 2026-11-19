@@ -5,11 +5,10 @@
 #ifndef SRC_PORTS_SHAPER_JAVA_JAVA_SHAPER_RESULT_H_
 #define SRC_PORTS_SHAPER_JAVA_JAVA_SHAPER_RESULT_H_
 
-#include <textra/platform/java/tttext_jni_proxy.h>
-
 #include <memory>
 #include <vector>
 
+#include "src/ports/native/java/tttext_jni_proxy.h"
 #include "src/textlayout/tt_shaper.h"
 
 namespace ttoffice {
@@ -17,7 +16,9 @@ namespace tttext {
 class JavaShapingResult final : public PlatformShapingResultReader {
  public:
   ~JavaShapingResult() override = default;
-  uint32_t GlyphCount() const override { return glyphs_.size(); }
+  uint32_t GlyphCount() const override {
+    return static_cast<uint32_t>(glyphs_.size());
+  }
   uint32_t TextCount() const override { return text_count_; }
   GlyphID ReadGlyphID(uint32_t idx) const override { return glyphs_[idx]; }
   float ReadAdvanceX(uint32_t idx) const override { return advances_[idx]; }
@@ -63,8 +64,12 @@ class JavaShapingResultNew final : public PlatformShapingResultReader {
     }
   }
   ~JavaShapingResultNew() override = default;
-  uint32_t GlyphCount() const override { return glyphs_.size(); }
-  uint32_t TextCount() const override { return glyphs_.size(); }
+  uint32_t GlyphCount() const override {
+    return static_cast<uint32_t>(glyphs_.size());
+  }
+  uint32_t TextCount() const override {
+    return static_cast<uint32_t>(glyphs_.size());
+  }
   GlyphID ReadGlyphID(uint32_t idx) const override { return glyphs_[idx]; }
   float ReadAdvanceX(uint32_t idx) const override { return advances_[idx]; }
   uint32_t ReadIndices(uint32_t idx) const override { return idx; }

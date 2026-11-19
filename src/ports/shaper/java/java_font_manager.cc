@@ -2,12 +2,13 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#include <textra/platform/java/java_font_manager.h>
-#include <textra/platform/java/java_typeface.h>
-#include <textra/platform/java/tttext_jni_proxy.h>
+#include "src/ports/native/java/java_font_manager.h"
 
+#include <climits>
 #include <memory>
 
+#include "src/ports/native/java/java_typeface.h"
+#include "src/ports/native/java/tttext_jni_proxy.h"
 #include "src/ports/shaper/java/java_utils.h"
 
 namespace ttoffice {
@@ -118,8 +119,11 @@ std::shared_ptr<JavaTypeface> JavaFontManager::matchTypeface(
       settings.append(tag, 4);
       settings += "' " + std::to_string(value);
     }
-    j_settings = TTTextJNIProxy::CreateJavaStringFromU8(env, settings.data(),
-                                                        settings.size());
+    if (settings.size() > INT_MAX) {
+      return nullptr;
+    }
+    j_settings = TTTextJNIProxy::CreateJavaStringFromU8(
+        env, settings.data(), static_cast<uint32_t>(settings.size()));
   }
   std::shared_ptr<JavaTypeface> obj = nullptr;
   jlong raw_pointer = 0;
@@ -133,9 +137,11 @@ std::shared_ptr<JavaTypeface> JavaFontManager::matchTypeface(
     jstring j_fontfamily = nullptr;
     if (!fd.font_family_list_.empty()) {
       const char* familyName = fd.font_family_list_[0].c_str();
+      if (fd.font_family_list_[0].size() > UINT32_MAX) return nullptr;
       if (strlen(familyName) > 0) {
         j_fontfamily = TTTextJNIProxy::CreateJavaStringFromU8(
-            env, familyName, strlen(familyName));
+            env, familyName,
+            static_cast<uint32_t>(fd.font_family_list_[0].size()));
       }
     }
     obj = std::make_shared<JavaTypeface>(0);

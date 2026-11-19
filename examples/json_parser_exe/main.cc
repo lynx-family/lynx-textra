@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
   // Create font collection and perform layout
   auto& font_collection = TestUtils::getFontmgrCollection();
   std::unique_ptr<LayoutRegion> region = LayoutJsonDocument(
-      parsed_text.get(), &font_collection, ShaperType::kSelfRendering);
+      parsed_text.get(), &font_collection, RenderingBackend::kSkity);
 
   std::string file_path_str(file_path);
   std::string base_name =

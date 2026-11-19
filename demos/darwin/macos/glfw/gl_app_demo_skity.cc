@@ -8,12 +8,15 @@
 #include <textra/platform/skity/skity_canvas_helper.h>
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <vector>
 
+#include "demos/capi/textra_skity_demo.hpp"
 #include "demos/darwin/macos/glfw/skity_adaptor.h"
 #include "demos/darwin/macos/ttreaderdemo/paragraph_test.h"
 #include "gl_app/gl_app.hpp"
+#include "test/capi/skity_comparison.hpp"
 
 using namespace tttext;
 
@@ -21,12 +24,15 @@ void draw_canvas(skity::Canvas* canvas);
 
 class Textlayoutdemo : public example::GLApp {
  public:
-  Textlayoutdemo()
+  explicit Textlayoutdemo(bool capi = false)
       : example::GLApp(1000, 800, "GL Example", {1.f, 1.f, 1.f, 1.f}),
+        capi_(capi),
         font_collection_(nullptr) {
-    auto font_mgr = std::make_shared<TestFontMgr>(
-        std::vector<std::shared_ptr<ITypefaceHelper>>{TFH_DEFAULT});
-    font_collection_.SetDefaultFontManager(font_mgr);
+    if (!capi_) {
+      auto font_mgr = std::make_shared<TestFontMgr>(
+          std::vector<std::shared_ptr<ITypefaceHelper>>{TFH_DEFAULT});
+      font_collection_.SetDefaultFontManager(font_mgr);
+    }
   }
 
   ~Textlayoutdemo() override = default;
@@ -48,6 +54,16 @@ class Textlayoutdemo : public example::GLApp {
 
  protected:
   void OnUpdate(float time) override {
+    if (capi_) {
+      GetCanvas()->DrawColor(0xffffffff);
+      auto status = textra_demo::RenderSkity(GetCanvas(), 2);
+      if (status) {
+        std::fprintf(stderr, "C API render failed: %d\n", status);
+        std::exit(1);
+      }
+      GetCanvas()->Flush();
+      return;
+    }
     GetCanvas()->Save();
     SkityCanvasHelper canvas(GetCanvas());
     canvas.DrawColor(0xFFFFFFFF);
@@ -55,7 +71,7 @@ class Textlayoutdemo : public example::GLApp {
     paint.SetFillColor(1.0, 0, 0, 1.0f);
     paint.SetStyle(skity::Paint::kFill_Style);
     GetCanvas()->DrawRect(skity::Rect::MakeLTRB(200, 200, 300, 300), paint);
-    ParagraphTest paragraph_test_(kSelfRendering, &font_collection_);
+    ParagraphTest paragraph_test_(RenderingBackend::kSkity, &font_collection_);
     GetCanvas()->DrawLine(width_, 0, width_, 1000, paint);
     paragraph_test_.TestWithId(&canvas, width_, test_id);
     // draw_paragraph(GetCanvas(), 200, 20, 300, 300);
@@ -66,13 +82,18 @@ class Textlayoutdemo : public example::GLApp {
   void OnStart() override {}
 
  private:
+  bool capi_;
   uint32_t test_id = 26;
   float width_ = 500;
   FontmgrCollection font_collection_;
 };
 
 int main(int argc, const char** argv) {
-  Textlayoutdemo app;
+  if (argc == 3 && std::strcmp(argv[1], "--capi-compare") == 0) {
+    std::filesystem::create_directories(argv[2]);
+    return textra_demo::RunSkityComparison(argv[2]) ? 0 : 1;
+  }
+  Textlayoutdemo app(argc > 1 && std::strcmp(argv[1], "--capi") == 0);
 
   app.Run();
   return 0;

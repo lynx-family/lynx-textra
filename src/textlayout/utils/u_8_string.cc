@@ -13,6 +13,44 @@
 namespace ttoffice {
 namespace base {
 
+bool CheckValidUTF8String(const char* text, uint32_t bytes, bool allow_nul,
+                          uint32_t* codepoint_count) {
+  if (codepoint_count) *codepoint_count = 0;
+  if (!text) return bytes == 0;
+  uint32_t characters = 0;
+  const auto* p = reinterpret_cast<const unsigned char*>(text);
+  for (uint32_t i = 0; i < bytes;) {
+    uint32_t cp = p[i++], count = 0, minimum = 0;
+    ++characters;
+    if (!cp && !allow_nul) return false;
+    if (cp < 0x80) continue;
+    if (cp >= 0xc2 && cp <= 0xdf) {
+      cp &= 0x1f;
+      count = 1;
+      minimum = 0x80;
+    } else if (cp >= 0xe0 && cp <= 0xef) {
+      cp &= 0xf;
+      count = 2;
+      minimum = 0x800;
+    } else if (cp >= 0xf0 && cp <= 0xf4) {
+      cp &= 7;
+      count = 3;
+      minimum = 0x10000;
+    } else {
+      return false;
+    }
+    if (count > bytes - i) return false;
+    while (count--) {
+      auto c = p[i++];
+      if ((c & 0xc0) != 0x80) return false;
+      cp = (cp << 6) | (c & 0x3f);
+    }
+    if (cp < minimum || cp > 0x10ffff || (cp >= 0xd800 && cp <= 0xdfff))
+      return false;
+  }
+  if (codepoint_count) *codepoint_count = characters;
+  return true;
+}
 uint32_t U8CharToU32(const char* u8_char, uint32_t* char_len) {
   *char_len = 0;
   uint32_t cp = 0;

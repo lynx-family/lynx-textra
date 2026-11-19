@@ -39,6 +39,9 @@ if (!defined(is_lvgl)) {
 
 declare_args() {
   prj_root = rebase_path("..")
+
+  # Platforms select defaults; backend macros describe the implementations
+  # actually compiled into the library, independently of the target OS macros.
   enable_javashaper = is_android && !is_lvgl
   enable_skshaper = is_android || is_mac || is_harmony || is_win || is_linux ||
                     target_cpu == "wasm"
@@ -72,10 +75,7 @@ declare_args() {
 
 config("textlayout_public") {
   cflags_cc = []
-  include_dirs = [
-    ".",
-    "$prj_root/public",
-  ]
+  include_dirs = [ "$prj_root/public" ]
   defines = []
   if (is_debug) {
     defines += [ "TTTEXT_DEBUG" ]
@@ -166,10 +166,27 @@ source_set("bidi") {
 }
 
 textlayout_public_headers = [
+  "$prj_root/public/textra/capi/textra.h",
+  "$prj_root/public/textra/capi/textra_backend.h",
+  "$prj_root/public/textra/capi/textra_canvas.h",
+  "$prj_root/public/textra/capi/textra_font_manager.h",
+  "$prj_root/public/textra/capi/textra_typeface.h",
+  "$prj_root/public/textra/capi/textra_common.h",
+  "$prj_root/public/textra/capi/textra_font.h",
+  "$prj_root/public/textra/capi/textra_gradient.h",
+  "$prj_root/public/textra/capi/textra_layout_drawer.h",
+  "$prj_root/public/textra/capi/textra_layout_page_listener.h",
+  "$prj_root/public/textra/capi/textra_layout_region.h",
+  "$prj_root/public/textra/capi/textra_paragraph.h",
+  "$prj_root/public/textra/capi/textra_paragraph_style.h",
+  "$prj_root/public/textra/capi/textra_platform.h",
+  "$prj_root/public/textra/capi/textra_run_delegate.h",
+  "$prj_root/public/textra/capi/textra_style.h",
+  "$prj_root/public/textra/capi/textra_text_context.h",
+  "$prj_root/public/textra/capi/textra_text_layout.h",
+  "$prj_root/public/textra/capi/textra_text_line.h",
+  "$prj_root/public/textra/capi/textra_types.h",
   "$prj_root/public/textra/gradient.h",
-  "$prj_root/public/textra/platform/ark_graphics/ag_gradient.h",
-  "$prj_root/public/textra/platform/ios/coregraphics_gradient.h",
-  "$prj_root/public/textra/platform/skity/skity_gradient.h",
   "$prj_root/public/textra/macro.h",
   "$prj_root/public/textra/font_info.h",
   "$prj_root/public/textra/icu_wrapper.h",
@@ -191,30 +208,17 @@ textlayout_public_headers = [
   "$prj_root/public/textra/tt_color.h",
   "$prj_root/public/textra/tttext_context.h",
   "$prj_root/public/textra/fontmgr_collection.h",
-  "$prj_root/public/textra/platform/ios/ios_canvas_base.h",
-  "$prj_root/public/textra/platform/ios/ios_font_manager.h",
-  "$prj_root/public/textra/platform/ios/typeface_coretext.h",
-  "$prj_root/public/textra/platform/mac/mac_canvas_base.h",
-  "$prj_root/public/textra/platform/mac/mac_font_manager.h",
-  "$prj_root/public/textra/platform/mac/typeface_coretext.h",
-  "$prj_root/public/textra/platform/skity/skity_canvas_helper.h",
-  "$prj_root/public/textra/platform/skity/skity_font_data.h",
-  "$prj_root/public/textra/platform/skity/skity_font_manager_coretext.h",
-  "$prj_root/public/textra/platform/skity/skity_font_manager_coretext_webkit.h",
-  "$prj_root/public/textra/platform/skity/skity_font_manager.h",
-  "$prj_root/public/textra/platform/skity/skity_typeface_helper.h",
-  "$prj_root/public/textra/platform/java/java_canvas_helper.h",
-  "$prj_root/public/textra/platform/java/buffer_output_stream.h",
-  "$prj_root/public/textra/platform/java/tttext_jni_proxy.h",
-  "$prj_root/public/textra/platform/java/java_font_manager.h",
-  "$prj_root/public/textra/platform/java/java_typeface.h",
   "$prj_root/public/textra/platform_helper.h",
+  "$prj_root/public/textra/rendering_backend.h",
   "$prj_root/public/textra/tt_path.h",
 ]
 
 source_set("textlayout") {
   defines = []
-  deps = []
+  deps = [
+    ":backend",
+    ":native_platform",
+  ]
   include_dirs = []
   cflags_cc = [ "-Wno-unused-function" ]
 
@@ -231,6 +235,7 @@ source_set("textlayout") {
   sources += textlayout_public_headers
   sources += [
     "$prj_root/src/ports/platform_helper.cc",
+    "$prj_root/src/ports/rendering_backend_internal.h",
     "$prj_root/src/textlayout/dominate_baseline.cc",
     "$prj_root/src/textlayout/dominate_baseline.h",
     "$prj_root/src/textlayout/font_info.cc",
@@ -309,7 +314,6 @@ source_set("textlayout") {
     public_configs += [ ":ctshaper_public" ]
     include_dirs += [
       "//ROOT",
-      "$prj_root/src/ports/platform/ios/",
       "$prj_root/src/ports/shaper/coretext/",
     ]
 
@@ -329,8 +333,6 @@ source_set("textlayout") {
     configs += [ ":harmony_public" ]
     include_dirs += [ "$prj_root/src/ports/shaper/harmony" ]
     sources += [
-      "$prj_root/src/ports/renderer/ark_graphics/ag_canvas_helper.h",
-      "$prj_root/src/ports/renderer/ark_graphics/ag_typeface_helper.h",
       "$prj_root/src/ports/shaper/ark_graphics/shaper_ark_graphics.cc",
       "$prj_root/src/ports/shaper/ark_graphics/shaper_ark_graphics.h",
     ]
@@ -339,11 +341,8 @@ source_set("textlayout") {
   if (enable_lvglshaper) {
     configs += [ ":lvgl_public" ]
     sources += [
-      "$prj_root/src/ports/shaper/lvgl/lvgl_canvas_helper.cc",
-      "$prj_root/src/ports/shaper/lvgl/lvgl_font_manager.cc",
       "$prj_root/src/ports/shaper/lvgl/lvgl_shaper.cc",
       "$prj_root/src/ports/shaper/lvgl/lvgl_shaper.h",
-      "$prj_root/src/ports/shaper/lvgl/lvgl_typeface.cc",
     ]
   }
 
@@ -389,7 +388,7 @@ config("javashaper_public") {
     "$prj_root/public",
     "$prj_root/",
   ]
-  defines = [ "ENABLE_JAVASHAPER" ]
+  defines = [ "TEXTRA_ENABLE_ANDROID_BACKEND" ]
 }
 source_set("javashaper") {
   public_configs = [
@@ -399,10 +398,16 @@ source_set("javashaper") {
   configs += [ ":textlayout_internal" ]
   deps = []
   sources = [
+    "$prj_root/src/ports/native/java/java_font_manager.h",
+    "$prj_root/src/ports/native/java/java_typeface.h",
+    "$prj_root/src/ports/native/java/scoped_global_ref.h",
+    "$prj_root/src/ports/native/java/tttext_jni_proxy.h",
     "$prj_root/src/ports/shaper/java/java_font_manager.cc",
     "$prj_root/src/ports/shaper/java/java_shaper.cc",
     "$prj_root/src/ports/shaper/java/java_shaper.h",
     "$prj_root/src/ports/shaper/java/java_shaper_result.h",
+    "$prj_root/src/ports/shaper/java/java_shaping_font_manager.cc",
+    "$prj_root/src/ports/shaper/java/java_shaping_font_manager.h",
     "$prj_root/src/ports/shaper/java/java_typeface.cc",
     "$prj_root/src/ports/shaper/java/java_utils.cc",
     "$prj_root/src/ports/shaper/java/tttext_jni_proxy.cc",
@@ -425,6 +430,11 @@ source_set("skshaper") {
   configs += [ ":textlayout_internal" ]
   defines = []
   deps = []
+
+  # System font adjustments use JNI only when the Java implementation is built.
+  if (enable_javashaper) {
+    deps += [ ":javashaper" ]
+  }
   sources = []
   if (is_android) {
     configs += [ ":icu" ]
@@ -474,14 +484,153 @@ source_set("skshaper") {
 config("ctshaper_public") {
   include_dirs = [ "$prj_root/src/ports/shaper/coretext/" ]
   defines = [ "ENABLE_CTSHAPER" ]
+  if (is_ios) {
+    defines += [ "TEXTRA_ENABLE_IOS_BACKEND" ]
+  }
+  if (is_mac) {
+    defines += [ "TEXTRA_ENABLE_MACOS_BACKEND" ]
+  }
 }
 
 config("harmony_public") {
   include_dirs = [ "$prj_root/src/ports/shaper/harmony" ]
-  defines = [ "ENABLE_OHOS" ]
+  defines = [ "TEXTRA_ENABLE_OHOS_BACKEND" ]
 }
 
 config("lvgl_public") {
   include_dirs = [ "$prj_root/third_party" ]
-  defines = [ "ENABLE_LVGL" ]
+  defines = [ "TEXTRA_ENABLE_LVGL_BACKEND" ]
+}
+
+# Built-in platform adapters; Skia and Skity remain host supplied.
+source_set("native_platform") {
+  configs += [ ":textlayout_internal" ]
+  cflags_cc = [ "-fno-exceptions" ]
+
+  # Keep the original CoreText registration API for minimum-SDK compatibility.
+  cflags_objcc = [
+    "-fno-exceptions",
+    "-fobjc-arc",
+    "-Wno-error=deprecated-declarations",
+  ]
+  sources = [ "ports/native/native_helpers.h" ]
+  deps = []
+  if (enable_javashaper) {
+    deps += [ ":javashaper" ]
+    sources += [
+      "ports/native/android.cc",
+      "ports/native/java/buffer_output_stream.h",
+      "ports/native/java/java_canvas_helper.h",
+    ]
+  }
+  if (enable_ctshaper) {
+    configs += [ ":ctshaper_public" ]
+    if (is_ios) {
+      sources += [
+        "ports/native/ios.mm",
+        "ports/native/ios/coregraphics_gradient.h",
+        "ports/native/ios/ios_canvas_base.h",
+        "ports/native/ios/ios_font_manager.h",
+        "ports/native/ios/typeface_coretext.h",
+      ]
+      frameworks = [
+        "UIKit.framework",
+        "CoreText.framework",
+        "CoreGraphics.framework",
+      ]
+    } else if (is_mac) {
+      sources += [
+        "ports/native/ios/coregraphics_gradient.h",
+        "ports/native/ios/ios_font_manager.h",
+        "ports/native/ios/typeface_coretext.h",
+        "ports/native/mac.mm",
+        "ports/native/mac/mac_canvas_base.h",
+      ]
+      frameworks = [
+        "AppKit.framework",
+        "CoreText.framework",
+        "CoreGraphics.framework",
+      ]
+    }
+  }
+  if (enable_harmony) {
+    configs += [ ":harmony_public" ]
+    sources += [
+      "ports/native/ark_graphics/ag_canvas_helper.h",
+      "ports/native/ark_graphics/ag_font_manager.h",
+      "ports/native/ark_graphics/ag_gradient.h",
+      "ports/native/ark_graphics/ag_typeface_helper.h",
+      "ports/native/ohos.cc",
+    ]
+  }
+  if (enable_lvglshaper) {
+    configs += [ ":lvgl_public" ]
+    sources += [
+      "ports/native/lvgl.cc",
+      "ports/native/lvgl/lvgl_canvas_helper.h",
+      "ports/native/lvgl/lvgl_font_manager.h",
+      "ports/native/lvgl/lvgl_typeface.h",
+      "ports/shaper/lvgl/lvgl_canvas_helper.cc",
+      "ports/shaper/lvgl/lvgl_font_manager.cc",
+      "ports/shaper/lvgl/lvgl_typeface.cc",
+      "ports/shaper/lvgl/lvgl_typeface_cjk.h",
+      "ports/shaper/lvgl/lvgl_typeface_montserrat.h",
+    ]
+  }
+}
+
+# Per-object callback adapters and C entry points used by shaping ports.
+source_set("backend") {
+  defines = [ "TEXTRA_CAPI_BUILD" ]
+  configs += [ ":textlayout_internal" ]
+  cflags_cc = [ "-fno-exceptions" ]
+  sources = [
+    "capi/textra_backend_adapters.h",
+    "capi/textra_callback_utils.h",
+    "capi/textra_canvas.cc",
+    "capi/textra_font_manager.cc",
+    "capi/textra_typeface.cc",
+  ]
+}
+
+source_set("capi") {
+  configs += [ ":textlayout_internal" ]
+
+  # Compile optional runtime hooks for the selected shaping ports.
+  if (enable_harmony) {
+    configs += [ ":harmony_public" ]
+  }
+  if (enable_lvglshaper) {
+    configs += [ ":lvgl_public" ]
+  }
+  public_configs = [ ":textlayout_public" ]
+  deps = [ ":textlayout" ]
+  defines = [ "TEXTRA_CAPI_BUILD" ]
+  if (enable_javashaper) {
+    defines += [ "TEXTRA_ENABLE_ANDROID_BACKEND" ]
+  }
+  cflags_cc = [ "-fno-exceptions" ]
+  cflags_objcc = [
+    "-fno-exceptions",
+    "-fobjc-arc",
+  ]
+  sources = [
+    "capi/textra_android_runtime.cc",
+    "capi/textra_callback_adapters.cc",
+    "capi/textra_callbacks.cc",
+    "capi/textra_canvas_proxy.h",
+    "capi/textra_common.cc",
+    "capi/textra_draw_adapter.cc",
+    "capi/textra_drawer.cc",
+    "capi/textra_enum_checks.h",
+    "capi/textra_font.cc",
+    "capi/textra_gradient.cc",
+    "capi/textra_internal.h",
+    "capi/textra_layout.cc",
+    "capi/textra_paragraph.cc",
+    "capi/textra_paragraph_style.cc",
+    "capi/textra_platform_internal.h",
+    "capi/textra_style.cc",
+    "capi/textra_support.cc",
+  ]
 }

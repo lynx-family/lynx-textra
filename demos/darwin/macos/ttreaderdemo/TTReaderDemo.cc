@@ -29,7 +29,7 @@ int MainWork(const char* path, const char* password, const char* output,
 
   FontmgrCollection font_collection_(
       std::make_shared<SkiaFontManager>(skia_font_mgr));
-  ParagraphTest paragraph_test(kSelfRendering, &font_collection_);
+  ParagraphTest paragraph_test(RenderingBackend::kSkia, &font_collection_);
   paragraph_test.TestWithId(&skia_canvas_helper, width, test_id);
   auto skpicture = recoder.finishRecordingAsPicture();
   SkBitmap bitmap;

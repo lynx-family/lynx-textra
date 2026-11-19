@@ -10,7 +10,8 @@ project("AndroidTest")
 set(CMAKE_CXX_STANDARD 17)
 
 set(textlayout_root_path ${PROJECT_SOURCE_DIR}/../../../../../..)
-include_directories(${textlayout_root_path}/third_party/icu/source/common)
+include_directories(${textlayout_root_path}
+                    ${textlayout_root_path}/third_party/icu/source/common)
 
 add_subdirectory(${textlayout_root_path}/examples/json_parser ${CMAKE_CURRENT_BINARY_DIR}/json_parser)
 
@@ -23,8 +24,12 @@ add_library(android_test SHARED
         android_test.cc
         buffer_input_stream.cc
         tttext_native.cc
+        capi_demo.cc
         tttext_run_delegate.cc
 )
+
+# The C facade/provider TU propagates status codes and does not use C++ exceptions.
+set_source_files_properties(capi_demo.cc PROPERTIES COMPILE_OPTIONS "-fno-exceptions")
 
 find_library( # Sets the name of the path variable.
         log-lib

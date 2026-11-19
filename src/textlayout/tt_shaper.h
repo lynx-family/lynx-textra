@@ -36,8 +36,8 @@ class TTShaper {
   void operator=(const TTShaper& other) = delete;
 
   static std::unique_ptr<TTShaper> CreateShaper(
-      FontmgrCollection* font_collection, ShaperType type = kSystem);
-  static bool Preload(ShaperType type);
+      FontmgrCollection* font_collection, RenderingBackend backend);
+  static bool Preload(RenderingBackend backend);
   // Releases platform shaper font caches that outlive individual shapers.
   // No-op on platforms whose shapers do not keep such a cache.
   static void ClearFontCache();
@@ -57,6 +57,7 @@ class TTShaper {
                                          bool rtl) const;
 
  protected:
+  RenderingBackend backend_ = RenderingBackend::kInvalid;
   FontmgrCollection font_collection_;
   TTTextContext* context_;
 };
@@ -143,10 +144,15 @@ class ShapeKey {
         rtl_(rtl),
         hash_(UpdateHash()) {}
   ShapeKey(const char32_t* text, uint32_t length, const ShapeStyle* shape_style,
-           bool rtl)
+           bool rtl, RenderingBackend backend = RenderingBackend::kInvalid,
+           std::shared_ptr<const void> font_resources = {},
+           bool android_metrics_round = false)
       : text_(text, length),
         style_(*shape_style),
         rtl_(rtl),
+        backend_(backend),
+        font_resources_(std::move(font_resources)),
+        android_metrics_round_(android_metrics_round),
         hash_(UpdateHash()) {}
 
  private:
@@ -157,13 +163,18 @@ class ShapeKey {
     };
     hash_combine(std::hash<ShapeStyle>()(style_));
     hash_combine(std::hash<bool>()(rtl_));
+    hash_combine(static_cast<uint32_t>(backend_));
+    hash_combine(std::hash<const void*>()(font_resources_.get()));
+    hash_combine(std::hash<bool>()(android_metrics_round_));
     return seed;
   }
 
  public:
   bool operator==(const ShapeKey& o) const {
     return hash_ == o.hash_ && style_ == o.style_ && rtl_ == o.rtl_ &&
-           text_ == o.text_;
+           text_ == o.text_ && backend_ == o.backend_ &&
+           font_resources_ == o.font_resources_ &&
+           android_metrics_round_ == o.android_metrics_round_;
   }
   std::size_t operator()(const ShapeKey& k) const {
     TTASSERT(k.hash_ == k.UpdateHash());
@@ -174,6 +185,11 @@ class ShapeKey {
   std::u32string text_;
   ShapeStyle style_;
   bool rtl_;
+  RenderingBackend backend_ = RenderingBackend::kInvalid;
+  // Copies of a font collection share a resource generation. Retain its token
+  // so a destroyed collection's address cannot alias a later cache entry.
+  std::shared_ptr<const void> font_resources_;
+  bool android_metrics_round_ = false;
   std::size_t hash_;
 };
 

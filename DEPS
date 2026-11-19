@@ -42,6 +42,7 @@ deps = {
         "url": "https://github.com/libjpeg-turbo/libjpeg-turbo.git",
         "ignore_in_git": True,
         "commit": "f29eda648547b36aa594c4116c7764a6c8a079b9",
+        "require": ["third_party/skity"],
     },
     "third_party/skity/third_party/wuffs": {
         "type": "git",
@@ -54,13 +55,15 @@ deps = {
         "type": "git",
         "url": "https://github.com/webmproject/libwebp.git",
         "ignore_in_git": True,
-        "commit": "4fa21912338357f89e4fd51cf2368325b59e9bd9"
+        "commit": "4fa21912338357f89e4fd51cf2368325b59e9bd9",
+        "require": ["third_party/skity"],
     },
     "third_party/skity/third_party/pugixml": {
         "type": "git",
         "url": "https://github.com/zeux/pugixml.git",
         "ignore_in_git": True,
         "commit": "ee86beb30e4973f5feffe3ce63bfa4fbadf72f38",
+        "require": ["third_party/skity"],
     },
     'third_party/rapidjson': {
         'type': 'git',

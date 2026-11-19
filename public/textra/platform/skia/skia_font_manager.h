@@ -5,15 +5,14 @@
 #ifndef PUBLIC_TEXTRA_PLATFORM_SKIA_SKIA_FONT_MANAGER_H_
 #define PUBLIC_TEXTRA_PLATFORM_SKIA_SKIA_FONT_MANAGER_H_
 
+#include <include/core/SkFontMgr.h>
+#include <include/ports/SkFontMgr_directory.h>
 #include <textra/i_font_manager.h>
 #include <textra/platform/skia/skia_typeface_helper.h>
 
 #include <cassert>
 #include <memory>
 #include <utility>
-
-#include "include/core/SkFontMgr.h"
-#include "include/ports/SkFontMgr_directory.h"
 
 namespace ttoffice {
 namespace tttext {

@@ -1,5 +1,5 @@
-#ifndef EXAMPLE_JNI_ANDROID_SKITY_RENDER_HPP
-#define EXAMPLE_JNI_ANDROID_SKITY_RENDER_HPP
+#ifndef DEMOS_ANDROID_SKITYDEMO_ANDROID_SKITY_RENDER_HPP_
+#define DEMOS_ANDROID_SKITYDEMO_ANDROID_SKITY_RENDER_HPP_
 
 #include <skity/gpu/gpu_gl_context.hpp>
 #include <skity/skity.hpp>
@@ -37,4 +37,4 @@ class Renderer {
   glm::vec4 m_clear_color = {1.f, 1.f, 1.f, 1.f};
 };
 
-#endif  // EXAMPLE_JNI_ANDROID_SKITY_RENDER_HPP
+#endif  // DEMOS_ANDROID_SKITYDEMO_ANDROID_SKITY_RENDER_HPP_

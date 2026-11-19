@@ -4,7 +4,8 @@
 
 #import <Cocoa/Cocoa.h>
 #include <gtest/gtest.h>
-#include <textra/platform/mac/mac_canvas_base.h>
+
+#include "src/ports/native/mac/mac_canvas_base.h"
 
 using namespace ttoffice::tttext;
 

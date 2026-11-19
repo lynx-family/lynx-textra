@@ -2,14 +2,17 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+#include "src/ports/native/java/tttext_jni_proxy.h"
+
 #include <jni.h>
 #include <sys/prctl.h>
 #include <sys/system_properties.h>
 #include <textra/icu_wrapper.h>
-#include <textra/platform/java/java_typeface.h>
-#include <textra/platform/java/tttext_jni_proxy.h>
 #include <textra/text_layout.h>
 
+#include <climits>
+
+#include "src/ports/native/java/java_typeface.h"
 #include "src/ports/shaper/java/java_utils.h"
 #include "utils/u_8_string.h"
 
@@ -160,19 +163,23 @@ jstring TTTextJNIProxy::CreateJavaStringFromU32(JNIEnv* env,
                                                 const char32_t* str,
                                                 uint32_t len) {
   auto u16string = base::U32StringToU16(str, len);
+  if (u16string.size() > INT_MAX) return nullptr;
   return env->NewString(reinterpret_cast<const jchar*>(u16string.c_str()),
-                        u16string.length());
+                        static_cast<jsize>(u16string.length()));
 }
 jstring TTTextJNIProxy::CreateJavaStringFromU16(JNIEnv* env,
                                                 const char16_t* str,
                                                 uint32_t len) {
-  return env->NewString(reinterpret_cast<const jchar*>(str), len);
+  if (len > INT_MAX) return nullptr;
+  return env->NewString(reinterpret_cast<const jchar*>(str),
+                        static_cast<jsize>(len));
 }
 jstring TTTextJNIProxy::CreateJavaStringFromU8(JNIEnv* env, const char* str,
                                                uint32_t len) {
   auto u16string = base::U8StringToU16(str, len);
+  if (u16string.size() > INT_MAX) return nullptr;
   return env->NewString(reinterpret_cast<const jchar*>(u16string.c_str()),
-                        u16string.length());
+                        static_cast<jsize>(u16string.length()));
 }
 void TTTextJNIProxy::SystemFontStyleAdjust(float* font_size,
                                            uint16_t* font_weight) {
@@ -289,7 +296,7 @@ TTTextNativeGetDefaultFontManager(JNIEnv* env, jclass clazz) {
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_lynx_textra_TTText_nativePreloadSelfRendering(JNIEnv* env,
                                                        jclass clazz) {
-  return tttext::TextLayout::Preload(tttext::kSelfRendering);
+  return tttext::TextLayout::Preload(tttext::RenderingBackend::kSkity);
 }
 
 static JNINativeMethod tttext_methods[] = {
@@ -300,8 +307,6 @@ static JNINativeMethod tttext_methods[] = {
 extern "C" JNIEXPORT jint JNICALL TTTextUtilsNativeGetSystemProp(JNIEnv* env,
                                                                  jclass clazz,
                                                                  jstring key) {
-  auto font_manager =
-      tttext::TTTextJNIProxy::GetInstance().GetDefaultFontManager();
   if (key == nullptr) {
     return 0;
   }
@@ -333,10 +338,9 @@ int RegisterJNIMethods(JNIEnv* env, const char* class_name,
   }
 
   // register native methods
-  if (env->RegisterNatives(clazz, methods, num_methods)) {
-    return -1;
-  }
-  return 0;
+  auto result = env->RegisterNatives(clazz, methods, num_methods);
+  env->DeleteLocalRef(clazz);
+  return result ? -1 : 0;
 }
 jint JNI_OnLoad(JavaVM* vm, void* reserved) {
   // this function maybe call multi times by System.loadlibrary()

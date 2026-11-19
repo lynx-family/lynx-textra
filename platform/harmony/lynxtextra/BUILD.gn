@@ -6,7 +6,7 @@ import("//config.gni")
 
 shared_library("lynxtextra") {
   output_name = "lynxtextra"
-  deps = [ "../../../src:textlayout" ]
+  deps = [ "../../../src:capi" ]
   libs = [
     "libace_napi.z.so",
     "libace_ndk.z.so",
