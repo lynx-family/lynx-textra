@@ -9,13 +9,18 @@
 namespace ttoffice {
 namespace tttext {
 
-JustifyAnalyst::JustifyAnalyst(const TTString& content) {
-  const auto char_count = content.GetCharCount();
+JustifyAnalyst::JustifyAnalyst(
+    const std::vector<base::UnicodeProperties>& properties) {
+  const auto char_count = properties.size();
   justify_opportunity_.resize(char_count, false);
-  for (auto k = 0u; k + 1 < char_count; ++k) {
-    const auto ch = static_cast<char32_t>(content.GetUnicode(k));
-    const auto next_ch = static_cast<char32_t>(content.GetUnicode(k + 1));
-    justify_opportunity_[k] = CanInsertJustifySpaceAfterChars(ch, next_ch);
+  for (CharPos k = 0; k + 1 < char_count; ++k) {
+    const auto current = properties[k];
+    const auto next = properties[k + 1];
+    const base::UnicodeProperties pair{current.bits | next.bits};
+    justify_opportunity_[k] =
+        pair.IsCJK() || pair.IsCJKPunctuation() ||
+        (current.Has(base::UnicodeProperties::kWordSeparator) &&
+         !next.Has(base::UnicodeProperties::kWordSeparator));
   }
 }
 
@@ -31,20 +36,6 @@ CharPos JustifyAnalyst::FindNextJustifyOpportunity(CharPos start_char) const {
 bool JustifyAnalyst::CanInsertJustifySpaceAfter(CharPos char_pos) const {
   return char_pos < justify_opportunity_.size() &&
          justify_opportunity_[char_pos];
-}
-
-bool JustifyAnalyst::CanInsertJustifySpaceAfterChars(char32_t ch,
-                                                     char32_t next_ch) {
-  const bool ch_is_word_separator = base::IsWordSeparator(ch);
-  const bool next_is_word_separator = base::IsWordSeparator(next_ch);
-  if (ch_is_word_separator && !next_is_word_separator) {
-    return true;
-  }
-  if (base::IsCJK(ch) || base::IsCJK(next_ch) || base::IsCJKPunctuation(ch) ||
-      base::IsCJKPunctuation(next_ch)) {
-    return true;
-  }
-  return false;
 }
 
 }  // namespace tttext

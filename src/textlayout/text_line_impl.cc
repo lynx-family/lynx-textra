@@ -258,7 +258,6 @@ void TextLineImpl::CreateDrawerPiece() {
 void TextLineImpl::TrimTailSpace() {
   const bool trim_left =
       paragraph_->GetResolvedWriteDirection() == WriteDirection::kRTL;
-  const auto content = paragraph_->GetContent();
   size_t empty_count = 0;
   while (empty_count < drawer_list_.size()) {
     const auto index =
@@ -273,7 +272,7 @@ void TextLineImpl::TrimTailSpace() {
       const auto char_index = remove_last
                                   ? drawer->GetEndCharPosInParagraph() - 1
                                   : drawer->GetStartCharPosInParagraph();
-      if (!base::IsSpaceChar(content.GetUnicode(char_index))) {
+      if (!paragraph_->GetUnicodePropertiesAt(char_index).IsSpaceChar()) {
         break;
       }
       if (remove_last) {
@@ -429,7 +428,8 @@ void TextLineImpl::ApplyAlignment(ParagraphHorizontalAlignment h_align) {
       start_offset += rest_space / 2;
     } else if (align == ParagraphHorizontalAlignment::kRight) {
       start_offset += rest_space;
-    } else if (align == ParagraphHorizontalAlignment::kJustify) {
+    } else if (align == ParagraphHorizontalAlignment::kJustify &&
+               drawer_count > 1) {
       if (line_end_pos_.GetRunIdx() != paragraph_->GetRunCount() &&
           (paragraph_->boundary_analyst_->GetBoundaryTypeBefore(
                paragraph_->LayoutPositionToCharPos(line_end_pos_)) <

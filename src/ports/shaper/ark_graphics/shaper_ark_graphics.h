@@ -33,11 +33,12 @@ class ShaperArkGraphics : public TTShaper {
   void ProcessBidirection(const char32_t* text, uint32_t length,
                           WriteDirection write_direction, uint32_t* visual_map,
                           uint32_t* logical_map, uint8_t* dir_vec) override;
-  void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
+  void OnShapeText(const ShapeKey& key, ShapeResult* result,
+                   const base::UnicodeProperties* cached) const override;
 
  private:
-  void ShapingTextWithHighAPILevel(const ShapeKey& key,
-                                   ShapeResult* result) const;
+  void ShapingTextWithHighAPILevel(const ShapeKey& key, ShapeResult* result,
+                                   const base::UnicodeProperties* cached) const;
   void ShapingTextWithLowAPILevel(const ShapeKey& key,
                                   ShapeResult* result) const;
 

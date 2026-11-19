@@ -70,7 +70,7 @@ class OneLineShaper : public SkShaper::RunHandler {
   explicit OneLineShaper(FontmgrCollection& font_collections);
 
   bool shape(const char32_t* content, uint32_t len, const ShapeStyle& style,
-             bool rtl);
+             bool rtl, const base::UnicodeProperties* cached);
 
   size_t unresolvedGlyphs() { return fUnresolvedGlyphs; }
 
@@ -98,6 +98,7 @@ class OneLineShaper : public SkShaper::RunHandler {
   using TypefaceVisitor =
       std::function<Resolved(std::shared_ptr<ITypefaceHelper> typeface)>;
   void matchResolvedFonts(const ShapeStyle& textStyle,
+                          const base::UnicodeProperties* cached,
                           const TypefaceVisitor& visitor);
   void finish(TextRange text);
 
@@ -113,7 +114,7 @@ class OneLineShaper : public SkShaper::RunHandler {
   ClusterIndex clusterIndex(GlyphIndex glyph);
   void addFullyResolved();
   TextRange normalizeTextRange(GlyphRange glyphRange);
-  void buildProtectedTextRanges();
+  void buildProtectedTextRanges(const base::UnicodeProperties* cached);
   TextRange expandTextRangeToProtected(TextRange textRange) const;
   GlyphRange glyphRangeForTextRange(TextRange textRange);
   void addUnresolvedWithRun(GlyphRange glyphRange);

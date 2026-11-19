@@ -4,14 +4,31 @@
 
 #include "src/textlayout/internal/boundary_analyst.h"
 
+#include <algorithm>
+#include <string_view>
+#include <vector>
+
 #include "gtest/gtest.h"
 #include "src/textlayout/style/style_manager.h"
 #include "test_src.h"
 using namespace tttext;
+
+namespace {
+BoundaryAnalyst AnalyzeBoundaries(std::u32string_view text,
+                                  LineBreakStrategy strategy,
+                                  const StyleManager& styles) {
+  std::vector<ttoffice::base::UnicodeProperties> properties(text.size());
+  std::transform(text.begin(), text.end(), properties.begin(),
+                 ttoffice::base::GetUnicodeProperties);
+  return BoundaryAnalyst(text.data(), text.size(), properties.data(), strategy,
+                         styles);
+}
+}  // namespace
+
 TEST(BoundaryAnalystTest, DefaultBreak) {
   constexpr std::u32string_view text = U"一段文本(一段文本)一段文本";
-  const BoundaryAnalyst boundary_analyst(
-      text.data(), text.size(), kLineBreakStrategyDefault, StyleManager{});
+  const auto boundary_analyst =
+      AnalyzeBoundaries(text, kLineBreakStrategyDefault, StyleManager{});
   const std::vector results{
       BoundaryType::kLineBreakable, BoundaryType::kLineBreakable,
       BoundaryType::kLineBreakable, BoundaryType::kLineBreakable,
@@ -26,9 +43,8 @@ TEST(BoundaryAnalystTest, DefaultBreak) {
   }
 
   constexpr std::u32string_view english_sentence = U"an english sentence";
-  const BoundaryAnalyst english_analyst(
-      english_sentence.data(), english_sentence.size(),
-      kLineBreakStrategyDefault, StyleManager{});
+  const auto english_analyst = AnalyzeBoundaries(
+      english_sentence, kLineBreakStrategyDefault, StyleManager{});
   const std::vector english_sentence_results{
       BoundaryType::kGraphme,       BoundaryType::kWord,
       BoundaryType::kLineBreakable, BoundaryType::kGraphme,
@@ -47,9 +63,8 @@ TEST(BoundaryAnalystTest, DefaultBreak) {
 
 TEST(BoundaryAnalystTest, DisableAvoidBreakAroundPunctuation) {
   constexpr std::u32string_view text = U"一段文本(一段文本)一段文本";
-  const BoundaryAnalyst boundary_analyst(
-      text.data(), text.size(),
-      static_cast<LineBreakStrategy>(0xff ^ kAvoidBreakAroundPunctuation),
+  const auto boundary_analyst = AnalyzeBoundaries(
+      text, static_cast<LineBreakStrategy>(0xff ^ kAvoidBreakAroundPunctuation),
       StyleManager{});
   for (auto i = 1ull; i < text.size(); ++i) {
     EXPECT_EQ(BoundaryType::kLineBreakable,
@@ -59,8 +74,8 @@ TEST(BoundaryAnalystTest, DisableAvoidBreakAroundPunctuation) {
 
 TEST(BoundaryAnalystTest, OutOfRangeAccessFallsBackToLineBreakable) {
   constexpr std::u32string_view text = U"text";
-  const BoundaryAnalyst boundary_analyst(
-      text.data(), text.size(), kLineBreakStrategyDefault, StyleManager{});
+  const auto boundary_analyst =
+      AnalyzeBoundaries(text, kLineBreakStrategyDefault, StyleManager{});
 
   EXPECT_EQ(BoundaryType::kLineBreakable,
             boundary_analyst.GetBoundaryType(text.size()));
@@ -69,8 +84,8 @@ TEST(BoundaryAnalystTest, OutOfRangeAccessFallsBackToLineBreakable) {
 }
 
 TEST(BoundaryAnalystTest, EmptyBoundaryAccessFallsBackToLineBreakable) {
-  const BoundaryAnalyst boundary_analyst(nullptr, 0, kLineBreakStrategyDefault,
-                                         StyleManager{});
+  const BoundaryAnalyst boundary_analyst(
+      nullptr, 0, nullptr, kLineBreakStrategyDefault, StyleManager{});
 
   EXPECT_EQ(BoundaryType::kLineBreakable, boundary_analyst.GetBoundaryType(27));
   EXPECT_EQ(BoundaryType::kLineBreakable,
@@ -84,7 +99,7 @@ TEST(BoundaryAnalystTest, EmptyBoundaryAccessFallsBackToLineBreakable) {
 TEST(BoundaryAnalystTest, NullContentUsesSafeFallbackBoundaries) {
   constexpr uint32_t kCharCount = 28;
   const BoundaryAnalyst boundary_analyst(
-      nullptr, kCharCount, kLineBreakStrategyDefault, StyleManager{});
+      nullptr, kCharCount, nullptr, kLineBreakStrategyDefault, StyleManager{});
 
   EXPECT_EQ(BoundaryType::kLineBreakable,
             boundary_analyst.GetBoundaryType(kCharCount - 1));
@@ -96,8 +111,8 @@ TEST(BoundaryAnalystTest, KeepAllPreservesMixedScriptWords) {
   constexpr std::u32string_view text = U"中文abc123かな한글";
   StyleManager styles;
   styles.SetWordBreak(WordBreakType::kKeepAll, 0, text.size());
-  const BoundaryAnalyst analyst(text.data(), text.size(),
-                                kLineBreakStrategyDefault, styles);
+  const auto analyst =
+      AnalyzeBoundaries(text, kLineBreakStrategyDefault, styles);
 
   for (auto i = 0u; i + 1 < text.size(); ++i) {
     EXPECT_LT(analyst.GetBoundaryType(i), BoundaryType::kLineBreakable) << i;
@@ -113,8 +128,8 @@ TEST(BoundaryAnalystTest, KeepAllUsesWordBreakStyleRanges) {
   constexpr std::u32string_view text = U"中文文本";
   StyleManager styles;
   styles.SetWordBreak(WordBreakType::kKeepAll, 1, 2);
-  const BoundaryAnalyst analyst(text.data(), text.size(),
-                                kLineBreakStrategyDefault, styles);
+  const auto analyst =
+      AnalyzeBoundaries(text, kLineBreakStrategyDefault, styles);
 
   EXPECT_EQ(analyst.GetBoundaryType(0), BoundaryType::kLineBreakable);
   EXPECT_EQ(analyst.GetBoundaryType(1), BoundaryType::kWord);
@@ -127,8 +142,7 @@ TEST(BoundaryAnalystTest, KeepAllPreservesSpacesAndExplicitBreaks) {
   constexpr std::u32string_view text = U"中文 文本\u200b测试\n换行";
   StyleManager styles;
   styles.SetWordBreak(WordBreakType::kKeepAll, 0, text.size());
-  BoundaryAnalyst analyst(text.data(), text.size(), kLineBreakStrategyDefault,
-                          styles);
+  auto analyst = AnalyzeBoundaries(text, kLineBreakStrategyDefault, styles);
   analyst.UpgradeBoundaryType(Range::MakeLW(8, 1),
                               BoundaryType::kMustLineBreak);
 
@@ -141,12 +155,28 @@ TEST(BoundaryAnalystTest, KeepAllPreservesSpacesAndExplicitBreaks) {
   EXPECT_EQ(analyst.GetBoundaryType(9), BoundaryType::kWord);
 }
 
+TEST(BoundaryAnalystTest, EmbeddedNullActsAsLineBreakSpace) {
+  constexpr std::u32string_view text(U"中\0\0文", 4);
+  StyleManager styles;
+  styles.SetWordBreak(WordBreakType::kKeepAll, 0, text.size());
+  for (const auto strategy :
+       {kLineBreakStrategyDefault,
+        static_cast<LineBreakStrategy>(kLineBreakStrategyDefault &
+                                       ~kAvoidBreakAroundPunctuation)}) {
+    const auto analyst = AnalyzeBoundaries(text, strategy, styles);
+    EXPECT_EQ(BoundaryType::kWord, analyst.GetBoundaryType(0));
+    EXPECT_EQ(BoundaryType::kLineBreakable, analyst.GetBoundaryType(1));
+    EXPECT_EQ(BoundaryType::kLineBreakable, analyst.GetBoundaryType(2));
+  }
+  EXPECT_FALSE(ttoffice::base::GetUnicodeProperties(U'\0').IsSpaceChar());
+}
+
 TEST(BoundaryAnalystTest, KeepAllPreservesPunctuationRules) {
   constexpr std::u32string_view text = U"中文（测试），后文";
   StyleManager styles;
   styles.SetWordBreak(WordBreakType::kKeepAll, 0, text.size());
-  const BoundaryAnalyst analyst(text.data(), text.size(),
-                                kLineBreakStrategyDefault, styles);
+  const auto analyst =
+      AnalyzeBoundaries(text, kLineBreakStrategyDefault, styles);
   const std::vector expected{
       BoundaryType::kWord,          BoundaryType::kLineBreakable,
       BoundaryType::kWord,          BoundaryType::kWord,
@@ -163,8 +193,8 @@ TEST(BoundaryAnalystTest, KanaPunctuationTakesPriorityOverCJK) {
   constexpr std::u32string_view text = U"ア・イ゠ウ";
   StyleManager styles;
   styles.SetWordBreak(WordBreakType::kKeepAll, 0, text.size());
-  const BoundaryAnalyst analyst(text.data(), text.size(),
-                                kLineBreakStrategyDefault, styles);
+  const auto analyst =
+      AnalyzeBoundaries(text, kLineBreakStrategyDefault, styles);
 
   for (auto i = 0u; i < text.size(); ++i) {
     EXPECT_EQ(analyst.GetBoundaryType(i), BoundaryType::kLineBreakable) << i;
@@ -175,8 +205,7 @@ TEST(BoundaryAnalystTest, KeepAllAllowsSoftBoundaryUpgrades) {
   constexpr std::u32string_view text = U"中文";
   StyleManager styles;
   styles.SetWordBreak(WordBreakType::kKeepAll, 0, text.size());
-  BoundaryAnalyst analyst(text.data(), text.size(), kLineBreakStrategyDefault,
-                          styles);
+  auto analyst = AnalyzeBoundaries(text, kLineBreakStrategyDefault, styles);
 
   EXPECT_EQ(analyst.GetBoundaryType(0), BoundaryType::kWord);
   analyst.UpgradeBoundaryType(Range::MakeLW(0, 1),
@@ -191,9 +220,8 @@ TEST(BoundaryAnalystTest, KeepAllAppliesWithPunctuationRestrictionDisabled) {
   constexpr std::u32string_view text = U"中文，文本";
   StyleManager styles;
   styles.SetWordBreak(WordBreakType::kKeepAll, 0, text.size());
-  const BoundaryAnalyst analyst(
-      text.data(), text.size(),
-      static_cast<LineBreakStrategy>(0xff ^ kAvoidBreakAroundPunctuation),
+  const auto analyst = AnalyzeBoundaries(
+      text, static_cast<LineBreakStrategy>(0xff ^ kAvoidBreakAroundPunctuation),
       styles);
 
   EXPECT_EQ(analyst.GetBoundaryType(0), BoundaryType::kWord);

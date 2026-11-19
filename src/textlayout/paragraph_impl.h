@@ -21,6 +21,7 @@
 #include "src/textlayout/style/paragraph_style_impl.h"
 #include "src/textlayout/utils/tt_string.h"
 #include "src/textlayout/utils/tt_string_piece.h"
+#include "src/textlayout/utils/u_8_string.h"
 
 class ParagraphTest;
 
@@ -169,10 +170,7 @@ class ParagraphImpl : public Paragraph {
   BaseRun* GetRun(uint32_t idx) const {
     return idx >= run_lst_.size() ? nullptr : run_lst_[idx].get();
   }
-  uint32_t AddTextContent(const std::string& text) {
-    if (!text.empty()) content_ += text;
-    return content_.GetCharCount();
-  }
+  uint32_t AddTextContent(const std::string& text);
   static WriteDirection ResolveWriteDirection(
       WriteDirection direction, const std::vector<uint8_t>& bidi_level);
   ParagraphHorizontalAlignment ResolveHorizontalAlignment(
@@ -186,6 +184,9 @@ class ParagraphImpl : public Paragraph {
                                                        uint32_t start,
                                                        uint32_t end) const;
   void InitJustifyAnalyst() const;
+  base::UnicodeProperties GetUnicodePropertiesAt(CharPos pos) const {
+    return unicode_properties_[pos];
+  }
 
 #ifdef TTTEXT_DEBUG
   std::u32string GetContentWithGhost() const;
@@ -197,6 +198,7 @@ class ParagraphImpl : public Paragraph {
   bool style_transformed_;
   bool formated_;
   TTString content_;
+  std::vector<base::UnicodeProperties> unicode_properties_;
   std::unique_ptr<StyleManager> style_manager_;
   std::unique_ptr<BoundaryAnalyst> boundary_analyst_;
   mutable std::unique_ptr<JustifyAnalyst> justify_analyst_;

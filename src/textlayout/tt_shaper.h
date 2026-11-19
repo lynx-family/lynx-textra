@@ -21,6 +21,9 @@
 #include <vector>
 
 namespace ttoffice {
+namespace base {
+struct UnicodeProperties;
+}  // namespace base
 namespace tttext {
 class ShapeResult;
 class ShapeKey;
@@ -51,10 +54,13 @@ class TTShaper {
                                   WriteDirection write_direction,
                                   uint32_t* visual_map, uint32_t* logical_map,
                                   uint8_t* dir_vec);
-  virtual void OnShapeText(const ShapeKey& key, ShapeResult* result) const = 0;
-  std::shared_ptr<ShapeResult> ShapeText(const char32_t* text, uint32_t length,
-                                         const ShapeStyle* shape_style,
-                                         bool rtl) const;
+  // cached is an optional, call-scoped slice indexed relative to the shape
+  // text.
+  virtual void OnShapeText(const ShapeKey& key, ShapeResult* result,
+                           const base::UnicodeProperties* cached) const = 0;
+  std::shared_ptr<ShapeResult> ShapeText(
+      const char32_t* text, uint32_t length, const ShapeStyle* shape_style,
+      bool rtl, const base::UnicodeProperties* cached = nullptr) const;
 
  protected:
   FontmgrCollection font_collection_;

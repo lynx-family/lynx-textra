@@ -190,11 +190,12 @@ void ShaperArkGraphics::ProcessBidirection(
   ICUWrapper::BidiInit(text, length, write_direction, dir_vec, visual_map,
                        logical_map);
 }
-void ShaperArkGraphics::OnShapeText(const ShapeKey& key,
-                                    ShapeResult* result) const {
+void ShaperArkGraphics::OnShapeText(
+    const ShapeKey& key, ShapeResult* result,
+    const base::UnicodeProperties* cached) const {
   bool is_only_space_char = true;
-  for (const auto& ch : key.text_) {
-    if (!base::IsSpaceChar(ch)) {
+  for (uint32_t i = 0; i < key.text_.size(); ++i) {
+    if (!base::GetUnicodePropertiesAt(cached, i, key.text_[i]).IsSpaceChar()) {
       is_only_space_char = false;
       break;
     }
@@ -204,14 +205,15 @@ void ShaperArkGraphics::OnShapeText(const ShapeKey& key,
               ->TypographyGetCharacterRangeForGlyphRangeWithBuffer_ !=
           nullptr &&
       !is_only_space_char) {
-    ShapingTextWithHighAPILevel(key, result);
+    ShapingTextWithHighAPILevel(key, result, cached);
   } else {
     ShapingTextWithLowAPILevel(key, result);
   }
 }
 
-void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
-                                                    ShapeResult* result) const {
+void ShaperArkGraphics::ShapingTextWithHighAPILevel(
+    const ShapeKey& key, ShapeResult* result,
+    const base::UnicodeProperties* cached) const {
   auto typography_handler = OH_Drawing_CreateTypographyHandler(
       OH_Drawing_CreateTypographyStyle(), shared_font_collection_);
   auto text_style = OH_Drawing_CreateTextStyle();
@@ -342,7 +344,9 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
   // cannot remove the preceding glyph.
   auto trailing_start = text_length;
   while (trailing_start > shaped_end &&
-         base::IsSpaceChar(key.text_[trailing_start - 1])) {
+         base::GetUnicodePropertiesAt(cached, trailing_start - 1,
+                                      key.text_[trailing_start - 1])
+             .IsSpaceChar()) {
     --trailing_start;
   }
   auto typeface = shaping_result.typeface_.back();

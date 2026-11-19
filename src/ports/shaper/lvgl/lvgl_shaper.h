@@ -12,7 +12,8 @@ class LVGLShaper : public TTShaper {
  public:
   explicit LVGLShaper(FontmgrCollection font_collection) noexcept;
   ~LVGLShaper() override = default;
-  void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
+  void OnShapeText(const ShapeKey& key, ShapeResult* result,
+                   const base::UnicodeProperties*) const override;
 };
 
 }  // namespace tttext

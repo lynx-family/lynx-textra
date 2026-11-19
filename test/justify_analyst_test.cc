@@ -18,7 +18,12 @@ void ExpectJustifyOpportunities(
   SCOPED_TRACE(test_case);
 
   const TTString content(text);
-  const JustifyAnalyst justify_analyst(content);
+  std::vector<ttoffice::base::UnicodeProperties> properties;
+  for (CharPos i = 0; i < content.GetCharCount(); ++i) {
+    properties.push_back(
+        ttoffice::base::GetUnicodeProperties(content.GetUnicode(i)));
+  }
+  const JustifyAnalyst justify_analyst(properties);
   const std::vector<bool> expected(expected_opportunities);
   const auto char_count = static_cast<CharPos>(expected.size());
   ASSERT_EQ(content.GetCharCount(), char_count);

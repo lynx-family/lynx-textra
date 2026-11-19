@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "src/textlayout/utils/tt_range.h"
-#include "src/textlayout/utils/tt_string.h"
+#include "src/textlayout/utils/u_8_string.h"
 namespace ttoffice {
 namespace tttext {
 class StyleManager;
@@ -18,6 +18,7 @@ class BoundaryAnalyst {
  public:
   BoundaryAnalyst() = delete;
   explicit BoundaryAnalyst(const char32_t* u32_content, uint32_t char_count,
+                           const base::UnicodeProperties* properties,
                            LineBreakStrategy line_break_strategy,
                            const StyleManager& style_manager);
 

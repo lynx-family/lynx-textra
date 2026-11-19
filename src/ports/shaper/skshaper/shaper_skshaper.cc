@@ -159,10 +159,10 @@ void ShaperSkShaper::ProcessBidirection(const char32_t* text, uint32_t length,
                                      visual_map, logical_map);
 #endif
 }
-void ShaperSkShaper::OnShapeText(const ShapeKey& key,
-                                 ShapeResult* result) const {
+void ShaperSkShaper::OnShapeText(const ShapeKey& key, ShapeResult* result,
+                                 const base::UnicodeProperties* cached) const {
   shaper_->shape(key.text_.c_str(), static_cast<uint32_t>(key.text_.length()),
-                 key.style_, key.rtl_);
+                 key.style_, key.rtl_, cached);
   const ShapingBlockReader reader(shaper_->fResolvedBlocks);
   result->AppendPlatformShapingResult(reader);
 }
