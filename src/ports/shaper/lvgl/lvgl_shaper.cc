@@ -4,27 +4,9 @@
 
 #include "src/ports/shaper/lvgl/lvgl_shaper.h"
 
-#include <lvgl/src/font/lv_font.h>
-#include <lvgl/src/font/lv_font_fmt_txt.h>
-#include <textra/platform/lvgl/lvgl_typeface.h>
-
-#include <memory>
+#include <utility>
 #include <vector>
 
-#include "src/ports/shaper/lvgl/lvgl_typeface_cjk.h"
-#include "src/ports/shaper/lvgl/lvgl_typeface_montserrat.h"
-#include "src/textlayout/utils/log_util.h"
-#if LV_ENABLE_GLOBAL_CUSTOM
-#include <third_party/lvgl/src/core/lv_global.h>
-#ifdef __cplusplus
-extern "C" {
-#endif
-static lv_global_t global;
-lv_global_t* lv_global_default(void) { return &global; }
-#ifdef __cplusplus
-}
-#endif
-#endif
 namespace ttoffice {
 namespace tttext {
 class LVGLShapingResult final : public PlatformShapingResultReader {
@@ -53,53 +35,74 @@ LVGLShaper::LVGLShaper(FontmgrCollection font_collection) noexcept
 
 void LVGLShaper::OnShapeText(const ShapeKey& key, ShapeResult* result) const {
   LVGLShapingResult reader;
-  auto text = key.text_.c_str();
-  auto text_len = key.text_.length();
-  std::vector<std::shared_ptr<LVGLTypeface>> font_mgr_;
-  font_mgr_.push_back(std::make_shared<LVGLTypefaceMontserrat>(0));
-  font_mgr_.push_back(std::make_shared<LVGLTypefaceCJK>(1));
-  // auto typeface = std::make_shared<LVGLTypefaceMontserrat>(0);
-  // auto lv_font = typeface->GetLvFont(key.style_.GetFontSize());
-  reader.advances_.reserve(text_len);
-  reader.glyphs_.reserve(text_len);
-  reader.font_lst_.reserve(text_len);
-
-  auto& u16str = reader.glyphs_;
-  auto& indexes = reader.indexes_;
-  uint32_t char32_index = 0;
-  for (auto utf32 : key.text_) {
-    if (utf32 <= 0xD7FF || (utf32 >= 0xE000 && utf32 <= 0xFFFF)) {
-      u16str.push_back(static_cast<GlyphID>(utf32));
-      indexes.push_back(char32_index);
-    } else if (utf32 >= 0x10000 && utf32 <= 0x10FFFF) {
-      utf32 -= 0x10000;
-      u16str.push_back(static_cast<char16_t>(0xD800 | ((utf32 >> 10) & 0x3FF)));
-      u16str.push_back(static_cast<char16_t>(0xDC00 | (utf32 & 0x3FF)));
-      indexes.push_back(char32_index);
-      indexes.push_back(char32_index);
-    } else {
-      LogUtil::E("U32StringToU16 Invalid UTF-32 encoding");
-    }
-    char32_index++;
+  auto manager = font_collection_.GetDefaultFontManager();
+  if (!manager) {
+    return;
   }
-  size_t iter = 0;
-  lv_font_glyph_dsc_t font_desc;
-  while (iter < text_len) {
-    for (auto& typeface : font_mgr_) {
-      auto lv_font = typeface->GetLvFont(key.style_.GetFontSize());
-      auto ret = lv_font_get_glyph_dsc_fmt_txt(
-          lv_font, &font_desc, text[iter],
-          iter < text_len - 1 ? text[iter + 1] : 0);
-      if (ret) {
-        reader.font_lst_.push_back(typeface);
+  const auto& descriptor = key.style_.GetFontDescriptor();
+  std::vector<TypefaceRef> faces;
+  if (descriptor.platform_font_) {
+    auto face = manager->createTypefaceFromPlatformFont(
+        reinterpret_cast<const void*>(descriptor.platform_font_));
+    if (!face) {
+      return;
+    }
+    faces.push_back(std::move(face));
+  } else {
+    faces = font_collection_.findTypefaces(descriptor);
+  }
+  uint32_t index = 0;
+  for (auto ch : key.text_) {
+    if (ch > 0xffff) {
+      return;
+    }
+    TypefaceRef face;
+    GlyphID glyph = 0;
+    if (ch < 32) {
+      face = faces.empty()
+                 ? manager->matchFamilyStyle(nullptr, descriptor.font_style_)
+                 : faces.front();
+      if (!face) {
+        return;
+      }
+      reader.glyphs_.push_back(0);
+      reader.indexes_.push_back(index++);
+      reader.advances_.push_back(0);
+      reader.font_lst_.push_back(std::move(face));
+      continue;
+    }
+    for (auto& candidate : faces) {
+      if (candidate && (glyph = candidate->UnicharToGlyph(ch)) != 0) {
+        face = candidate;
         break;
       }
-      font_desc.adv_w = 0;
     }
-    reader.advances_.emplace_back(font_desc.adv_w);
-    iter++;
+    if (!face && font_collection_.fontFallbackEnabled()) {
+      face = manager->matchFamilyStyleCharacter(
+          descriptor.font_family_list_.empty()
+              ? nullptr
+              : descriptor.font_family_list_.front().c_str(),
+          descriptor.font_style_, nullptr, 0, ch);
+      if (face) {
+        glyph = face->UnicharToGlyph(ch);
+        faces.push_back(face);
+      }
+    }
+    if (!face || !glyph) {
+      return;
+    }
+    reader.glyphs_.push_back(glyph);
+    reader.indexes_.push_back(index++);
+    GlyphID pair[2]{glyph, 0};
+    auto next = index < key.text_.length() ? key.text_[index] : 0;
+    if (next <= 0xffff) pair[1] = static_cast<GlyphID>(next);
+    float widths[2]{};
+    face->GetHorizontalAdvances(pair, next ? 2 : 1, widths,
+                                key.style_.GetFontSize());
+    reader.advances_.push_back(widths[0]);
+    reader.font_lst_.push_back(std::move(face));
   }
-  reader.text_count_ = static_cast<uint32_t>(text_len);
+  reader.text_count_ = index;
   result->AppendPlatformShapingResult(reader);
 }
 }  // namespace tttext

@@ -8,6 +8,7 @@
 #include <textra/layout_region.h>
 #include <textra/macro.h>
 #include <textra/paragraph.h>
+#include <textra/rendering_backend.h>
 #include <textra/style.h>
 
 #include <memory>
@@ -18,10 +19,6 @@ class Paragraph;
 class LayoutRegion;
 class FontmgrCollection;
 class TTShaper;
-enum ShaperType : uint8_t {
-  kSystem,
-  kSelfRendering,
-};
 /**
  * @brief Core class of the text layout engine, containing the core layout logic
  * and connecting all inputs to produce laid out lines of text.
@@ -43,15 +40,18 @@ enum ShaperType : uint8_t {
  */
 class L_EXPORT TextLayout {
  public:
+  // Explicit backend selects the matching shaper; check IsValid() when using
+  // this constructor directly, or use PlatformHelper::CreateTextLayout.
   explicit TextLayout(FontmgrCollection* font_collection,
-                      ShaperType type = kSystem);
+                      RenderingBackend backend);
   explicit TextLayout(std::unique_ptr<TTShaper> shaper);
   ~TextLayout();
+  bool IsValid() const { return shaper_ != nullptr; }
   TextLayout(const TextLayout&) = delete;
   TextLayout& operator=(const TextLayout&) = delete;
 
  public:
-  static bool Preload(ShaperType type);
+  static bool Preload(RenderingBackend backend);
 
   // Clears all cached shaping results. New lookups cannot reuse results that
   // were being computed when this method was called.

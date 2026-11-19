@@ -9,9 +9,6 @@
 #ifdef SK_SHAPER_HARFBUZZ_AVAILABLE
 #include "src/ports/shaper/skshaper/sk_shaper.h"
 #endif
-#ifdef TTTEXT_OS_ANDROID
-#include <textra/platform/java/tttext_jni_proxy.h>
-#endif
 
 namespace ttoffice {
 namespace tttext {

@@ -44,3 +44,7 @@ Execute the following commands to build and run the tests:
     python3 test/compare_images.py --actual-dir=golden_check --golden-dir=test/golden_images
     # After running, a directory called diff/ will be created at the same level as --actual-dir, containing diff images
     ```
+## C API tests
+
+C API unit tests, render comparisons and Android font/shaping checks are in
+[`capi/`](capi/README.md). Production `src/` contains no C API test targets.

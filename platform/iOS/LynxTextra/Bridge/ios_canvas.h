@@ -2,13 +2,13 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef TEXTLAYOUTDEMO_TEXTLAYOUTDEMO_TEXTLAYOUTDEMO_IOS_CANVAS_H_
-#define TEXTLAYOUTDEMO_TEXTLAYOUTDEMO_TEXTLAYOUTDEMO_IOS_CANVAS_H_
+#ifndef PLATFORM_IOS_LYNXTEXTRA_BRIDGE_IOS_CANVAS_H_
+#define PLATFORM_IOS_LYNXTEXTRA_BRIDGE_IOS_CANVAS_H_
 
 #include <memory>
 
 #import "TTTextDrawerDelegate.h"
-#include "ios_canvas_base.h"
+#include "src/ports/native/ios/ios_canvas_base.h"
 
 using namespace ttoffice;
 class IOSCanvas : public IOSCanvasBase {
@@ -30,4 +30,4 @@ class IOSCanvas : public IOSCanvasBase {
   id<TTTextDrawerDelegate> run_delegate_drawer_;
 };
 
-#endif  // TEXTLAYOUTDEMO_TEXTLAYOUTDEMO_TEXTLAYOUTDEMO_IOS_CANVAS_H_
+#endif  // PLATFORM_IOS_LYNXTEXTRA_BRIDGE_IOS_CANVAS_H_

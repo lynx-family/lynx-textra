@@ -129,6 +129,9 @@ public class JavaCanvasHelper {
         break;
       case TTTextDefinition.CanvasOp.DRAW_ROUND_RECT:
         drawRoundRect(stream);
+        break;
+      default:
+        break;
     }
   }
 

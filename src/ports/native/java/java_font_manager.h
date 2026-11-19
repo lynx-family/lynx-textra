@@ -1,0 +1,70 @@
+// Copyright 2025 The Lynx Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0 that can be found in the
+// LICENSE file in the root directory of this source tree.
+
+#ifndef SRC_PORTS_NATIVE_JAVA_JAVA_FONT_MANAGER_H_
+#define SRC_PORTS_NATIVE_JAVA_JAVA_FONT_MANAGER_H_
+
+#include <jni.h>
+#include <textra/font_info.h>
+#include <textra/i_font_manager.h>
+#include <textra/macro.h>
+
+#include <list>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+
+#include "src/ports/native/java/java_typeface.h"
+#include "src/ports/native/java/scoped_global_ref.h"
+
+namespace ttoffice {
+namespace tttext {
+class JavaFontManager : public IFontManager {
+ public:
+  JavaFontManager();
+  ~JavaFontManager() override;
+
+ public:
+  jobject GetInstance() const;
+  void BindJavaHandler();
+  int countFamilies() const override;
+  TypefaceRef matchFamilyStyle(const char familyName[],
+                               const FontStyle&) override;
+  TypefaceRef matchFamilyStyleCharacter(const char familyName[],
+                                        const FontStyle&, const char* bcp47[],
+                                        int bcp47Count,
+                                        uint32_t character) override;
+  TypefaceRef makeFromFile(const char path[], int ttcIndex) override;
+  TypefaceRef legacyMakeTypeface(const char familyName[],
+                                 FontStyle style) const override;
+  void* getPlatformFontFromTypeface(TypefaceRef typeface) override;
+
+ public:
+  std::shared_ptr<JavaTypeface> matchTypeface(const FontDescriptor& fd);
+  std::shared_ptr<JavaTypeface> CreateNativeTypeface();
+  void BindDefaultFallbackMetrics(float ascent_ratio, float descent_ratio,
+                                  float supplementary_ascent_ratio,
+                                  float supplementary_descent_ratio);
+  const std::shared_ptr<JavaTypeface>& GetDefaultChineseTypeface(
+      bool supplementary) const {
+    return supplementary ? default_supplementary_chinese_typeface_
+                         : default_chinese_typeface_;
+  }
+
+ private:
+  std::unique_ptr<ScopedGlobalRef> java_instance_ = nullptr;
+  std::list<std::shared_ptr<JavaTypeface>> typeface_list_;
+  std::mutex typeface_list_mutex_;
+  std::unordered_map<FontDescriptor, std::shared_ptr<JavaTypeface>,
+                     FontDescriptor::Hasher>
+      typeface_map_;
+  std::mutex typeface_map_mutex_;
+  std::shared_ptr<JavaTypeface> default_chinese_typeface_;
+  std::shared_ptr<JavaTypeface> default_supplementary_chinese_typeface_;
+};
+}  // namespace tttext
+}  // namespace ttoffice
+
+#endif  // SRC_PORTS_NATIVE_JAVA_JAVA_FONT_MANAGER_H_

@@ -40,6 +40,39 @@
 
 - (void)viewDidLoad {
   [super viewDidLoad];
+  if ([[NSProcessInfo processInfo].arguments containsObject:@"--textra-capi"]) {
+    NSString* output = [NSHomeDirectory()
+        stringByAppendingPathComponent:@"Documents/capi-comparison"];
+    UIScrollView* scroll =
+        [[UIScrollView alloc] initWithFrame:self.view.bounds];
+    scroll.autoresizingMask =
+        UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    scroll.backgroundColor = UIColor.systemBackgroundColor;
+    CGFloat y = 60;
+    for (NSString* name in @[
+           @"latin", @"cjk", @"wrapped", @"rtl", @"bold", @"italic",
+           @"multiline", @"fallback"
+         ]) {
+      UILabel* label =
+          [[UILabel alloc] initWithFrame:CGRectMake(10, y, 320, 24)];
+      label.textColor = UIColor.labelColor;
+      label.text = [@"C API: " stringByAppendingString:name];
+      [scroll addSubview:label];
+      y += 28;
+      UIImage* image = [UIImage
+          imageWithContentsOfFile:
+              [output stringByAppendingPathComponent:
+                          [name stringByAppendingString:@"-capi.png"]]];
+      UIImageView* view = [[UIImageView alloc] initWithImage:image];
+      view.frame = CGRectMake(10, y, 320, 200);
+      view.backgroundColor = UIColor.whiteColor;
+      [scroll addSubview:view];
+      y += 210;
+    }
+    scroll.contentSize = CGSizeMake(340, y);
+    self.view = scroll;
+    return;
+  }
 
   //  NSString *file = [[NSBundle mainBundle] pathForResource:@"很多字.txt"
   //                                                   ofType:nil];

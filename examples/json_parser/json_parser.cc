@@ -896,7 +896,7 @@ std::unique_ptr<JsonDocumentContent> ParseJsonStringIntoTTTextObject(
 // Perform layout for JSON document content
 std::unique_ptr<LayoutRegion> LayoutJsonDocument(
     JsonDocumentContent* json_doc, FontmgrCollection* font_collection,
-    ShaperType shaper_type) {
+    RenderingBackend shaper_type) {
   constexpr float kDefaultWidth = 1000.f;
   constexpr float kDefaultHeight = 600.f;
   constexpr LayoutMode kDefaultWidthMode = LayoutMode::kAtMost;

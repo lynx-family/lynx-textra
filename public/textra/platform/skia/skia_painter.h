@@ -5,11 +5,10 @@
 #ifndef PUBLIC_TEXTRA_PLATFORM_SKIA_SKIA_PAINTER_H_
 #define PUBLIC_TEXTRA_PLATFORM_SKIA_SKIA_PAINTER_H_
 
+#include <include/core/SkPaint.h>
 #include <textra/painter.h>
 
 #include <memory>
-
-#include "include/core/SkPaint.h"
 namespace ttoffice {
 namespace tttext {
 class SkiaPainter : public Painter {

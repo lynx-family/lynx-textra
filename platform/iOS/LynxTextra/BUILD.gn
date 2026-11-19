@@ -25,6 +25,7 @@ source_set("LynxTextra") {
 
   deps = [
     "$root_path/src:bidi",
+    "$root_path/src:capi",
     "$root_path/src:textlayout",
   ]
 }

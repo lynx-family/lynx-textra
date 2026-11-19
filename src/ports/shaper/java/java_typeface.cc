@@ -2,12 +2,12 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#include <textra/platform/java/java_typeface.h>
-#include <textra/platform/java/tttext_jni_proxy.h>
+#include "src/ports/native/java/java_typeface.h"
 
 #include <algorithm>
 #include <cmath>
 
+#include "src/ports/native/java/tttext_jni_proxy.h"
 #include "src/ports/shaper/java/java_utils.h"
 namespace ttoffice {
 namespace tttext {

@@ -15,7 +15,6 @@
 #include <native_drawing/drawing_text_typography.h>
 #include <textra/i_typeface_helper.h>
 #include <textra/icu_wrapper.h>
-#include <textra/platform/ark_graphics/ag_typeface_helper.h>
 
 #include <cstdint>
 #include <memory>
@@ -275,7 +274,8 @@ void ShaperArkGraphics::ShapingTextWithHighAPILevel(const ShapeKey& key,
     auto position_array =
         ohos_shaping_funcs_->GetRunPositions_(run, 0, glyph_cnt);
     auto font = ohos_shaping_funcs_->GetRunFont_(run);
-    auto tf_helper = std::make_shared<AGTypefaceHelper>(font);
+    auto tf_helper = font_collection_.GetDefaultFontManager()
+                         ->createTypefaceFromPlatformFont(font);
 
     for (auto j = 0; j < static_cast<int32_t>(glyph_cnt); j++) {
       // ShapeKey contains one text direction. Reverse the full visual glyph
@@ -383,9 +383,8 @@ void ShaperArkGraphics::ShapingTextWithLowAPILevel(const ShapeKey& key,
       tf_typeface = font_mgr->matchFamilyStyleCharacter(
           font_family, font_desc.font_style_, nullptr, 0,
           key.text_[piece.offset_]);
-      auto ag_typeface_helper =
-          std::static_pointer_cast<AGTypefaceHelper>(tf_typeface);
-      drawing_font = ag_typeface_helper->GetTypeface();
+      drawing_font = static_cast<OH_Drawing_Font*>(
+          font_mgr->getPlatformFontFromTypeface(tf_typeface));
       OH_Drawing_FontSetTextSize(drawing_font, key.style_.GetFontSize());
       if (ohos_shaping_funcs_ &&
           ohos_shaping_funcs_->FontSetThemeFontFollowed_) {
@@ -434,9 +433,8 @@ void ShaperArkGraphics::ShapingTextWithLowAPILevel(const ShapeKey& key,
     run_pieces_.pop_front();
     OH_Drawing_Font* drawing_font = nullptr;
     if (tf_typeface) {
-      auto ag_typeface_helper =
-          std::static_pointer_cast<AGTypefaceHelper>(tf_typeface);
-      drawing_font = ag_typeface_helper->GetTypeface();
+      drawing_font = static_cast<OH_Drawing_Font*>(
+          font_mgr->getPlatformFontFromTypeface(tf_typeface));
       OH_Drawing_FontSetTextSize(drawing_font, key.style_.GetFontSize());
       if (ohos_shaping_funcs_ &&
           ohos_shaping_funcs_->FontSetThemeFontFollowed_) {

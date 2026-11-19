@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
-//#include <unicode/uchar.h>
+// #include <unicode/uchar.h>
+#ifndef SRC_PORTS_SHAPER_MINIKIN_LIB_EMOJI_H_
+#define SRC_PORTS_SHAPER_MINIKIN_LIB_EMOJI_H_
+
 #include "icu_wrapper.h"
 
 namespace minikin {
@@ -32,3 +35,5 @@ bool isEmojiModifier(uint32_t c);
 UCharDirection emojiBidiOverride(const void* context, UChar32 c);
 
 }  // namespace minikin
+
+#endif  // SRC_PORTS_SHAPER_MINIKIN_LIB_EMOJI_H_

@@ -5,16 +5,15 @@
 #ifndef PUBLIC_TEXTRA_PLATFORM_SKIA_SKIA_TYPEFACE_HELPER_H_
 #define PUBLIC_TEXTRA_PLATFORM_SKIA_SKIA_TYPEFACE_HELPER_H_
 
+#include <include/core/SkFont.h>
+#include <include/core/SkFontMetrics.h>
+#include <include/core/SkStream.h>
+#include <include/core/SkTypeface.h>
 #include <textra/i_typeface_helper.h>
 
 #include <cassert>
 #include <memory>
 #include <vector>
-
-#include "include/core/SkFont.h"
-#include "include/core/SkFontMetrics.h"
-#include "include/core/SkStream.h"
-#include "include/core/SkTypeface.h"
 
 namespace ttoffice {
 namespace tttext {

@@ -6,6 +6,7 @@
 #define DEMOS_HARMONY_PERFTEST_ENTRY_SRC_MAIN_CPP_TEXTRA_TEST_H_
 
 #include <native_drawing/drawing_canvas.h>
+#include <textra/fontmgr_collection.h>
 #include <textra/layout_region.h>
 #include <textra/paragraph.h>
 #include <textra/text_layout.h>
@@ -15,6 +16,7 @@ class TextraContext {
   std::unique_ptr<tttext::TTTextContext> context_;
   std::unique_ptr<tttext::Paragraph> paragraph_;
   std::unique_ptr<tttext::LayoutRegion> region_;
+  std::unique_ptr<tttext::FontmgrCollection> fonts_;
   std::unique_ptr<tttext::TextLayout> layout_;
 };
 

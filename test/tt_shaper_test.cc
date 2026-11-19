@@ -592,10 +592,14 @@ TEST(TTShaper, ShapeTextCallsOnShapeText) {
   const std::u32string text = U"test";
   ShapeStyle style(FontDescriptor(), 12.0f);
   const bool rtl = false;
-  ShapeKey key(text.c_str(), text.length(), &style, rtl);
-
-  // Test that ShapeText calls OnShapeText with the correct key
-  EXPECT_CALL(mock_shaper, OnShapeText(key, _))
+  // The key also retains the shaper's font-resource generation. Match the
+  // supplied input and verify the mock's default backend/context metadata.
+  auto key_matches = ::testing::Truly([&](const ShapeKey& key) {
+    return key.text_ == text && key.style_ == style && key.rtl_ == rtl &&
+           key.backend_ == RenderingBackend::kInvalid && key.font_resources_ &&
+           !key.android_metrics_round_;
+  });
+  EXPECT_CALL(mock_shaper, OnShapeText(key_matches, _))
       .WillOnce(Invoke([&text](const ShapeKey& _, ShapeResult* result) {
         TestShapingResultReader shaping_result(text.length());
         result->AppendPlatformShapingResult(shaping_result);

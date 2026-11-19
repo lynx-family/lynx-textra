@@ -4,6 +4,10 @@
 
 #import "AppDelegate.h"
 
+#import <ImageIO/ImageIO.h>
+
+#include "test/capi/ios_comparison.hpp"
+
 @interface AppDelegate ()
 
 @end
@@ -12,7 +16,18 @@
 
 - (BOOL)application:(UIApplication*)application
     didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
-  // Override point for customization after application launch.
+  if ([[NSProcessInfo processInfo].arguments containsObject:@"--textra-capi"]) {
+    NSString* output = [NSHomeDirectory()
+        stringByAppendingPathComponent:@"Documents/capi-comparison"];
+    [[NSFileManager defaultManager] createDirectoryAtPath:output
+                              withIntermediateDirectories:YES
+                                               attributes:nil
+                                                    error:nil];
+    bool ok = textra_demo::RunIosComparison(output.UTF8String);
+    NSLog(@"TEXTRA_CAPI_COMPARISON %@ %@", ok ? @"PASS" : @"FAIL", output);
+    // The regular demo remains available. The comparison images and report
+    // are persisted so simulator scripts can verify them independently.
+  }
   return YES;
 }
 

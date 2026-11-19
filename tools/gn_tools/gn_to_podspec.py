@@ -512,10 +512,9 @@ def write_subspec(project,
   subspec_list = set(sub_target.properties.get('deps', []))
   spec_name = start_target.gn_name.split(':')[-1]
 
-  all_deps = project.find_all_dependencies(start_target)
-  full_deps_names = set()
-  for t in all_deps:
-    full_deps_names.add(t.gn_name)
+  # Only named subspecs form boundaries. Their implementation dependencies
+  # must remain in the flattened source list, including transitive leaf targets.
+  full_deps_names = set(main_deps) | subspec_list
   r = 0
   for dep in main_deps:
     cur_target = Target(dep, project)
@@ -739,6 +738,7 @@ def write_podspec(project, base_info_lines, script_dict, keep_subspecs_dict):
   r = write_subspec(project, script_dict, compiler_target, main_target, sub_target, writer, keep_subspecs_dict)
   writer.write_end('')
   writer.out.write('\n')
+  writer.out.close()
   return r
 
 def read_original_script(subspec_dict, script_subspec_dict):

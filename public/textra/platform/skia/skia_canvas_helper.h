@@ -5,6 +5,14 @@
 #ifndef PUBLIC_TEXTRA_PLATFORM_SKIA_SKIA_CANVAS_HELPER_H_
 #define PUBLIC_TEXTRA_PLATFORM_SKIA_SKIA_CANVAS_HELPER_H_
 
+#include <include/core/SkBlurTypes.h>
+#include <include/core/SkCanvas.h>
+#include <include/core/SkFont.h>
+#include <include/core/SkFontMetrics.h>
+#include <include/core/SkMaskFilter.h>
+#include <include/core/SkPaint.h>
+#include <include/core/SkPath.h>
+#include <include/core/SkTextBlob.h>
 #include <textra/i_canvas_helper.h>
 #include <textra/layout_definition.h>
 #include <textra/layout_drawer_listener.h>
@@ -15,22 +23,13 @@
 
 #include <memory>
 
-#include "include/core/SkBlurTypes.h"
-#include "include/core/SkCanvas.h"
-#include "include/core/SkFont.h"
-#include "include/core/SkFontMetrics.h"
-#include "include/core/SkMaskFilter.h"
-#include "include/core/SkPaint.h"
-#include "include/core/SkPath.h"
-#include "include/core/SkTextBlob.h"
-
 /**
  * @brief A canvas helper implementation backed by the Skia library.
  *
  * This class is mostly a straightforward pass-through to the SkCanvas API.
  * It is primarily used on macOS.
  */
-class L_EXPORT SkiaCanvasHelper : public tttext::ICanvasHelper {
+class SkiaCanvasHelper : public tttext::ICanvasHelper {
  public:
   explicit SkiaCanvasHelper(SkCanvas* canvas) : canvas_(canvas) {}
   ~SkiaCanvasHelper() override = default;

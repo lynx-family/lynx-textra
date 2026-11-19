@@ -7,13 +7,13 @@
 #include <textra/icu_wrapper.h>
 #include <textra/layout_drawer.h>
 #include <textra/paragraph.h>
-#include <textra/platform/java/java_canvas_helper.h>
-#include <textra/platform/java/tttext_jni_proxy.h>
+#include <textra/platform_helper.h>
 #include <textra/text_layout.h>
+
+#include <limits>
 
 #include "examples/json_parser/json_parser.h"
 #include "java_drawer_callback.h"
-#include "src/textlayout/tt_shaper.h"
 
 using namespace ttoffice::tttext;
 
@@ -38,9 +38,9 @@ Java_com_lynx_textra_demo_JavaDrawerCallback_nativeDestroyDrawerCallback(
 extern "C" JNIEXPORT void JNICALL
 Java_com_lynxtextra_TTText_nativeInitialCache(JNIEnv* env, jclass clazz) {}
 
-extern "C" JNIEXPORT jbyteArray JNICALL
+extern "C" JNIEXPORT void JNICALL
 Java_com_lynx_textra_demo_PageView_drawJsonTestCase(JNIEnv* env, jobject thiz,
-                                                    jlong font_manager_handler,
+                                                    jobject native_canvas,
                                                     jbyteArray jsonBytes,
                                                     jfloat width_px) {
   jsize length = env->GetArrayLength(jsonBytes);
@@ -61,19 +61,14 @@ Java_com_lynx_textra_demo_PageView_drawJsonTestCase(JNIEnv* env, jobject thiz,
     old_region = std::move(new_region);
   }
 
-  auto java_font_manager =
-      ((JavaFontManager*)font_manager_handler)->shared_from_this();
-  tttext::FontmgrCollection font_collection(java_font_manager);
+  auto manager = PlatformHelper::CreateFontManager();
+  tttext::FontmgrCollection font_collection(manager);
   auto region = LayoutJsonDocument(jsonDoc.get(), &font_collection,
-                                   tttext::ShaperType::kSystem);
-
-  JavaCanvasHelper helper;
-  tttext::LayoutDrawer drawer(&helper);
+                                   tttext::RenderingBackend::kAndroid);
+  auto canvas = PlatformHelper::CreateCanvasHelper(native_canvas, manager);
+  if (!canvas) return;
+  canvas->StartPaint();
+  tttext::LayoutDrawer drawer(canvas.get());
   drawer.DrawLayoutPage(region.get());
-
-  auto& buffer = helper.GetBuffer();
-  auto* ret = env->NewByteArray(buffer.GetSize());
-  env->SetByteArrayRegion(ret, 0, buffer.GetSize(),
-                          (int8_t*)buffer.GetBuffer());
-  return ret;
+  canvas->EndPaint();
 }

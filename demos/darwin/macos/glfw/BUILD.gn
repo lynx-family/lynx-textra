@@ -28,7 +28,10 @@ executable("gl_app_demo") {
     "$gl_app_root/public/",
   ]
 
-  deps = [ "$gl_app_root/third_party/glfw:glfw" ]
+  deps = [
+    "$gl_app_root/examples/capi/platform:textra_capi_skity",
+    "$gl_app_root/third_party/glfw:glfw",
+  ]
 
   frameworks = [
     "AppKit.framework",
@@ -44,8 +47,5 @@ executable("gl_app_demo") {
     "$gl_app_root/demos/darwin/macos/glfw/skity_adaptor.h",
     "$gl_app_root/demos/darwin/macos/ttreaderdemo/paragraph_test.cc",
     "$gl_app_root/demos/darwin/macos/ttreaderdemo/paragraph_test.h",
-    "$gl_app_root/public/textlayout/platform/skity/skity_canvas_helper.h",
-    "$gl_app_root/public/textlayout/platform/skity/skity_font_manager.h",
-    "$gl_app_root/public/textlayout/platform/skity/skity_typeface_helper.h",
   ]
 }

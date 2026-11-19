@@ -93,11 +93,10 @@ NativeTextNode::NativeTextNode()
 
   OH_NativeDisplayManager_GetDefaultDisplayScaledDensity(&density_);
 
-  font_manager_ =
-      tttext::PlatformHelper::CreateFontManager(tttext::PlatformType::kSystem);
+  font_manager_ = tttext::PlatformHelper::CreateFontManager();
   tttext::FontmgrCollection fc(font_manager_);
-  layout_ =
-      std::make_unique<tttext::TextLayout>(&fc, tttext::ShaperType::kSystem);
+  layout_ = std::make_unique<tttext::TextLayout>(
+      &fc, tttext::RenderingBackend::kOHOS);
   context_ = std::make_unique<tttext::TTTextContext>();
   //  context_->SetHarmonyShaperForceLowAPI(true);
 }
@@ -191,8 +190,7 @@ void NativeTextNode::OnDraw(ArkUI_NodeCustomEvent* event) {
   auto drawCanvas = reinterpret_cast<OH_Drawing_Canvas*>(
       OH_ArkUI_DrawContext_GetCanvas(drawContext));
   // Get the component size.
-  auto canvas =
-      PlatformHelper::CreateCanvasHelper(PlatformType::kSystem, drawCanvas);
+  auto canvas = PlatformHelper::CreateCanvasHelper(drawCanvas);
   if (document_view_ != nullptr) {
     document_view_->OnDraw(*canvas);
   }

@@ -2,6 +2,9 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+#ifndef DEMOS_DARWIN_IOS_TEXTLAYOUTDEMO_LYNXTEXTRADEMO_LYNXTEXTRADEMO_TTTEXTTESTVIEW_H_
+#define DEMOS_DARWIN_IOS_TEXTLAYOUTDEMO_LYNXTEXTRADEMO_LYNXTEXTRADEMO_TTTEXTTESTVIEW_H_
+
 #import <UIKit/UIKit.h>
 #include <textra/fontmgr_collection.h>
 #include <textra/i_canvas_helper.h>
@@ -18,3 +21,5 @@ using namespace tttext;
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif  // DEMOS_DARWIN_IOS_TEXTLAYOUTDEMO_LYNXTEXTRADEMO_LYNXTEXTRADEMO_TTTEXTTESTVIEW_H_

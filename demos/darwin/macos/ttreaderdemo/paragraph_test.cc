@@ -17,7 +17,7 @@
 
 #include <cmath>
 
-ParagraphTest::ParagraphTest(ShaperType type,
+ParagraphTest::ParagraphTest(RenderingBackend type,
                              FontmgrCollection* font_collection)
     : shaper_type_(type),
       font_collection_(std::move(font_collection)),

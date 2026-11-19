@@ -2,6 +2,9 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+#ifndef TEST_TEST_SRC_H_
+#define TEST_TEST_SRC_H_
+
 #include <textra/layout_drawer.h>
 #include <textra/layout_region.h>
 #include <textra/run_delegate.h>
@@ -102,3 +105,5 @@ class BoundaryAnalystTestClass {
 
 }  // namespace tttext
 }  // namespace ttoffice
+
+#endif  // TEST_TEST_SRC_H_

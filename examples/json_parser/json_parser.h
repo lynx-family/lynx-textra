@@ -71,7 +71,7 @@ std::unique_ptr<JsonDocumentContent> ParseJsonStringIntoTTTextObject(
  */
 std::unique_ptr<LayoutRegion> LayoutJsonDocument(
     JsonDocumentContent* json_doc, FontmgrCollection* font_collection,
-    ShaperType shaper_type);
+    RenderingBackend shaper_type);
 
 }  // namespace tttext
 }  // namespace ttoffice

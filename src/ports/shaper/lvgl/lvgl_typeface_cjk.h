@@ -4,8 +4,9 @@
 
 #ifndef SRC_PORTS_SHAPER_LVGL_LVGL_TYPEFACE_CJK_H_
 #define SRC_PORTS_SHAPER_LVGL_LVGL_TYPEFACE_CJK_H_
-#include "lvgl/src/font/lv_font.h"
-#include "textra/platform/lvgl/lvgl_typeface.h"
+#include <lvgl/src/font/lv_font.h>
+
+#include "src/ports/native/lvgl/lvgl_typeface.h"
 
 namespace ttoffice {
 namespace tttext {
@@ -16,7 +17,11 @@ class LVGLTypefaceCJK : public LVGLTypeface {
 
  public:
   const lv_font_t* GetLvFont(float font_size) const override {
+#if LV_FONT_SOURCE_HAN_SANS_SC_16_CJK
     return &lv_font_source_han_sans_sc_16_cjk;
+#else
+    return LV_FONT_DEFAULT;
+#endif
   }
 
  private:

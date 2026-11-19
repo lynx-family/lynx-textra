@@ -14,9 +14,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <textra/fontmgr_collection.h>
+#include <textra/platform_helper.h>
 
 #include "textra/layout_drawer.h"
-#include "textra/platform/lvgl/lvgl_canvas_helper.h"
 #include "textra/text_layout.h"
 #ifdef _MSC_VER
 #include <Windows.h>
@@ -69,8 +69,8 @@ static void timer_cb(lv_timer_t* timer) {
   paragraph.AddTextRun(&run_style, content.c_str(),
                        static_cast<uint32_t>(content.length()));
 
-  FontmgrCollection collection;
-  TextLayout layout(&collection);
+  FontmgrCollection collection(PlatformHelper::CreateFontManager());
+  TextLayout layout(&collection, PlatformHelper::GetDefaultBackend());
   auto page_ptr = std::make_unique<LayoutRegion>(
       CANVAS_WIDTH, CANVAS_HEIGHT, LayoutMode::kAtMost, LayoutMode::kAtMost);
   TTTextContext context;
@@ -85,9 +85,9 @@ static void timer_cb(lv_timer_t* timer) {
 
   lv_canvas_fill_bg(canvas, lv_color_white(), LV_OPA_COVER);
 
-  LVGLCanvasHelper canvas_helper(&layer);
+  auto canvas_helper = PlatformHelper::CreateCanvasHelper(&layer);
 
-  LayoutDrawer drawer(&canvas_helper);
+  LayoutDrawer drawer(canvas_helper.get());
   drawer.DrawLayoutPage(&page);
 
   lv_canvas_finish_layer(canvas, &layer);
@@ -152,3 +152,11 @@ int main(int argc, char** argv) {
 /**********************
  *   STATIC FUNCTIONS
  **********************/
+
+#if LV_ENABLE_GLOBAL_CUSTOM
+#include <lvgl/src/core/lv_global.h>
+extern "C" {
+static lv_global_t textra_demo_lvgl_global;
+lv_global_t* lv_global_default(void) { return &textra_demo_lvgl_global; }
+}
+#endif

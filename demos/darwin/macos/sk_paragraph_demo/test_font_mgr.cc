@@ -4,12 +4,13 @@
 
 #include "demos/darwin/macos/sk_paragraph_demo/test_font_mgr.h"
 
+#include <textra/platform/skia/skia_typeface_helper.h>
+
 #include <cassert>
 #include <memory>
 
 #include "include/skia/include/core/SkData.h"
 #include "include/skia/include/core/SkTypeface.h"
-#include "src/ports/platform/skia/skia_typeface_helper.h"
 
 namespace ttoffice {
 namespace tttext {

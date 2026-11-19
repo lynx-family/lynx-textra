@@ -32,6 +32,8 @@ namespace tttext {
  * lookups.
  */
 class L_EXPORT FontmgrCollection {
+  friend class TTShaper;
+
  public:
   FontmgrCollection() = default;
   explicit FontmgrCollection(FontManagerRef default_font_mgr);

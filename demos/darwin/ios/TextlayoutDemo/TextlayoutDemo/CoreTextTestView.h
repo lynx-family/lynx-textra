@@ -2,6 +2,9 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+#ifndef DEMOS_DARWIN_IOS_TEXTLAYOUTDEMO_TEXTLAYOUTDEMO_CORETEXTTESTVIEW_H_
+#define DEMOS_DARWIN_IOS_TEXTLAYOUTDEMO_TEXTLAYOUTDEMO_CORETEXTTESTVIEW_H_
+
 #import <UIKit/UIKit.h>
 
 NS_ASSUME_NONNULL_BEGIN
@@ -9,3 +12,5 @@ NS_ASSUME_NONNULL_BEGIN
 @property(readwrite) NSAttributedString* attributedString;
 @end
 NS_ASSUME_NONNULL_END
+
+#endif  // DEMOS_DARWIN_IOS_TEXTLAYOUTDEMO_TEXTLAYOUTDEMO_CORETEXTTESTVIEW_H_

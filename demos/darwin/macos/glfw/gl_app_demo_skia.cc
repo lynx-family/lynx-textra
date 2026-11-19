@@ -4,10 +4,11 @@
 
 #include "demos/darwin/macos/glfw/gl_app_demo_skia.h"
 
+#include <textra/platform/skia/skia_canvas_helper.h>
+#include <textra/platform/skia/skia_font_manager.h>
+#include <textra/platform/skia/skia_typeface_helper.h>
+
 #include "demos/darwin/macos/ttreaderdemo/paragraph_test.h"
-#include "src/ports/platform/skia/skia_canvas_helper.h"
-#include "src/ports/platform/skia/skia_font_manager.h"
-#include "src/ports/platform/skia/skia_typeface_helper.h"
 namespace glapp {
 GLAppDemoSkia::~GLAppDemoSkia() {}
 

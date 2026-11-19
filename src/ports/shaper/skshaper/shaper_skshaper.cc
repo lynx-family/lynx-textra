@@ -14,8 +14,8 @@
 #include "src/ports/shaper/skshaper/harfbuzz_lib.h"
 #endif
 
-#ifdef TTTEXT_OS_ANDROID
-#include <textra/platform/java/tttext_jni_proxy.h>
+#ifdef TEXTRA_ENABLE_ANDROID_BACKEND
+#include "src/ports/native/java/tttext_jni_proxy.h"
 #endif
 
 #include <utility>
@@ -130,7 +130,7 @@ class ShapingBlockReader : public PlatformShapingResultReader {
 void ShaperSkShaper::SetContext(TTTextContext& context) {
   TTShaper::SetContext(context);
   if (context_->IsEnableSystemFontAdjust()) {
-#ifdef TTTEXT_OS_ANDROID
+#ifdef TEXTRA_ENABLE_ANDROID_BACKEND
     auto fm = TTTextJNIProxy::SystemDefaultFamilyName();
     font_collection_.SetDefaultSystemFontFamily(fm);
 #endif
@@ -138,7 +138,7 @@ void ShaperSkShaper::SetContext(TTTextContext& context) {
 }
 void ShaperSkShaper::ProcessShapeStyleTransform(StyleImpl& style) {
   if (!context_ || !context_->IsEnableSystemFontAdjust()) return;
-#ifdef TTTEXT_OS_ANDROID
+#ifdef TEXTRA_ENABLE_ANDROID_BACKEND
   auto font_size = style.text_size_;
   auto font_weight = style.font_descriptor_.font_style_.GetWeight();
   TTTextJNIProxy::GetInstance().SystemFontStyleAdjust(&font_size, &font_weight);

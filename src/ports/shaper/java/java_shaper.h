@@ -7,8 +7,6 @@
 
 #include <jni.h>
 #include <textra/fontmgr_collection.h>
-#include <textra/platform/java/java_typeface.h>
-#include <textra/platform/java/scoped_global_ref.h>
 
 #include <map>
 #include <memory>
@@ -16,6 +14,8 @@
 #include <utility>
 #include <vector>
 
+#include "src/ports/native/java/java_typeface.h"
+#include "src/ports/native/java/scoped_global_ref.h"
 #include "src/textlayout/tt_shaper.h"
 namespace ttoffice {
 namespace tttext {
@@ -38,11 +38,12 @@ struct FontKey {
     return italic_ < other.italic_;
   }
 };
+class JavaShapingFontManager;
 class JavaShaper final : public TTShaper {
  public:
   JavaShaper() noexcept = delete;
   explicit JavaShaper(const FontmgrCollection& font_collection);
-  ~JavaShaper() override = default;
+  ~JavaShaper() override;
 
   void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
   void ProcessBidirection(const char32_t* text, uint32_t length,
@@ -54,6 +55,7 @@ class JavaShaper final : public TTShaper {
   static std::map<FontKey, std::shared_ptr<JavaTypeface>> font_lst_;
   static std::mutex font_lst_lock_;
   std::unique_ptr<ScopedGlobalRef> java_instance_;
+  std::unique_ptr<JavaShapingFontManager> font_manager_;
 };
 }  // namespace tttext
 }  // namespace ttoffice

@@ -38,7 +38,8 @@ public class JavaFontManager {
       return cached_typeface;
     }
 
-    JavaTypeface candidate = RegisterTypeface(typeface, key, CreateNativeTypeface(mNativeHandler));
+    JavaTypeface candidate = RegisterTypeface(
+        typeface, key, (mNativeHandler == 0 ? 0 : CreateNativeTypeface(mNativeHandler)));
     mTypefaceByIndex.put(candidate.mIndex, candidate);
     while (true) {
       cached_typeface = mFontMap.get(key);
@@ -140,8 +141,8 @@ public class JavaFontManager {
       return java_typeface;
     }
 
-    JavaTypeface candidate =
-        new JavaTypeface(mCount.incrementAndGet(), font, key, CreateNativeTypeface(mNativeHandler));
+    JavaTypeface candidate = new JavaTypeface(mCount.incrementAndGet(), font, key,
+        (mNativeHandler == 0 ? 0 : CreateNativeTypeface(mNativeHandler)));
     mTypefaceByIndex.put(candidate.mIndex, candidate);
     java_typeface = mFontMap.putIfAbsent(key, candidate);
     if (java_typeface != null) {
@@ -156,6 +157,8 @@ public class JavaFontManager {
   }
 
   public void InitDefaultFallbackFonts() {
+    if (mNativeHandler == 0)
+      return;
     if (Build.VERSION.SDK_INT >= 29) {
       float[] metrics = ChineseFallbackMetrics.Precompute();
       BindDefaultFallbackMetrics(mNativeHandler, metrics[0], metrics[1], metrics[2], metrics[3]);

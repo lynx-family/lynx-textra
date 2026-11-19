@@ -6,7 +6,7 @@ import("//config.gni")
 
 shared_library("lynxtextra") {
   output_name = "lynxtextra"
-  deps = [ "../../../src:textlayout" ]
+  deps = [ "../../../src:capi" ]
   libs = [ "log" ]
   include_dirs = [
     "src/main/jni/include",
@@ -26,7 +26,7 @@ shared_library("lynxtextra") {
 
 source_set("lynxtextra_static") {
   output_name = "lynxtextra_static"
-  deps = [ "../../../src:textlayout" ]
+  deps = [ "../../../src:capi" ]
   libs = [ "log" ]
   include_dirs = [
     "src/main/jni/include",

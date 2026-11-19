@@ -28,7 +28,7 @@ class ParagraphImageTest : public ::testing::Test {
    */
   template <typename ParagraphTestFuncPtr>
   void TestHelper(ParagraphTestFuncPtr func_ptr, const char* out_file_name) {
-    ParagraphTest test(ShaperType::kSelfRendering,
+    ParagraphTest test(RenderingBackend::kSkity,
                        &TestUtils::getFontmgrCollection());
     skity::Bitmap bitmap(test.test_width, test.test_height,
                          skity::AlphaType::kPremul_AlphaType,

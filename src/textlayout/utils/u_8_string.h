@@ -6,6 +6,7 @@
 #define SRC_TEXTLAYOUT_UTILS_U_8_STRING_H_
 
 #include <cassert>
+#include <cstdint>
 #include <cstring>
 #include <string>
 
@@ -65,6 +66,15 @@ inline bool IsUtf8Char10x(const char* s) {
   int bit2 = cc >> 6 & 1u;
   return (bit1 == 1) && (bit2 == 0);
 }
+// Strictly validates exactly bytes bytes; no NUL terminator is required.
+// Rejects truncated/overlong encodings, surrogate code points and values above
+// U+10FFFF. Embedded U+0000 is permitted only when allow_nul is true.
+// A null pointer is valid only for an empty input.
+// Optional codepoint_count receives the count on success, or zero on failure.
+bool CheckValidUTF8String(const char* text, uint32_t bytes,
+                          bool allow_nul = true,
+                          uint32_t* codepoint_count = nullptr);
+
 inline bool CheckValidUTF8String(const char* str) {
   const auto* p_char = str;
   while (*p_char != '\0') {

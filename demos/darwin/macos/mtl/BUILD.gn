@@ -44,8 +44,5 @@ executable("mtl_app_demo") {
     "$mtl_app_root/demos/darwin/macos/mtl/mtl_app_demo_skity.mm",
     "$mtl_app_root/demos/darwin/macos/ttreaderdemo/paragraph_test.cc",
     "$mtl_app_root/demos/darwin/macos/ttreaderdemo/paragraph_test.h",
-    "$mtl_app_root/public/textlayout/platform/skity/skity_canvas_helper.h",
-    "$mtl_app_root/public/textlayout/platform/skity/skity_font_manager.h",
-    "$mtl_app_root/public/textlayout/platform/skity/skity_typeface_helper.h",
   ]
 }

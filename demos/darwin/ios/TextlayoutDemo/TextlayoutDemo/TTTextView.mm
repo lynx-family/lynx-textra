@@ -8,8 +8,7 @@
 #include <textra/layout_drawer.h>
 #include <textra/layout_region.h>
 #include <textra/paragraph.h>
-#include <textra/platform/ios/ios_canvas_base.h>
-#include <textra/platform/ios/ios_font_manager.h>
+#include <textra/platform_helper.h>
 #include <textra/text_layout.h>
 #include <textra/tt_color.h>
 
@@ -113,10 +112,10 @@ using namespace ttoffice::tttext;
           CGSizeMake(region->GetPageWidth(), region->GetPageHeight()))) {
     return;
   }
-  auto font_mgr = std::make_shared<tttext::FontManagerCoreText>();
+  auto font_mgr = tttext::PlatformHelper::CreateFontManager();
   font_collection = std::make_unique<tttext::FontmgrCollection>(font_mgr);
   layout = std::make_unique<tttext::TextLayout>(font_collection.get(),
-                                                tttext::ShaperType::kSystem);
+                                                tttext::RenderingBackend::kIOS);
   context = std::make_unique<tttext::TTTextContext>();
   region = std::make_unique<LayoutRegion>(self.bounds.size.width,
                                           self.bounds.size.height);
@@ -138,9 +137,10 @@ using namespace ttoffice::tttext;
   //  imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull context) {
   //    CGContextRef cgContext = context.CGContext;
   CGContextRef context = [self createBitmapContext];
-  IOSCanvasBase ios_canvas(context);
-  tttext::LayoutDrawer layout_drawer(&ios_canvas);
+  auto ios_canvas = PlatformHelper::CreateCanvasHelper(context);
+  tttext::LayoutDrawer layout_drawer(ios_canvas.get());
   layout_drawer.DrawLayoutPage(region.get());
+  ios_canvas.reset();
   CGContextRelease(context);
   //  }];
 }
@@ -149,8 +149,9 @@ using namespace ttoffice::tttext;
 - (void)drawRect:(CGRect)rect {
   [super drawRect:rect];
   if (region == nullptr) return;
-  IOSCanvasBase ios_canvas(UIGraphicsGetCurrentContext());
-  tttext::LayoutDrawer layout_drawer(&ios_canvas);
+  auto ios_canvas =
+      PlatformHelper::CreateCanvasHelper(UIGraphicsGetCurrentContext());
+  tttext::LayoutDrawer layout_drawer(ios_canvas.get());
   layout_drawer.DrawLayoutPage(region.get());
 }
 

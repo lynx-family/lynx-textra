@@ -68,6 +68,7 @@ android {
     }
     sourceSets {
         main {
+            java.srcDirs += ['../../../test/capi/android']
             jniLibs.srcDirs = ['jni']
             assets.srcDirs = ['src/main/assets']
         }

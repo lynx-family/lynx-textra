@@ -20,7 +20,9 @@ Pod::Spec.new do |s|
 
   s.subspec "LynxTextra" do |sp|
     sp.header_mappings_dir    = "public"
-    sp.public_header_files    = "public/textra/font_info.h",
+    sp.preserve_paths        = "public/textra/platform/**/*.h"
+    sp.public_header_files    = "public/textra/capi/*.h",
+                                "public/textra/font_info.h",
                                 "public/textra/fontmgr_collection.h",
                                 "public/textra/i_canvas_helper.h",
                                 "public/textra/i_font_manager.h",
@@ -35,36 +37,22 @@ Pod::Spec.new do |s|
                                 "public/textra/painter.h",
                                 "public/textra/paragraph.h",
                                 "public/textra/paragraph_style.h",
-                                "public/textra/platform/ios/ios_canvas_base.h",
-                                "public/textra/platform/ios/ios_font_manager.h",
-                                "public/textra/platform/ios/typeface_coretext.h",
-                                "public/textra/platform/java/buffer_output_stream.h",
-                                "public/textra/platform/java/java_canvas_helper.h",
-                                "public/textra/platform/java/java_font_manager.h",
-                                "public/textra/platform/java/java_typeface.h",
-                                "public/textra/platform/java/tttext_jni_proxy.h",
-                                "public/textra/platform/mac/mac_canvas_base.h",
-                                "public/textra/platform/mac/mac_font_manager.h",
-                                "public/textra/platform/mac/typeface_coretext.h",
-                                "public/textra/platform/skity/skity_canvas_helper.h",
-                                "public/textra/platform/skity/skity_font_data.h",
-                                "public/textra/platform/skity/skity_font_manager.h",
-                                "public/textra/platform/skity/skity_font_manager_coretext.h",
-                                "public/textra/platform/skity/skity_font_manager_coretext_webkit.h",
-                                "public/textra/platform/skity/skity_typeface_helper.h",
                                 "public/textra/platform_helper.h",
+                                "public/textra/rendering_backend.h",
                                 "public/textra/run_delegate.h",
                                 "public/textra/style.h",
                                 "public/textra/gradient.h",
-                                "public/textra/platform/ios/coregraphics_gradient.h",
-                                "public/textra/platform/skity/skity_gradient.h",
                                 "public/textra/text_layout.h",
                                 "public/textra/text_line.h",
                                 "public/textra/tt_color.h",
                                 "public/textra/tt_path.h",
                                 "public/textra/tttext_context.h"
 
-    sp.private_header_files   = "src/ports/shaper/coretext/*.{h,hpp}",
+    sp.private_header_files   = "src/capi/*.h",
+                                "src/ports/native/*.h",
+                                "src/ports/native/ios/*.h",
+                                "src/ports/rendering_backend_internal.h",
+                                "src/ports/shaper/coretext/*.{h,hpp}",
                                 "src/textlayout/*.{h,hpp}",
                                 "src/textlayout/icu_substitute/bidi/*.{h,hpp}",
                                 "src/textlayout/icu_substitute/bidi/algorithm/*.{h,hpp}",
@@ -73,7 +61,11 @@ Pod::Spec.new do |s|
                                 "src/textlayout/style/*.{h,hpp}",
                                 "src/textlayout/utils/*.{h,hpp}"
 
-    sp.source_files           = "public/textra/font_info.h",
+    sp.source_files           = "public/textra/capi/*.h",
+                                "src/capi/*.{cc,h}",
+                                "src/ports/native/native_helpers.h",
+                                "src/ports/native/ios.mm",
+                                "public/textra/font_info.h",
                                 "public/textra/fontmgr_collection.h",
                                 "public/textra/i_canvas_helper.h",
                                 "public/textra/i_font_manager.h",
@@ -88,29 +80,15 @@ Pod::Spec.new do |s|
                                 "public/textra/painter.h",
                                 "public/textra/paragraph.h",
                                 "public/textra/paragraph_style.h",
-                                "public/textra/platform/ios/ios_canvas_base.h",
-                                "public/textra/platform/ios/ios_font_manager.h",
-                                "public/textra/platform/ios/typeface_coretext.h",
-                                "public/textra/platform/java/buffer_output_stream.h",
-                                "public/textra/platform/java/java_canvas_helper.h",
-                                "public/textra/platform/java/java_font_manager.h",
-                                "public/textra/platform/java/java_typeface.h",
-                                "public/textra/platform/java/tttext_jni_proxy.h",
-                                "public/textra/platform/mac/mac_canvas_base.h",
-                                "public/textra/platform/mac/mac_font_manager.h",
-                                "public/textra/platform/mac/typeface_coretext.h",
-                                "public/textra/platform/skity/skity_canvas_helper.h",
-                                "public/textra/platform/skity/skity_font_data.h",
-                                "public/textra/platform/skity/skity_font_manager.h",
-                                "public/textra/platform/skity/skity_font_manager_coretext.h",
-                                "public/textra/platform/skity/skity_font_manager_coretext_webkit.h",
-                                "public/textra/platform/skity/skity_typeface_helper.h",
+                                "src/ports/native/ios/ios_canvas_base.h",
+                                "src/ports/native/ios/ios_font_manager.h",
+                                "src/ports/native/ios/typeface_coretext.h",
                                 "public/textra/platform_helper.h",
+                                "public/textra/rendering_backend.h",
                                 "public/textra/run_delegate.h",
                                 "public/textra/style.h",
                                 "public/textra/gradient.h",
-                                "public/textra/platform/ios/coregraphics_gradient.h",
-                                "public/textra/platform/skity/skity_gradient.h",
+                                "src/ports/native/ios/coregraphics_gradient.h",
                                 "public/textra/text_layout.h",
                                 "public/textra/text_line.h",
                                 "public/textra/tt_color.h",
@@ -118,6 +96,7 @@ Pod::Spec.new do |s|
                                 "public/textra/tttext_context.h",
                                 "src/ports/platform_helper.cc",
                                 "src/ports/shaper/coretext/shape_text_encoding.h",
+                                "src/ports/rendering_backend_internal.h",
                                 "src/ports/shaper/coretext/shaper_core_text.h",
                                 "src/ports/shaper/coretext/shaper_core_text.mm",
                                 "src/ports/shaper/coretext/shaper_core_text_self_rendering.h",
@@ -205,12 +184,13 @@ Pod::Spec.new do |s|
                                 "src/textlayout/utils/value_utils.h"
 
     sp.pod_target_xcconfig    = {
-                                  "GCC_PREPROCESSOR_DEFINITIONS" => "TTTEXT_OS_IOS ENABLE_CTSHAPER USE_LRU_CACHE=1",
+                                  "GCC_PREPROCESSOR_DEFINITIONS" => "TTTEXT_OS_IOS TEXTRA_ENABLE_IOS_BACKEND ENABLE_CTSHAPER TEXTRA_CAPI_BUILD USE_LRU_CACHE=1",
                                   "HEADER_SEARCH_PATHS" => "\"${PODS_TARGET_SRCROOT}/\" \
                                                         \"${PODS_TARGET_SRCROOT}/public/\" \
                                                         \"${PODS_TARGET_SRCROOT}/src/\" \
                                                         \"${PODS_TARGET_SRCROOT}/src/ports/shaper/coretext/\"",
-                                  "CLANG_CXX_LANGUAGE_STANDARD" => "c++17"
+                                  "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
+                                  "GCC_ENABLE_CPP_EXCEPTIONS" => "NO"
                                 }
 
   end

@@ -13,8 +13,7 @@
 #include <textra/layout_region.h>
 #include <textra/paragraph.h>
 #include <textra/paragraph_style.h>
-#include <textra/platform/java/java_canvas_helper.h>
-#include <textra/platform/java/tttext_jni_proxy.h>
+#include <textra/platform_helper.h>
 #include <textra/text_layout.h>
 #include <textra/tttext_context.h>
 
@@ -33,7 +32,6 @@ class TTTextManager {
   FontManagerRef GetDefaultFontManager() {
     return font_collection_.GetDefaultFontManager();
   }
-  JavaCanvasHelper* GetCanvas() { return canvas_.get(); }
   LayoutRegion* GetRetgion() { return region_.get(); }
 
  private:
@@ -42,7 +40,6 @@ class TTTextManager {
   std::unique_ptr<TTTextContext> context_;
   FontmgrCollection font_collection_;
   std::unique_ptr<LayoutRegion> region_;
-  std::unique_ptr<JavaCanvasHelper> canvas_;
 };
 
 #endif  // DEMOS_ANDROID_APP_SRC_MAIN_JNI_TT_TEXT_MANAGER_H_

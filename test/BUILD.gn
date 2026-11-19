@@ -6,7 +6,17 @@ import("//config.gni")
 
 group("test") {
   testonly = true
-  deps = [ ":TextLayoutLiteTest" ]
+  deps = [
+    ":TextLayoutLiteTest",
+    ":backend_test",
+    ":capi_test",
+  ]
+  if (is_mac) {
+    deps += [
+      ":backend_error_test",
+      ":font_features_test",
+    ]
+  }
 }
 
 executable("TextLayoutLiteTest") {
@@ -100,7 +110,10 @@ if (is_mac) {
   executable("GradientCoreGraphicsTest") {
     testonly = true
     sources = [ "gradient_coregraphics_test.mm" ]
-    include_dirs = [ "//public" ]
+    include_dirs = [
+      "//",
+      "//public",
+    ]
     deps = [
       "//src:textlayout",
       "//third_party/googletest:gtest_main",
@@ -113,10 +126,94 @@ if (is_mac) {
     cflags_objcc = [
       "-fobjc-arc",
       "-mmacosx-version-min=14.0",
-
-      # mac_canvas_base.h contains an existing unused local.
-      "-Wno-unused-variable",
     ]
     ldflags = [ "-mmacosx-version-min=14.0" ]
+  }
+}
+
+if (is_mac) {
+  executable("RenderingBackendTest") {
+    testonly = true
+    sources = [ "rendering_backend_test.cc" ]
+    deps = [ "//src:textlayout" ]
+    frameworks = [
+      "AppKit.framework",
+      "CoreText.framework",
+      "CoreGraphics.framework",
+    ]
+  }
+  executable("PlatformHelperTest") {
+    testonly = true
+    sources = [ "platform_helper_test.mm" ]
+    cflags_objcc = [ "-fobjc-arc" ]
+    deps = [ "//src:textlayout" ]
+    frameworks = [
+      "AppKit.framework",
+      "CoreText.framework",
+      "CoreGraphics.framework",
+    ]
+  }
+}
+
+executable("capi_test") {
+  testonly = true
+  sources = [ "capi/textra_capi_test.c" ]
+  deps = [ "//src:capi" ]
+  if (is_mac) {
+    frameworks = [
+      "AppKit.framework",
+      "CoreText.framework",
+    ]
+  }
+  if (is_ios) {
+    frameworks = [
+      "UIKit.framework",
+      "CoreText.framework",
+    ]
+  }
+}
+
+executable("backend_test") {
+  testonly = true
+  sources = [ "capi/textra_backend_test.c" ]
+  deps = [ "//src:capi" ]
+  if (is_mac) {
+    frameworks = [
+      "AppKit.framework",
+      "CoreText.framework",
+    ]
+  }
+  if (is_ios) {
+    frameworks = [
+      "UIKit.framework",
+      "CoreText.framework",
+    ]
+  }
+}
+
+if (is_mac) {
+  executable("backend_error_test") {
+    testonly = true
+    sources = [ "capi/textra_backend_error_test.mm" ]
+    deps = [ "//src:capi" ]
+    cflags_objcc = [ "-fobjc-arc" ]
+    frameworks = [
+      "AppKit.framework",
+      "CoreText.framework",
+      "CoreGraphics.framework",
+    ]
+  }
+}
+
+if (is_mac) {
+  executable("font_features_test") {
+    testonly = true
+    sources = [ "capi/textra_font_features_test.cc" ]
+    deps = [ "//src:capi" ]
+    frameworks = [
+      "AppKit.framework",
+      "CoreText.framework",
+      "CoreGraphics.framework",
+    ]
   }
 }

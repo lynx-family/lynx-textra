@@ -5,6 +5,7 @@
 #include <textra/fontmgr_collection.h>
 #include <textra/macro.h>
 #include <textra/paragraph.h>
+#include <textra/platform_helper.h>
 #include <textra/text_layout.h>
 #include <textra/tttext_context.h>
 
@@ -25,15 +26,24 @@
 namespace ttoffice {
 namespace tttext {
 
-TextLayout::TextLayout(FontmgrCollection* font_collection, ShaperType type)
-    : TextLayout(TTShaper::CreateShaper(font_collection, type)) {}
+std::unique_ptr<TextLayout> PlatformHelper::CreateTextLayout(
+    RenderingBackend backend, FontmgrCollection* fonts) {
+  auto layout = std::make_unique<TextLayout>(fonts, backend);
+  return layout->IsValid() ? std::move(layout) : nullptr;
+}
+
+TextLayout::TextLayout(FontmgrCollection* font_collection,
+                       RenderingBackend backend)
+    : TextLayout(TTShaper::CreateShaper(font_collection, backend)) {}
 
 TextLayout::TextLayout(std::unique_ptr<TTShaper> shaper)
     : shaper_(std::move(shaper)) {}
 
 TextLayout::~TextLayout() = default;
 
-bool TextLayout::Preload(ShaperType type) { return TTShaper::Preload(type); }
+bool TextLayout::Preload(RenderingBackend backend) {
+  return TTShaper::Preload(backend);
+}
 
 void TextLayout::ClearShapeCache() {
   ShapeCache::GetInstance().Clear();
@@ -46,6 +56,7 @@ void TextLayout::ClearShapeCache() {
 
 LayoutResult TextLayout::LayoutEx(Paragraph* para, LayoutRegion* page,
                                   TTTextContext& context) const {
+  if (!shaper_) return LayoutResult::kUnsupported;
   TTASSERT(para);
   TTASSERT(page);
   if (para->GetType() == ParagraphType::kSingleLine) {
@@ -71,6 +82,7 @@ LayoutResult TextLayout::LayoutEx(Paragraph* para, LayoutRegion* page,
 
 bool TextLayout::LayoutSingleLine(Paragraph* paragraph,
                                   TTTextContext& context) const {
+  if (!shaper_) return false;
   if (!paragraph || paragraph->GetType() != ParagraphType::kSingleLine)
     return false;
   auto* result = static_cast<SingleLineParagraphImpl*>(paragraph);

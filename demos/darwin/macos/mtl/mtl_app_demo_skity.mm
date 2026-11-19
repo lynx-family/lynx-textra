@@ -30,7 +30,7 @@ class MTLExample : public example::MTLApp {
     skity::Paint paint;
     paint.SetFillColor(1.0, 0, 0, 1.0f);
     paint.SetStyle(skity::Paint::kFill_Style);
-    ParagraphTest paragraph_test_(kSelfRendering, &font_collection_);
+    ParagraphTest paragraph_test_(RenderingBackend::kSkity, &font_collection_);
     paragraph_test_.TestWithId(&canvas, width_, test_id);
     GetCanvas()->Restore();
     GetCanvas()->Flush();

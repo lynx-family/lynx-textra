@@ -11,6 +11,8 @@ set(CONFIG_LV_BUILD_DEMOS OFF CACHE BOOL "Build demos" FORCE)
 set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "Build examples" FORCE)
 
 target_compile_definitions(lynxtextra PUBLIC LV_CONF_PATH="${CMAKE_CURRENT_SOURCE_DIR}/lv_conf.h")
+# The native adapter links LVGL and its dependencies into the shared core.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/lvgl lvgl.dir)
 
 # Find and include SDL2 library
