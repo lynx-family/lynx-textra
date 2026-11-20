@@ -256,7 +256,7 @@ TEST(TextTest, LineSpacingTest) {
   auto line1 = region->GetLine(0);
   auto line2 = region->GetLine(1);
   EXPECT_EQ(line1->GetLineTop(), 15);
-  EXPECT_EQ(line2->GetLineTop() - line1->GetLineBottom(), 25);
+  EXPECT_FLOAT_EQ(line2->GetLineTop() - line1->GetLineBottom(), 25.f);
 }
 
 TEST(TextTest, JustifyAlignment) {

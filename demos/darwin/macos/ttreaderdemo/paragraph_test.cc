@@ -1026,8 +1026,10 @@ void ParagraphTest::TestFontCollection(ICanvasHelper* canvas,
                        FontStyle::kUpright_Slant);
   auto default_font_mgr = font_collection_->GetDefaultFontManager();
   auto asset_font_mgr = font_collection_->GetAssetFontManager();
-  auto menlo_typeface = default_font_mgr->matchFamilyStyle("Menlo", font_style);
-  auto font_mgr = std::make_shared<TestFontMgr>(std::vector{menlo_typeface});
+  // Use explicit repository fixtures rather than the variable Menlo alias.
+  auto default_typeface =
+      default_font_mgr->matchFamilyStyle("NotoSansCJK", font_style);
+  auto font_mgr = std::make_shared<TestFontMgr>(std::vector{default_typeface});
   font_collection_->SetDefaultFontManager(font_mgr);
 
   Style style;
@@ -1042,10 +1044,9 @@ void ParagraphTest::TestFontCollection(ICanvasHelper* canvas,
                 LayoutMode::kDefinite);
   canvas->Translate(0, 200);
 
-  auto helvetcia_typeface =
-      default_font_mgr->matchFamilyStyle("Helvetcia", font_style);
+  auto asset_typeface = default_font_mgr->matchFamilyStyle("Inter", font_style);
   auto new_asset_font_mgr =
-      std::make_shared<TestFontMgr>(std::vector{helvetcia_typeface});
+      std::make_shared<TestFontMgr>(std::vector{asset_typeface});
   font_collection_->SetAssetFontManager(new_asset_font_mgr);
   DrawParagraph(canvas, *para, width, LayoutMode::kDefinite,
                 LayoutMode::kDefinite);

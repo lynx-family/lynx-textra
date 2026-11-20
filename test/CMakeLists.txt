@@ -8,7 +8,7 @@ target_link_libraries(TextLayoutLiteTest PRIVATE
         "-framework Metal"
         "-framework IOKit"
         skity
-        skity-codec
+        "-framework ImageIO"
 )
 
 if(TEXTRA_ENABLE_SKIA)
@@ -42,3 +42,5 @@ if(TEXTRA_ENABLE_SKIA)
             "-framework IOKit"
     )
 endif()
+
+target_sources(TextLayoutLiteTest PRIVATE ${PROJECT_SOURCE_DIR}/demos/darwin/macos/skity_png.cc)

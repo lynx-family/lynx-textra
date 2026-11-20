@@ -18,11 +18,10 @@ add_library(skity_demo SHARED
 set(textlayout_root_path ${PROJECT_SOURCE_DIR}/../../../../../..)
 target_include_directories(skity_demo PRIVATE
         ${textlayout_root_path}/third_party/icu/source/common
-        ${textlayout_root_path}/third_party/skity/include
         ${textlayout_root_path}/public
 )
 
-add_subdirectory(${textlayout_root_path}/third_party/skity skity.out)
+find_package(skity-native REQUIRED CONFIG)
 target_compile_definitions(skity_demo PRIVATE -DSKITY_JNI_PKG="com/lynx/textra/skitydemo")
 find_library( # Sets the name of the path variable.
         log-lib
@@ -49,7 +48,7 @@ target_link_libraries( # Specifies the target library.
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib}
-        skity
+        skity-native::skity
         EGL
         GLESv2
         z)

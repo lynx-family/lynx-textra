@@ -5,6 +5,8 @@ solutions = [
         'url': '',
         'target_deps_files': {
             'lvgl': 'hab.ci/DEPS.lvgl',
+            'skity-macos': 'hab.ci/DEPS.skity_macos',
+            'skity-android': 'hab.ci/DEPS.skity_android',
         },
     }
 ]

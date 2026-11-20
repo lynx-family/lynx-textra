@@ -17,6 +17,12 @@ on:
       - "examples/**"
       - "platform/**"
       - "BUILD.gn"
+      - "DEPS"
+      - ".habitat"
+      - "hab.ci/DEPS.skity*"
+      - "cmake/**"
+      - "hab.ci/skity.json"
+      - "tools/ci/habitat_cache_helper.py"
 
 jobs:
   macos-build-check:
@@ -43,7 +49,8 @@ jobs:
       - name: Run macOS example build check
         run: |
           source tools/envsetup.sh
-          buildtools/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Release -DSKITY_MTL_BACKEND=ON -G Ninja -S . -B cmake-build-release
+          tools/hab sync . --target-only --target skity-macos
+          buildtools/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -S . -B cmake-build-release
           buildtools/cmake/bin/cmake --build cmake-build-release -t mtl_app_demo
 
   macos-unittest-check:
@@ -61,7 +68,8 @@ jobs:
       - name: Run macOS build check - mtl_app_demo
         run: |
           source tools/envsetup.sh
-          buildtools/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Release -DSKITY_MTL_BACKEND=OFF -G Ninja -S . -B cmake-build-test
+          tools/hab sync . --target-only --target skity-macos
+          buildtools/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -S . -B cmake-build-test
           buildtools/cmake/bin/cmake --build cmake-build-test -t TextLayoutLiteTest
       - name: Run Unittests
         run: |
@@ -90,6 +98,7 @@ jobs:
       - name: Install Android SDK CMake
         run: |
           source tools/envsetup.sh
+          tools/hab sync . --target-only --target skity-android
           pushd demos/android
           echo $ANDROID_HOME
           echo "sdk.dir=$ANDROID_HOME" > local.properties
