@@ -20,7 +20,6 @@ executable("mtl_app_demo") {
     "$mtl_app_root/demos/darwin/macos/mtl",
     "$mtl_app_root/demos/darwin/macos/glfw",
     "$mtl_app_root/third_party/glfw/include",
-    "$mtl_app_root/third_party/skity/module/codec/include",
     "$mtl_app_root/",
     "$mtl_app_root/src/ports",
     "$mtl_app_root/public/",

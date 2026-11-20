@@ -60,7 +60,7 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     GEN_CMAKE("//examples/json_parser:json_parser")
     GEN_CMAKE("//examples/json_parser_exe:json_to_image_app")
 
-    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/skity skity.out)
+    include(${CMAKE_SOURCE_DIR}/cmake/SkityRelease.cmake)
     add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/glfw glfw.out)
 
     add_subdirectory("platform/mac")

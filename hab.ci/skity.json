@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "artifacts": {
+    "apple": {
+      "filename": "skity.framework-v1.0.0.zip",
+      "url": "https://github.com/lynx-family/skity/releases/download/v1.0.0/skity.framework-v1.0.0.zip",
+      "sha256": "d952710049c872ba73eadb7c7a5dfb741402f73860f02dc9e24df00fa851ca9d"
+    },
+    "android": {
+      "filename": "skity-native-1.0.0.aar",
+      "url": "https://repo.maven.apache.org/maven2/org/lynxsdk/lynx/skity-native/1.0.0/skity-native-1.0.0.aar",
+      "sha256": "0c9fc9460975142f33e1d941402115a024dc80ea3d7035231a663654d638a865"
+    }
+  }
+}

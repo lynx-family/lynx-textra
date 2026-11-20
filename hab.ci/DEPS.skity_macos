@@ -1,0 +1,17 @@
+# Copyright 2026 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0.
+import json
+import os
+
+with open(os.path.join(os.getcwd(), "hab.ci/skity.json")) as lock_file:
+    release = json.load(lock_file)
+artifact = release["artifacts"]["apple"]
+deps = {
+    "third_party/skity_release/apple": {
+        "type": "http",
+        "url": artifact["url"],
+        "sha256": artifact["sha256"],
+        "decompress": True,
+        "ignore_in_git": True,
+    }
+}

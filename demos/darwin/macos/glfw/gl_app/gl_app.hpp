@@ -5,8 +5,7 @@
 #ifndef EXAMPLE_UTILS_GL_APP_HPP
 #define EXAMPLE_UTILS_GL_APP_HPP
 
-#include <glad/gl.h>
-// this should after glad
+#define GLFW_INCLUDE_GLCOREARB
 #include <GLFW/glfw3.h>
 
 #include <optional>
