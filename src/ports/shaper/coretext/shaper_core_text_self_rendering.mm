@@ -32,6 +32,8 @@
 #include <algorithm>
 
 #include "src/textlayout/icu_substitute/bidi/bidi_wrapper.h"
+#include "src/textlayout/shaper_cache.h"
+#include "src/textlayout/tttext_context_impl.h"
 #include "src/textlayout/utils/grapheme_utils.h"
 #include "src/textlayout/utils/u_8_string.h"
 
@@ -148,59 +150,9 @@ bool ShaperCoreTextSelfRendering::FontCoversStringRangeExactly(
 
 ShaperCoreTextSelfRendering::ShaperCoreTextSelfRendering(
     FontmgrCollection& font_collection) noexcept
-    : TTShaper(font_collection){};
+    : TTShaper(font_collection) {};
 
 ShaperCoreTextSelfRendering::~ShaperCoreTextSelfRendering() = default;
-
-ShaperCoreTextSelfRendering::SafeFontCacheState&
-ShaperCoreTextSelfRendering::GetSafeFontCacheState() {
-  // Keep the cache valid even when app-load warm-up code reaches the shaper
-  // before namespace-scope C++ initialization, or while global teardown is in
-  // progress. Function-local initialization is thread-safe since C++11.
-  static SafeFontCacheState* state = new SafeFontCacheState();
-  return *state;
-}
-
-void ShaperCoreTextSelfRendering::SetSafeFontCacheMaxEntries(
-    size_t max_entries) {
-  auto& state = GetSafeFontCacheState();
-  std::lock_guard<std::mutex> lock(state.mutex_);
-  state.max_entries_ = max_entries;
-  TrimSafeFontCacheLocked(state);
-}
-
-size_t ShaperCoreTextSelfRendering::GetSafeFontCacheMaxEntries() {
-  auto& state = GetSafeFontCacheState();
-  std::lock_guard<std::mutex> lock(state.mutex_);
-  return state.max_entries_;
-}
-
-void ShaperCoreTextSelfRendering::ClearSafeFontCache() {
-  auto& state = GetSafeFontCacheState();
-  std::lock_guard<std::mutex> lock(state.mutex_);
-  for (auto& entry : state.cache_) {
-    if (entry.second.safe_font_ != nullptr) {
-      CFRelease(entry.second.safe_font_);
-    }
-  }
-  state.cache_.clear();
-  state.lru_.clear();
-}
-
-void ShaperCoreTextSelfRendering::TrimSafeFontCacheLocked(
-    SafeFontCacheState& state) {
-  while (state.cache_.size() > state.max_entries_) {
-    const auto& oldest_key = state.lru_.back();
-    auto iter = state.cache_.find(oldest_key);
-    if (iter != state.cache_.end()) {
-      if (iter->second.safe_font_ != nullptr) {
-        CFRelease(iter->second.safe_font_);
-      }
-      state.cache_.erase(iter);
-    }
-    state.lru_.pop_back();
-  }
-}
 
 CTFontRef ShaperCoreTextSelfRendering::CreateSafeFontWithOrderedFamilyList(
     CTFontRef existing_font, const std::vector<TypefaceRef>& resolved_typefaces,
@@ -252,15 +204,14 @@ CTFontRef ShaperCoreTextSelfRendering::CreateSafeFontWithOrderedFamilyList(
 
 CTFontRef ShaperCoreTextSelfRendering::GetOrCreateSafeFont(
     const FontDescriptor& fd, float text_size) const {
-  CachedSafeFontKey cache_key{fd, text_size};
-  auto& state = GetSafeFontCacheState();
-  {
-    std::lock_guard<std::mutex> lock(state.mutex_);
-    auto iter = state.cache_.find(cache_key);
-    if (iter != state.cache_.end()) {
-      state.lru_.splice(state.lru_.begin(), state.lru_, iter->second.lru_it_);
-      iter->second.lru_it_ = state.lru_.begin();
-      return static_cast<CTFontRef>(CFRetain(iter->second.safe_font_));
+  const ShapeStyle cache_key(fd, text_size);
+  auto* shaper_cache =
+      context_ != nullptr ? context_->GetImpl().GetShaperCache() : nullptr;
+  auto* cache = shaper_cache != nullptr ? &shaper_cache->font_cache_ : nullptr;
+  CoreTextFontCache::Epoch epoch = 0;
+  if (cache != nullptr) {
+    if (auto font = cache->Find(cache_key, &epoch)) {
+      return font;
     }
   }
 
@@ -333,24 +284,8 @@ CTFontRef ShaperCoreTextSelfRendering::GetOrCreateSafeFont(
     return nullptr;
   }
 
-  std::lock_guard<std::mutex> lock(state.mutex_);
-  auto iter = state.cache_.find(cache_key);
-  if (iter != state.cache_.end()) {
-    CFRelease(safe_font);
-    state.lru_.splice(state.lru_.begin(), state.lru_, iter->second.lru_it_);
-    iter->second.lru_it_ = state.lru_.begin();
-    return static_cast<CTFontRef>(CFRetain(iter->second.safe_font_));
-  }
-
-  if (state.max_entries_ == 0) {
-    return safe_font;
-  }
-
-  state.lru_.push_front(cache_key);
-  state.cache_.emplace(cache_key,
-                       CachedSafeFontEntry{safe_font, state.lru_.begin()});
-  TrimSafeFontCacheLocked(state);
-  return static_cast<CTFontRef>(CFRetain(safe_font));
+  return cache != nullptr ? cache->AddToCache(cache_key, safe_font, epoch)
+                          : safe_font;
 }
 
 void ShaperCoreTextSelfRendering::ProcessBidirection(
@@ -362,7 +297,7 @@ void ShaperCoreTextSelfRendering::ProcessBidirection(
 
 class CTShapingResult : public PlatformShapingResultReader {
  public:
-  CTShapingResult(){};
+  CTShapingResult() {};
 
  public:
   uint32_t GlyphCount() const override {
@@ -424,7 +359,7 @@ void ShaperCoreTextSelfRendering::OnShapeText(const ShapeKey& key,
   // TypefaceRef resolved by this shape's FontmgrCollection whenever the run
   // uses one of the declared faces. This mapping is deliberately local to the
   // shape: custom managers can be app-owned even though CoreText font
-  // registration and Textra's caches are process-wide. Unmatched runs remain
+  // registration is process-wide. Unmatched runs remain
   // platform fallback and continue through the default-manager path.
   std::vector<TypefaceRef> resolved_typefaces;
   std::vector<std::pair<TypefaceRef, CFStringRef>> ordered_typefaces;

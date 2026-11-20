@@ -9,10 +9,6 @@
 #import <CoreText/CoreText.h>
 #include <textra/text_layout.h>
 
-#include <cstddef>
-#include <list>
-#include <mutex>
-#include <unordered_map>
 #include <vector>
 
 #include "src/textlayout/tt_shaper.h"
@@ -33,43 +29,8 @@ class ShaperCoreText : public TTShaper {
                           WriteDirection write_direction, uint32_t* visual_map,
                           uint32_t* logical_map, uint8_t* dir_vec) override;
   void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
-  static void SetSafeFontCacheMaxEntries(size_t max_entries);
-  static size_t GetSafeFontCacheMaxEntries();
 
  private:
-  struct CachedSafeFontKey {
-    FontDescriptor font_descriptor_;
-    float text_size_ = 0.0f;
-
-    struct Hasher {
-      size_t operator()(const CachedSafeFontKey& key) const {
-        size_t seed = FontDescriptor::Hasher()(key.font_descriptor_);
-        seed ^= std::hash<float>()(key.text_size_) + 0x9e3779b9 + (seed << 6) +
-                (seed >> 2);
-        return seed;
-      }
-    };
-
-    bool operator==(const CachedSafeFontKey& rhs) const {
-      return font_descriptor_ == rhs.font_descriptor_ &&
-             text_size_ == rhs.text_size_;
-    }
-  };
-
-  struct CachedSafeFontEntry {
-    CTFontRef safe_font_ = nullptr;
-    std::list<CachedSafeFontKey>::iterator lru_it_;
-  };
-
-  struct SafeFontCacheState {
-    std::unordered_map<CachedSafeFontKey, CachedSafeFontEntry,
-                       CachedSafeFontKey::Hasher>
-        cache_;
-    std::list<CachedSafeFontKey> lru_;
-    std::mutex mutex_;
-    size_t max_entries_ = 256;
-  };
-
   CFAttributedStringRef GenerateAttributeString(const EncodedShapeText& text,
                                                 CFDictionaryRef attributes,
                                                 const ShapeStyle& style) const;
@@ -78,8 +39,6 @@ class ShaperCoreText : public TTShaper {
                                   const FontDescriptor& fd) const;
   CTFontRef GetOrCreateSafeFont(const FontDescriptor& fd,
                                 float text_size) const;
-  static SafeFontCacheState& GetSafeFontCacheState();
-  static void TrimSafeFontCacheLocked(SafeFontCacheState& state);
 
  private:
   mutable uint32_t tmp_buf_[SHAPER_BUFF_SIZE];

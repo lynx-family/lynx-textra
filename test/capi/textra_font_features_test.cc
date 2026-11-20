@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -49,7 +50,7 @@ CGContextRef MakeCanvas(Output& out) {
   return canvas;
 }
 Output RenderCpp(tt::TextLayout& layout, tt::RenderingBackend backend,
-                 CTFontRef font,
+                 CTFontRef font, const std::shared_ptr<tt::ShaperCache>& cache,
                  const std::vector<textra_font_feature_t>& features,
                  bool single) {
   Output out;
@@ -69,6 +70,7 @@ Output RenderCpp(tt::TextLayout& layout, tt::RenderingBackend backend,
                                                 : tt::ParagraphType::kGeneral);
   paragraph->AddTextRun(&style, kText, sizeof(kText) - 1);
   tt::TTTextContext context;
+  context.SetShaperCache(cache);
   tt::LayoutDrawer drawer(canvas.get());
   if (single) {
     CHECK(layout.LayoutSingleLine(paragraph.get(), context));
@@ -90,7 +92,7 @@ Output RenderCpp(tt::TextLayout& layout, tt::RenderingBackend backend,
   return out;
 }
 Output RenderC(textra_text_layout_t* layout, textra_rendering_backend_t backend,
-               CTFontRef font,
+               CTFontRef font, textra_shaper_cache_t* cache,
                const std::vector<textra_font_feature_t>& features,
                bool single) {
   Output out;
@@ -117,6 +119,7 @@ Output RenderC(textra_text_layout_t* layout, textra_rendering_backend_t backend,
   OK(textra_paragraph_create(&po, &paragraph));
   OK(textra_paragraph_add_text_run(paragraph, style, kText, sizeof(kText) - 1));
   OK(textra_text_context_create(&context));
+  OK(textra_text_context_set_shaper_cache(context, cache));
   textra_canvas_options_t co{sizeof(co), backend, 0, target};
   textra_layout_drawer_options_t draw{sizeof(draw), &co};
   OK(textra_layout_drawer_create(&draw, &drawer));
@@ -185,20 +188,25 @@ int main() {
     auto manager = tt::PlatformHelper::CreateFontManager(backend);
     tt::FontmgrCollection fonts(manager);
     tt::TextLayout cpp(&fonts, backend);
+    auto cache = tt::TTTextContext::CreateShaperCache();
     textra_text_layout_options_t options{};
     options.struct_size = sizeof(options);
     options.backend = static_cast<textra_rendering_backend_t>(backend);
     textra_text_layout_t* c = nullptr;
     OK(textra_text_layout_create(&options, &c));
+    textra_shaper_cache_t* c_cache = nullptr;
+    OK(textra_shaper_cache_create(TEXTRA_FALSE, &c_cache));
     for (bool single : {false, true}) {
       std::vector<Output> outputs;
       // Alternate feature values on the same engines to exercise their caches.
       for (auto index : {0, 1, 2, 3, 4, 5, 1, 0, 2}) {
-        auto a = RenderCpp(cpp, backend, font, cases[index], single);
-        auto b = RenderC(c, options.backend, font, cases[index], single);
-        auto repeated = RenderC(c, options.backend, font, cases[index], single);
+        auto a = RenderCpp(cpp, backend, font, cache, cases[index], single);
+        auto b =
+            RenderC(c, options.backend, font, c_cache, cases[index], single);
+        auto uncached =
+            RenderC(c, options.backend, font, nullptr, cases[index], single);
         Equal(a, b);
-        Equal(b, repeated);
+        Equal(b, uncached);
         outputs.push_back(std::move(b));
         ++comparisons;
       }
@@ -207,10 +215,10 @@ int main() {
       Equal(outputs[0], outputs[7]);
       Equal(outputs[2], outputs[8]);
     }
+    textra_shaper_cache_destroy(c_cache);
     textra_text_layout_destroy(c);
   }
   CFRelease(font);
-  tt::TextLayout::ClearShapeCache();
   std::printf("OpenType C/C++ pixel, metric and cache comparisons passed: %u\n",
               comparisons);
 }

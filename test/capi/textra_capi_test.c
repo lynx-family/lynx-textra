@@ -136,6 +136,40 @@ static void test_font_features(void) {
   CHECK(textra_get_abi_version_minor() == TEXTRA_ABI_VERSION_MINOR);
 }
 
+static void test_context_shaper_cache(void) {
+  CHECK(textra_get_abi_version_major() == 2u);
+  textra_text_context_t *first = NULL, *second = NULL;
+  textra_shaper_cache_t* cache = (textra_shaper_cache_t*)1;
+  OK(textra_text_context_create(&first));
+  OK(textra_text_context_create(&second));
+  CHECK(textra_text_context_get_shaper_cache(first, &cache) ==
+        TEXTRA_STATUS_NOT_FOUND);
+  CHECK(cache == NULL);
+  OK(textra_text_context_clear_shape_cache(first));
+  OK(textra_text_context_clear_font_cache(first));
+  cache = (textra_shaper_cache_t*)1;
+  CHECK(textra_shaper_cache_create(2, &cache) ==
+        TEXTRA_STATUS_INVALID_ARGUMENT);
+  CHECK(cache == NULL);
+
+  OK(textra_shaper_cache_create(TEXTRA_TRUE, &cache));
+  OK(textra_text_context_set_shaper_cache(first, cache));
+  textra_shaper_cache_destroy(cache);
+  OK(textra_text_context_reset(first));
+  OK(textra_text_context_get_shaper_cache(first, &cache));
+  textra_text_context_destroy(first);
+  OK(textra_text_context_set_shaper_cache(second, cache));
+  textra_shaper_cache_destroy(cache);
+  OK(textra_text_context_clear_shape_cache(second));
+  OK(textra_text_context_clear_font_cache(second));
+  OK(textra_text_context_set_shaper_cache(second, NULL));
+  CHECK(textra_text_context_get_shaper_cache(second, &cache) ==
+        TEXTRA_STATUS_NOT_FOUND);
+  CHECK(cache == NULL);
+  textra_text_context_destroy(second);
+  textra_shaper_cache_destroy(NULL);
+}
+
 static void test_self_rendering_backend(void) {
   const textra_rendering_backend_t inputs[] = {
       TEXTRA_RENDERING_BACKEND_INVALID,
@@ -163,8 +197,6 @@ static void test_self_rendering_backend(void) {
       CHECK(selected == TEXTRA_RENDERING_BACKEND_INVALID);
     }
   }
-  CHECK(textra_get_abi_version_major() == 1u);
-  CHECK(textra_get_abi_version_minor() >= 1u);
 }
 
 static void test_values(void) {
@@ -624,11 +656,16 @@ static void test_continuation_and_single_line(void) {
   CHECK(count > 1);
   CHECK(textra_paragraph_add_text_run(paragraph, NULL, "x", 1) ==
         TEXTRA_STATUS_BUSY);
+  CHECK(textra_text_context_set_shaper_cache(context, NULL) ==
+        TEXTRA_STATUS_BUSY);
   OK(textra_text_context_reset(context));
+  CHECK(textra_text_context_set_shaper_cache(context, NULL) ==
+        TEXTRA_STATUS_BUSY);
   CHECK(textra_text_context_set_feature(context,
                                         TEXTRA_FEATURE_DISABLE_SHAPE_CACHE,
                                         TEXTRA_TRUE) == TEXTRA_STATUS_BUSY);
   for (uint32_t i = 0; i < count; ++i) textra_layout_region_destroy(regions[i]);
+  OK(textra_text_context_set_shaper_cache(context, NULL));
   OK(textra_text_context_set_feature(
       context, TEXTRA_FEATURE_DISABLE_SHAPE_CACHE, TEXTRA_TRUE));
   OK(textra_paragraph_add_text_run(paragraph, NULL, "x", 1));
@@ -713,6 +750,7 @@ static void test_enum_options(void) {
 }
 
 int main(void) {
+  test_context_shaper_cache();
   test_self_rendering_backend();
 #if defined(__APPLE__)
 

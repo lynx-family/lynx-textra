@@ -53,9 +53,14 @@ class L_EXPORT TextLayout {
  public:
   static bool Preload(RenderingBackend backend);
 
-  // Clears all cached shaping results. New lookups cannot reuse results that
-  // were being computed when this method was called.
-  static void ClearShapeCache();
+  // Clears the context's shaping cache, including entries shared with other
+  // contexts. Results being computed when this method is called cannot
+  // repopulate the cache.
+  static void ClearShapeCache(TTTextContext& context);
+
+  // Clears the context's platform font caches, including entries shared with
+  // other contexts. Existing shaping results are preserved.
+  static void ClearFontCache(TTTextContext& context);
 
   LayoutResult Layout(Paragraph* para, LayoutRegion* page,
                       TTTextContext& context) const {

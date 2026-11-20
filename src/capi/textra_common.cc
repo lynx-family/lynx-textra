@@ -39,6 +39,10 @@ void TEXTRA_CALL textra_text_context_destroy(textra_text_context_t* context) {
   Release(context);
 }
 
+void TEXTRA_CALL textra_shaper_cache_destroy(textra_shaper_cache_t* cache) {
+  delete cache;
+}
+
 void TEXTRA_CALL textra_text_layout_destroy(textra_text_layout_t* layout) {
   Release(layout);
 }

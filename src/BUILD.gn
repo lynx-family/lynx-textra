@@ -263,6 +263,7 @@ source_set("textlayout") {
     "$prj_root/src/textlayout/run/layout_metrics.h",
     "$prj_root/src/textlayout/run/object_run.h",
     "$prj_root/src/textlayout/shape_cache.h",
+    "$prj_root/src/textlayout/shaper_cache.h",
     "$prj_root/src/textlayout/single_line_paragraph_impl.h",
     "$prj_root/src/textlayout/style/gradient.cc",
     "$prj_root/src/textlayout/style/paragraph_style_impl.cc",
@@ -327,6 +328,7 @@ source_set("textlayout") {
 
     sources += [
       "$prj_root/src/ports/shaper/coretext/default_font_policy.h",
+      "$prj_root/src/ports/shaper/coretext/font_cache.h",
       "$prj_root/src/ports/shaper/coretext/font_feature_settings.h",
       "$prj_root/src/ports/shaper/coretext/shape_text_encoding.h",
       "$prj_root/src/ports/shaper/coretext/shaper_core_text.h",

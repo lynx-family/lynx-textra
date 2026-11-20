@@ -167,7 +167,6 @@ int main(int argc, char** argv) {
   textra_style_destroy(style);
   textra_font_descriptor_destroy(descriptor);
   textra_text_layout_destroy(engine);
-  textra_text_layout_clear_shape_cache();
   std::puts(
       "Independent Skia C callbacks match C++ drawing; HarfBuzz layout, "
       "repeated draws and "

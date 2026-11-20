@@ -39,6 +39,24 @@ C++ callers supplying custom I* implementations are responsible for compatibilit
 Skity do not silently switch to CoreText or platform shaping if HarfBuzz is
 unavailable. Shaping cache entries are separated by rendering backend.
 
+## Context-owned shaper caches (ABI 2.0)
+
+Contexts start without a shaper cache. Create one with
+`textra_shaper_cache_create` and attach it before layout with
+`textra_text_context_set_shaper_cache`. Each attached context keeps its own
+reference across reset, so the caller can destroy its handle after attachment.
+Pass NULL to detach. Share a cache only across contexts using the same fonts,
+shaper and shaping settings. Use `TEXTRA_TRUE` at creation for cross-thread
+sharing and serialize operations on each individual context.
+`TEXTRA_FEATURE_DISABLE_SHAPE_CACHE` bypasses shaping-result reuse while
+keeping the attached platform font cache available.
+
+Callers of the former global clear function must pass a context to
+`textra_text_context_clear_shape_cache` and rebuild.
+`textra_text_context_clear_font_cache` evicts platform font entries. Both
+affect all contexts sharing the cache. The existing
+`textra_text_layout_clear_font_cache` clears the layout's font-manager lookups.
+
 ## Self-rendering selection (ABI 1.1)
 
 `textra_get_self_rendering_backend(preferred)` is the C counterpart of
@@ -222,8 +240,8 @@ adapter target, with no implementation macro. CMake/GN targets and direct-source
 integration are described in the [host build guide](/examples/capi/platform/README.md).
 Returned tables have static lifetime. Before successful owner
 initialization, the host owns the native wrapper and releases it on failure.
-The standalone self-render demo borrows its records and clears shaped-font
-caches before releasing the native objects.
+The standalone self-render demo uses an uncached context and releases all
+engine owners before releasing the borrowed native objects.
 
 SKITY_CORETEXT supplies matching font and CTFont conversion callbacks and uses
 the built-in CoreText self-render shaper. Ordinary SKIA/SKITY use HarfBuzz and

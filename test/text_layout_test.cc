@@ -16,7 +16,6 @@
 #include <utility>
 
 #include "mocks.h"
-#include "src/textlayout/shape_cache.h"
 #include "src/textlayout/style_attributes.h"
 #include "test_utils.h"
 
@@ -114,7 +113,6 @@ class TextLayoutTest : public ::testing::Test {
 
   std::unique_ptr<MockTTShaper> CreateFixedSizeMockShaper(
       const ::TypefaceRef& typeface) {
-    ShapeCache::GetInstance().Clear();
     auto test_fontmgr = std::make_shared<TestFontMgr>(
         std::vector<std::shared_ptr<ITypefaceHelper>>{typeface});
     auto mock_shaper = std::make_unique<NiceMock<MockTTShaper>>(

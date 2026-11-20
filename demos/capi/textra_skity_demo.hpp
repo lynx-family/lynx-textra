@@ -29,7 +29,6 @@ inline textra_status_t RenderSkity(skity::Canvas* native, uint32_t sample) {
   if (manager.manager_callbacks)
     manager.manager_callbacks->destroy(manager.userdata,
                                        const_cast<void*>(manager.font_manager));
-  textra_text_layout_clear_shape_cache();
   return status;
 }
 }  // namespace textra_demo

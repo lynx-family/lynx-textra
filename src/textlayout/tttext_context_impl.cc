@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "src/textlayout/layout_position.h"
+#include "src/textlayout/shaper_cache.h"
 namespace ttoffice {
 namespace tttext {
 namespace {
@@ -79,6 +80,19 @@ TTTextContextImpl::TTTextContextImpl()
 TTTextContext::TTTextContext() : impl_(std::make_unique<TTTextContextImpl>()) {}
 
 TTTextContext::~TTTextContext() = default;
+
+std::shared_ptr<ShaperCache> TTTextContext::CreateShaperCache(
+    bool thread_safe) {
+  return std::make_shared<ShaperCache>(thread_safe);
+}
+
+void TTTextContext::SetShaperCache(std::shared_ptr<ShaperCache> cache) {
+  impl_->shaper_cache_ = std::move(cache);
+}
+
+std::shared_ptr<ShaperCache> TTTextContext::GetShaperCache() const {
+  return impl_->shaper_cache_;
+}
 
 bool TTTextContext::IsLastLineCanOverflow() const {
   return impl_->last_line_can_overflow_;

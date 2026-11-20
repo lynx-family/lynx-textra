@@ -14,11 +14,12 @@
 #include <utility>
 
 #include "src/textlayout/internal/boundary_analyst.h"
-#include "src/textlayout/shape_cache.h"
+#include "src/textlayout/shaper_cache.h"
 #include "src/textlayout/single_line_paragraph_impl.h"
 #include "src/textlayout/style/style_manager.h"
 #include "src/textlayout/text_layout_impl.h"
 #include "src/textlayout/tt_shaper.h"
+#include "src/textlayout/tttext_context_impl.h"
 #include "src/textlayout/utils/grapheme_utils.h"
 #include "src/textlayout/utils/log_util.h"
 #include "src/textlayout/utils/u_8_string.h"
@@ -45,13 +46,16 @@ bool TextLayout::Preload(RenderingBackend backend) {
   return TTShaper::Preload(backend);
 }
 
-void TextLayout::ClearShapeCache() {
-  ShapeCache::GetInstance().Clear();
-  // Shaped results are not the only per-session font state: the self-rendering
-  // CoreText shaper keeps a process-wide safe-font cache whose CTFontRef
-  // entries pin the whole in-memory font file. Drop it here as well, otherwise
-  // clearing the shape cache reclaims almost nothing.
-  TTShaper::ClearFontCache();
+void TextLayout::ClearShapeCache(TTTextContext& context) {
+  if (auto* cache = context.GetImpl().GetShaperCache()) {
+    cache->ClearShapeCache();
+  }
+}
+
+void TextLayout::ClearFontCache(TTTextContext& context) {
+  if (auto* cache = context.GetImpl().GetShaperCache()) {
+    cache->ClearFontCache();
+  }
 }
 
 LayoutResult TextLayout::LayoutEx(Paragraph* para, LayoutRegion* page,

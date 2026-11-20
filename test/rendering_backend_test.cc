@@ -22,9 +22,9 @@ int main() {
       TTShaper::CreateShaper(&fonts, RenderingBackend::kMacOSSelfRendering);
   CHECK(native && self);
   TTTextContext context;
+  context.SetShaperCache(TTTextContext::CreateShaperCache());
   native->SetContext(context);
   self->SetContext(context);
-  TextLayout::ClearShapeCache();
   ShapeStyle style(FontDescriptor{}, 20);
   auto a = native->ShapeText(U"office ffi", 10, &style, false);
   auto b = self->ShapeText(U"office ffi", 10, &style, false);

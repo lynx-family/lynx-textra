@@ -103,7 +103,6 @@ inline bool RunMacComparison(const std::string& directory) {
     fclose(report);
   }
   CFRelease(native_font);
-  TextLayout::ClearShapeCache();
   return all;
 }
 }  // namespace textra_demo

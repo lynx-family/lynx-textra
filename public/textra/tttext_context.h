@@ -16,6 +16,7 @@ namespace ttoffice {
 namespace tttext {
 class LayoutRegion;
 class LayoutPosition;
+struct ShaperCache;
 class TextLayoutImpl;
 class TTTextContextImpl;
 /**
@@ -90,6 +91,17 @@ class L_EXPORT TTTextContext {
   void SetAndroidMetricsRound(bool enabled);
 
   void EnableFeature(FeatureOption feature_option, bool value);
+
+  // Contexts start without a cache. Creates opaque shaping and font caches
+  // without locking by default. Use thread_safe=true when sharing a cache
+  // across threads; this does not make the contexts thread-safe.
+  static std::shared_ptr<ShaperCache> CreateShaperCache(
+      bool thread_safe = false);
+
+  // Shared caches require the same fonts, shaper type and shaping settings.
+  // Configure before layout. Passing nullptr disables caching.
+  void SetShaperCache(std::shared_ptr<ShaperCache> cache);
+  std::shared_ptr<ShaperCache> GetShaperCache() const;
 
   // Layout state getters/setters
  public:

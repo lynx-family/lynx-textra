@@ -85,8 +85,8 @@
 #define TEXTRA_EXTERN_C_END
 #endif
 
-#define TEXTRA_ABI_VERSION_MAJOR 1u
-#define TEXTRA_ABI_VERSION_MINOR 1u
+#define TEXTRA_ABI_VERSION_MAJOR 2u
+#define TEXTRA_ABI_VERSION_MINOR 0u
 
 typedef int32_t textra_status_t;
 #define TEXTRA_STATUS_OK ((textra_status_t)0)
@@ -112,6 +112,7 @@ typedef struct textra_style textra_style_t;
 typedef struct textra_paragraph_style textra_paragraph_style_t;
 typedef struct textra_paragraph textra_paragraph_t;
 typedef struct textra_text_context textra_text_context_t;
+typedef struct textra_shaper_cache textra_shaper_cache_t;
 typedef struct textra_text_layout textra_text_layout_t;
 typedef struct textra_layout_region textra_layout_region_t;
 typedef struct textra_layout_drawer textra_layout_drawer_t;

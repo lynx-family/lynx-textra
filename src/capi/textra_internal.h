@@ -204,6 +204,9 @@ struct textra_paragraph : textra_capi::RefCounted {
   ~textra_paragraph();
   bool has_text = false;
 };
+struct textra_shaper_cache {
+  std::shared_ptr<textra_capi::tt::ShaperCache> impl;
+};
 struct textra_text_context : textra_capi::RefCounted {
   textra_capi::tt::TTTextContext impl;
   std::array<bool, 7> features{{true, false, true, false, false, false, false}};

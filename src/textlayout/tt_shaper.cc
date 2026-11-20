@@ -26,7 +26,7 @@
 
 #include "src/textlayout/paragraph_impl.h"
 #include "src/textlayout/run/base_run.h"
-#include "src/textlayout/shape_cache.h"
+#include "src/textlayout/shaper_cache.h"
 #include "src/textlayout/style/style_manager.h"
 #include "src/textlayout/tttext_context_impl.h"
 #include "src/textlayout/utils/log_util.h"
@@ -84,12 +84,6 @@ bool TTShaper::Preload(RenderingBackend backend) {
   return true;
 }
 
-void TTShaper::ClearFontCache() {
-#if defined(ENABLE_CTSHAPER)
-  ShaperCoreTextSelfRendering::ClearSafeFontCache();
-#endif
-}
-
 TTShaper::TTShaper(FontmgrCollection font_collection) noexcept
     : font_collection_(font_collection), context_(nullptr) {}
 TTShaper::~TTShaper() = default;
@@ -109,12 +103,14 @@ ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
   const ShapeKey key(text, length, shape_style, rtl, backend_,
                      font_collection_.typeface_cache_,
                      context_ && context_->IsAndroidMetricsRound());
-  const auto disable_shape_cache =
-      context_ != nullptr && context_->GetImpl().IsShapeCacheDisabled();
+  auto* shaper_cache =
+      context_ != nullptr ? context_->GetImpl().GetShaperCache() : nullptr;
+  auto* cache =
+      shaper_cache != nullptr && !context_->GetImpl().IsShapeCacheDisabled()
+          ? &shaper_cache->shape_cache_
+          : nullptr;
   ShapeCache::Epoch cache_epoch = 0;
-  auto result = disable_shape_cache
-                    ? nullptr
-                    : ShapeCache::GetInstance().Find(key, &cache_epoch);
+  auto result = cache != nullptr ? cache->Find(key, &cache_epoch) : nullptr;
   if (result == nullptr) {
     result = std::make_shared<ShapeResult>(length, rtl);
     OnShapeText(key, result.get());
@@ -130,8 +126,8 @@ ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
         result->advances_[result->CharToGlyph(k)][1] = 0;
       }
     }
-    if (!disable_shape_cache) {
-      ShapeCache::GetInstance().AddToCache(key, result, cache_epoch);
+    if (cache != nullptr) {
+      cache->AddToCache(key, result, cache_epoch);
     }
   }
   TTASSERT(result != nullptr);
