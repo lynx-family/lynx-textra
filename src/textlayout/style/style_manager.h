@@ -69,6 +69,12 @@ class AttributesRangeList {
   }
   void Clear() { range_list_.clear(); }
   ValueType GetAttrValue(uint32_t idx) const;
+  bool ContainsValue(ValueType value) const {
+    for (const auto& range : range_list_) {
+      if (range.second == value) return true;
+    }
+    return false;
+  }
   /**
    * Query the style range that idx belongs to, returns the unmatched range if
    * no match is found
@@ -272,6 +278,14 @@ class StyleManager {
     constexpr auto max_end = Range::MaxIndex();
     const auto end = len > max_end - start ? max_end : start + len;
     style_list_[kWordBreak].SetRangeValue(Range{start, end}, PackValue(attr));
+  }
+
+  // Conservative range query: the default may be overridden everywhere.
+  // Reading the current ranges avoids invalidation on clear or restore.
+  bool MayHaveKeepAll() const {
+    return default_style_.GetWordBreak() == WordBreakType::kKeepAll ||
+           style_list_[kWordBreak].ContainsValue(
+               PackValue(WordBreakType::kKeepAll));
   }
 
   WordBreakType GetWordBreak(const uint32_t idx) const {
