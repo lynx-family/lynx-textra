@@ -8,5 +8,6 @@ target_link_libraries(json_to_image_app PRIVATE
         "-framework Metal"
         "-framework IOKit"
         skity
-        skity-codec
+        lynxtextra
 )
+target_sources(json_to_image_app PRIVATE ${PROJECT_SOURCE_DIR}/demos/darwin/macos/skity_png.cc)

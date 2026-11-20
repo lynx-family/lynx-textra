@@ -5,6 +5,9 @@ solutions = [
         'url': '',
         'target_deps_files': {
             'lvgl': 'hab.ci/DEPS.lvgl',
+            'skia-linux': 'hab.ci/DEPS.skia_linux',
+            'skity-macos': 'hab.ci/DEPS.skity_macos',
+            'skity-android': 'hab.ci/DEPS.skity_android',
             'windows-ci': 'hab.ci/DEPS.windows-ci',
         },
     }

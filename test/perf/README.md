@@ -36,21 +36,22 @@ A missing device/toolchain is **not** a passing performance result.
 
 `.github/workflows/ci.yml` runs on PRs and builds the exact PR base and
 head in separate GN output directories. It uses existing macOS runner labels,
-Release `-Oz`, bundled libc++, and bundled HarfBuzz. The base checkout is a
+Release `-Oz`, system libc++ (matching the released Skity C++ ABI), and bundled HarfBuzz. The base checkout is a
 short-lived owned worktree; engine headers come from the matching checkout.
-Fetched dependencies are shared and `DEPS`/`.gn` must match. Dependency-changing
-PRs fail explicitly instead of silently comparing incorrect dependency pins.
+Fetched dependencies are shared and all engine/toolchain `DEPS` inputs and `.gn`
+must match. Skity source entries are excluded because both engines explicitly
+use one host renderer SDK; other dependency changes fail the comparison.
 
 One macOS job runs native CoreText and Skity/SkShaper serially using the same
 pair of benchmark executables. The benchmark is linked with Skity once per
 revision and selects the backend per request. The macOS job reuses the shared
-Skity library built for the demo and unit tests and uses `fonts.macos.json` for both engines. System-font files must
+released Skity framework used by the demo and unit tests and uses `fonts.macos.json` for both engines. System-font files must
 exist on the runner; their file checksums are recorded, with no silent font
 substitution. Downloaded/generated dependencies are not committed. macOS host
 architecture is detected instead of hard-coding arm64. The macOS job installs
 native CMake 3.31.6 in an isolated environment, since the repository's Intel
 CMake can otherwise select the wrong target and libpng processor sources on
-Apple Silicon. Skity and its subprojects receive matching architecture flags.
+Apple Silicon. The selected framework slice matches the host architecture.
 For historical revisions,
 the timing builder keeps integer-narrowing/nontrivial-memory-call warnings as
 warnings in both generated builds if supported by that compiler. It changes no
@@ -63,8 +64,10 @@ python3 test/perf/run_macos.py \
   --backend macos --output /tmp/textra-performance
 ```
 
-For Skity, also pass `--backend skity --skity-library /path/libskity.dylib
---fonts test/perf/fonts.macos.json`. An explicit `--harfbuzz-library` can select
+For the released Skity SDK, also pass `--backend skity --skity-framework
+third_party/skity_release/apple/skity.xcframework/macos-arm64_x86_64
+--fonts test/perf/fonts.macos.json`. The same fixed SDK and system libc++ are used
+for both engines; core/toolchain dependency pins must match. An explicit `--harfbuzz-library` can select
 a fixed dynamic library for local toolchain validation; its hash and changed GN
 arguments are recorded for both builds. Automatic CQ uses bundled HarfBuzz.
 
@@ -90,7 +93,7 @@ The workflow reuses Lynx develop's existing runner labels and platform setup:
 | macOS | `lynx-darwin-15.6.1-medium` | CoreText and Skity paired gates |
 | iOS | `lynx-darwin-15.6.1-medium` | Two native test apps on one owned simulator |
 | Android | `lynx-ubuntu-22.04-physical-medium` | Native Java/JNI host on the runner's AVD |
-| Windows | `lynx-windows-2022-large` | Skity executable and fixed fonts |
+| Windows | `lynx-windows-2022-large` | Release core compilation and advisory package size; performance temporarily disabled |
 | Harmony | `lynx-custom-container` | Two benchmark NAPI libraries built in the Lynx SDK image; no runtime result |
 
 Build checks and performance gates share one job per platform, including one
@@ -127,7 +130,7 @@ and a platform (or `all`), using the selected workflow ref as the candidate.
 `run_platform.py` makes two owned worktrees. It overlays the same benchmark and
 host into each and adds an owned root GN group to make the new test target
 reachable. Engine sources are unchanged. Both versions use one dependency tree
-and equal `DEPS`/`.gn`; source revision, harness, GN options, host code and
+and matching engine/toolchain `DEPS` inputs and `.gn`; source revision, harness, GN options, host code and
 measured artifacts are recorded. Worktrees and owned runtime processes are
 cleaned up even on failure.
 
@@ -169,20 +172,18 @@ scope explicitly.
 
 ### Windows
 
-The runner supplies the same VS 2022 BuildTools and Windows SDK as Lynx Windows
-builds. The workflow exports the installation paths, installs CMake 3.31.6, and
-uses Python 3.11 with UTF-8 mode for the pinned GN scripts. Git LFS 3.7.1 and
-native Windows Habitat 0.3.151 are downloaded with fixed SHA-256 checksums; the
-Unix Habitat launcher is not used. The `windows-ci` Habitat target loads the
-root DEPS unchanged except for omitting the unused legacy CMake 3.18 download;
-`--target-only` prevents syncing that default package as well. Ninja is exposed to the Windows compiler
-wrappers. One Release Skity build and fixed font files are shared by both engines.
-Repository fonts are supplemented by the Noto files in `fonts.lock.json`, pinned
-to a full google/fonts commit and individual SHA-256 checksums. Missing Windows
-language packs therefore do not change the test set. Downloads stay in the
-owned output directory; fonts are never silently substituted. Source/license
-URLs are retained in the lock file. This measures SkShaper,
-since Textra has no Windows-native shaping backend.
+Windows performance checks are temporarily disabled until Skity publishes a
+binary SDK. CI does not fetch or compile Skity sources. The Windows job retains
+a blocking GN/Ninja x64 Release core compile check (`src:capi`) and the existing
+non-blocking package-size comparison. The latter links both revisions' C API
+DLLs without a renderer dependency.
+
+The runner supplies VS 2022 BuildTools and the Windows SDK. The workflow exports
+the installation paths and uses Python 3.11 with UTF-8 mode for the pinned GN
+scripts. Git LFS 3.7.1 and native Windows Habitat 0.3.151 are downloaded with fixed
+SHA-256 checksums. The `windows-ci` profile omits the unused legacy CMake download
+and contains no Skity source dependency. The manual Windows benchmark code is
+retained for future binary SDK integration; it is not invoked by CI.
 
 ### Harmony
 

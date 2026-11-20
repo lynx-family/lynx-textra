@@ -2,8 +2,8 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
-#ifndef TEST_TEST_UTILS_H
-#define TEST_TEST_UTILS_H
+#ifndef TEST_TEST_UTILS_H_
+#define TEST_TEST_UTILS_H_
 
 #include <textra/layout_drawer.h>
 #include <textra/layout_region.h>
@@ -17,21 +17,23 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
+#include <skity/graphic/alpha_type.hpp>
+#include <skity/graphic/bitmap.hpp>
+#include <skity/graphic/color.hpp>
+#include <skity/graphic/color_type.hpp>
+#include <skity/render/canvas.hpp>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "demos/darwin/macos/glfw/skity_adaptor.h"
+#include "demos/darwin/macos/skity_png.h"
 #include "demos/darwin/macos/ttreaderdemo/paragraph_test.h"
-#include "skity/codec/codec.hpp"
 #include "src/ports/shaper/skshaper/shaper_skshaper.h"
 #include "src/textlayout/paragraph_impl.h"
-#include "third_party/skity/include/skity/graphic/alpha_type.hpp"
-#include "third_party/skity/include/skity/graphic/bitmap.hpp"
-#include "third_party/skity/include/skity/graphic/color.hpp"
-#include "third_party/skity/include/skity/graphic/color_type.hpp"
-#include "third_party/skity/include/skity/render/canvas.hpp"
 
 using namespace ttoffice::tttext;
 #define CANVAS_WIDTH 500
@@ -40,7 +42,7 @@ using namespace ttoffice::tttext;
 class TestShapingResultReader final
     : public tttext::PlatformShapingResultReader {
  public:
-  TestShapingResultReader(uint32_t glyph_count) {
+  explicit TestShapingResultReader(uint32_t glyph_count) {
     glyphs_.resize(glyph_count);
     advances_.resize(glyph_count);
     positions_.resize(glyph_count);
@@ -249,10 +251,9 @@ class TestUtils {
     canvas->DrawColor(skity::Color_WHITE);
     SkityCanvasHelper canvas_helper(canvas.get());
     DrawLayoutRegionOnCanvas(canvas_helper, *page);
-    std::shared_ptr<skity::Codec> codec = skity::Codec::MakePngCodec();
-    // pixmap_swizzle_rb(pixmap.get());
-    std::shared_ptr<skity::Data> data = codec->Encode(bitmap.GetPixmap().get());
-    data->WriteToFile(out_file_name.c_str());
+    if (!textra_demo::WriteSkityPng(bitmap, out_file_name.c_str())) {
+      throw std::runtime_error("Failed to write PNG: " + out_file_name);
+    }
   }
 
   static void DrawLayoutRegionOnCanvas(ICanvasHelper& canvas_helper,
@@ -320,4 +321,4 @@ class TestUtils {
     return region;
   }
 };
-#endif  // TEST_TEST_UTILS_H
+#endif  // TEST_TEST_UTILS_H_

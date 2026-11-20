@@ -567,6 +567,11 @@ class Writer:
       no_path_libs_list = list(no_path_libs)
       no_path_libs_list.sort()
       for lib in no_path_libs_list:
+        if lib == 'dl':
+          # Use CMake's platform linker flags; old CMake with Clang may not
+          # discover the host multiarch directory through find_library().
+          full_path_libs.add('${CMAKE_DL_LIBS}')
+          continue
         name = lib + '-lib'
         full_path_libs.add('${' + name + '}')
         self.out.write('find_library(')

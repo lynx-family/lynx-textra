@@ -1,13 +1,33 @@
 # Copyright 2026 The Lynx Authors. All rights reserved.
 # Licensed under the Apache License Version 2.0 that can be found in the
 # LICENSE file in the root directory of this source tree.
+import tempfile
+from pathlib import Path
 import threading
 import unittest
 
-from paired_build import build_pair
+from paired_build import build_pair, verify_shared_dependencies
 
 
 class PairedBuildTest(unittest.TestCase):
+    def test_only_renderer_pins_may_differ(self):
+        with tempfile.TemporaryDirectory() as temp:
+            baseline, candidate = Path(temp)/'base', Path(temp)/'head'
+            baseline.mkdir(); candidate.mkdir()
+            for root in (baseline, candidate):
+                (root/'.gn').write_text('buildconfig = "//build/config/BUILDCONFIG.gn"')
+            (baseline/'DEPS').write_text("deps = {'third_party/harfbuzz': {'commit': 'core'}, "
+                                        "'third_party/skity': {'commit': 'old-renderer'}}")
+            (candidate/'DEPS').write_text("deps = {'third_party/harfbuzz': {'commit': 'core'}}")
+            verify_shared_dependencies(baseline, candidate)
+            (candidate/'DEPS').write_text("deps = {'third_party/harfbuzz': {'commit': 'changed'}}")
+            with self.assertRaisesRegex(ValueError, 'engine DEPS'):
+                verify_shared_dependencies(baseline, candidate)
+            (candidate/'DEPS').write_bytes((baseline/'DEPS').read_bytes())
+            (candidate/'.gn').write_text('different build configuration')
+            with self.assertRaisesRegex(ValueError, '.gn'):
+                verify_shared_dependencies(baseline, candidate)
+
     def test_builds_overlap_and_split_the_job_budget(self):
         ready = threading.Barrier(2)
         def compile_revision(version, jobs):

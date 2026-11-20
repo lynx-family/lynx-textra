@@ -11,8 +11,14 @@
 
 #include <memory>
 
+#if defined(__linux__)
+// Linux demos use the repository fixtures, not the macOS system font path.
+inline auto skia_font_mgr =
+    SkFontMgr_New_Custom_Directory(FONT_ROOT "Noto_Sans_CJK/");
+#else
 inline auto skia_font_mgr =
     SkFontMgr_New_Custom_Directory("/System/Library/Fonts/");
+#endif
 inline auto TF_DEFAULT = skia_font_mgr->makeFromFile(
     FONT_ROOT "Noto_Sans_CJK/NotoSansCJK-Regular.ttc", 0);
 inline auto TF_MENLO = skia_font_mgr->makeFromFile(

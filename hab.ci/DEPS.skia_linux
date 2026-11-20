@@ -1,0 +1,15 @@
+# Copyright 2026 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0.
+import json
+import os
+
+with open(os.path.join(os.getcwd(), 'hab.ci/skia.json')) as source:
+    sdk = json.load(source)
+deps = {
+    'third_party/skia_release/linux-x64/' + name: {
+        'type': 'http',
+        **artifact,
+        'ignore_in_git': True,
+    }
+    for name, artifact in sdk['artifacts'].items()
+}

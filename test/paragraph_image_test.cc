@@ -12,7 +12,7 @@
 
 #include "demos/darwin/macos/ttreaderdemo/paragraph_test.h"
 #include "gtest/gtest.h"
-#include "test_utils.h"
+#include "test/test_utils.h"
 
 // Image-based test that runs a subset of the tests in paragraph_test.h that are
 // appropriate for LynxTextra
@@ -38,9 +38,7 @@ class ParagraphImageTest : public ::testing::Test {
     SkityCanvasHelper canvas_helper(canvas.get());
 
     (&test->*func_ptr)(&canvas_helper, test.test_width);
-    std::shared_ptr<skity::Codec> codec = skity::Codec::MakePngCodec();
-    std::shared_ptr<skity::Data> data = codec->Encode(bitmap.GetPixmap().get());
-    data->WriteToFile(out_file_name);
+    ASSERT_TRUE(textra_demo::WriteSkityPng(bitmap, out_file_name));
   }
 
   // TestXxx() methods below use friend declaration to access private member
@@ -102,6 +100,27 @@ class ParagraphImageTest : public ::testing::Test {
     TestHelper(&ParagraphTest::TestLineHeight, "line_height.png");
   }
   void TestFontCollection() {
+    auto manager = TestUtils::getFontmgrCollection().GetDefaultFontManager();
+    const auto default_face =
+        manager->matchFamilyStyle("NotoSansCJK", FontStyle::Normal());
+    const auto asset_face =
+        manager->matchFamilyStyle("Inter", FontStyle::Normal());
+    ASSERT_NE(default_face, nullptr);
+    ASSERT_NE(asset_face, nullptr);
+    ASSERT_NE(default_face->GetUniqueId(), asset_face->GetUniqueId());
+    // Both managers must provide a real, different face. The old misspelled
+    // "Helvetcia" lookup returned null and did not exercise asset replacement.
+    FontmgrCollection fonts(
+        std::make_shared<TestFontMgr>(std::vector<TypefaceRef>{default_face}));
+    const FontDescriptor descriptor;
+    const auto default_faces = fonts.findTypefaces(descriptor);
+    ASSERT_FALSE(default_faces.empty());
+    EXPECT_EQ(default_faces.front(), default_face);
+    fonts.SetAssetFontManager(
+        std::make_shared<TestFontMgr>(std::vector<TypefaceRef>{asset_face}));
+    const auto asset_faces = fonts.findTypefaces(descriptor);
+    ASSERT_FALSE(asset_faces.empty());
+    EXPECT_EQ(asset_faces.front(), asset_face);
     TestHelper(&ParagraphTest::TestFontCollection, "font_collection.png");
   }
   void TestLineHeightOverride() {
@@ -245,9 +264,7 @@ class ParagraphImageTest : public ::testing::Test {
     canvas_helper.Translate(0.f, image_height);
     TestUtils::DrawLayoutRegionOnCanvas(canvas_helper, *view_region);
 
-    auto codec = skity::Codec::MakePngCodec();
-    auto data = codec->Encode(bitmap.GetPixmap().get());
-    data->WriteToFile(out_file_name);
+    ASSERT_TRUE(textra_demo::WriteSkityPng(bitmap, out_file_name));
   }
 };
 

@@ -9,8 +9,8 @@
 
 #include "src/textlayout/paragraph_impl.h"
 #include "src/textlayout/run/base_run.h"
+#include "test/test_utils.h"
 #include "test_src.h"
-#include "test_utils.h"
 
 TEST(TextTest, WordBreakTypeTest1) {
   ParagraphImpl word_break_paragraph1;
@@ -212,7 +212,7 @@ TEST(InternalExternalTest, ParaTest4) {
   EXPECT_EQ(partial_content2.GetCharCount(), 0u);
 }
 
-// TODO: Fix ParagraphImpl::AddTextRun() assert failure
+// TODO(hfuttyh): Fix ParagraphImpl::AddTextRun() assert failure
 // TEST(BreakTest, BreakAfterBr) {
 //   ParagraphImpl paragraph;
 //   const Style& style = paragraph.GetDefaultStyle();
@@ -256,7 +256,7 @@ TEST(TextTest, LineSpacingTest) {
   auto line1 = region->GetLine(0);
   auto line2 = region->GetLine(1);
   EXPECT_EQ(line1->GetLineTop(), 15);
-  EXPECT_EQ(line2->GetLineTop() - line1->GetLineBottom(), 25);
+  EXPECT_FLOAT_EQ(line2->GetLineTop() - line1->GetLineBottom(), 25.f);
 }
 
 TEST(TextTest, JustifyAlignment) {

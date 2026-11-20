@@ -16,6 +16,11 @@ permissions:
       - platform/**
       - BUILD.gn
       - DEPS
+      - .habitat
+      - hab.ci/**
+      - cmake/**
+      - CMakeLists.txt
+      - tools/ci/habitat_cache_helper.py
       - .gn
       - config.gni
       - patches/**
@@ -111,11 +116,10 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/buildtools/gn:$GITHUB_WORKSPACE/buildtools/ninja:$PATH"
           target_arch="$(python3 -c 'import platform; print(platform.machine())')"
           export CFLAGS="-arch $target_arch" CXXFLAGS="-arch $target_arch" LDFLAGS="-arch $target_arch"
-          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="$target_arch" -DSKITY_MTL_BACKEND=ON -G Ninja -S . -B cmake-build-ci
+          tools/hab sync . --target-only --target skity-macos
           if [ "$GITHUB_EVENT_NAME" = 'pull_request' ]; then
+            cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="$target_arch" -G Ninja -S . -B cmake-build-ci
             cmake --build cmake-build-ci --target mtl_app_demo TextLayoutLiteTest
-          else
-            cmake --build cmake-build-ci --target skity
           fi
       - name: Run Unittests
         run: |
@@ -132,7 +136,7 @@ jobs:
         if: github.event_name == 'pull_request'
       - name: Compare CoreText and SkShaper using one engine pair
         run:
-          python3 test/perf/run_macos.py --baseline "$BASELINE" --candidate "$CANDIDATE" --backend both --skity-library cmake-build-ci/skity.out/libskity.dylib
+          python3 test/perf/run_macos.py --baseline "$BASELINE" --candidate "$CANDIDATE" --backend both --skity-framework third_party/skity_release/apple/skity.xcframework/macos-arm64_x86_64
           --fonts test/perf/fonts.macos.json --output "$RUNNER_TEMP/textra-perf-macos"
         if: needs.protocol-tests.outputs.performance == 'true'
       - name: Compare Release package size (advisory)
@@ -216,7 +220,7 @@ jobs:
           fi
           test -d "$sdk_root/platform-tools"
           echo "ANDROID_HOME=$sdk_root" >> "$GITHUB_ENV"
-          sdkmanager --sdk_root="$sdk_root" --install "cmake;3.18.1" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;21.1.6352462"
+          sdkmanager --sdk_root="$sdk_root" --install "cmake;3.18.1" "platform-tools" "platforms;android-29" "build-tools;30.0.2" "platforms;android-35" "build-tools;35.0.0" "ndk;21.1.6352462"
       - name: Start the existing Lynx runner AVD on an owned port
         run: python3 test/perf/android_emulator.py start --state "$RUNNER_TEMP/textra-perf-emulator.json"
       - name: Use JDK 11 for legacy Android Gradle plugin
@@ -229,6 +233,7 @@ jobs:
         run: |-
           source tools/envsetup.sh
           abi="$($ANDROID_HOME/platform-tools/adb -s "$ANDROID_SERIAL" shell getprop ro.product.cpu.abi | tr -d '\r')"
+          tools/hab sync . --target-only --target skity-android
           pushd demos/android
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           ./gradlew :app:assembleRelease :perftest:assembleRelease :skitydemo:assembleDebug -PabiList="$abi" --no-daemon
@@ -414,7 +419,7 @@ jobs:
             ${{ runner.temp }}/textra-perf-harmony/*-build/libperf_host.so
           retention-days: 14
   windows:
-    name: Windows / Build & Performance
+    name: Windows / Build
     if: github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'windows'
     needs: protocol-tests
     runs-on: lynx-windows-2022-large
@@ -455,7 +460,7 @@ jobs:
         env:
           HABITAT_CONCURRENCY: 2
         run: |
-          python -m pip install PyYAML requests cmake==3.31.6
+          python -m pip install PyYAML requests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $habitat = Join-Path $env:RUNNER_TEMP "hab.exe"
           Invoke-WebRequest "https://github.com/lynx-family/habitat/releases/download/0.3.151/hab.exe" -OutFile $habitat
@@ -463,11 +468,26 @@ jobs:
           & $habitat sync . --target windows-ci --target-only
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           "$env:GITHUB_WORKSPACE\buildtools\ninja" >> $env:GITHUB_PATH
-      - name: Compare Windows SkShaper with fixed fonts
-        if: needs.protocol-tests.outputs.performance == 'true'
+      - name: Build Windows Release core
         shell: pwsh
         run: |
-          python test/perf/run_platform.py --platform windows --baseline $env:BASELINE --candidate $env:CANDIDATE --output "$env:RUNNER_TEMP/textra-perf-windows"
+          New-Item -ItemType Directory -Force out/windows_release | Out-Null
+          @(
+            'target_os = "win"'
+            'target_cpu = "x64"'
+            'is_debug = false'
+            'use_flutter_cxx = false'
+            'is_clang = true'
+            'dynamic_load_harfbuzz = false'
+          ) | Set-Content out/windows_release/args.gn -Encoding ascii
+          & .\buildtools\gn\gn.exe gen out/windows_release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\buildtools\ninja\ninja.exe -C out/windows_release obj/src/capi.stamp
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Report Windows performance coverage
+        shell: pwsh
+        run: |
+          'Windows performance checks are temporarily disabled until a Skity binary SDK is available. The Release core compile check and advisory package-size comparison remain enabled.' >> $env:GITHUB_STEP_SUMMARY
       - name: Compare Release package size (advisory)
         id: package-size
         if: always() && !cancelled() && github.event_name == 'pull_request'
@@ -500,27 +520,6 @@ jobs:
             ${{ runner.temp }}/textra-size-windows/*-build/**/*.dll
             ${{ runner.temp }}/textra-size-windows/*-build/**/build.json
           retention-days: 14
-      - name: Publish paired performance summary
-        if: always()
-        shell: bash
-        run: |
-          report="$RUNNER_TEMP/textra-perf-windows/results/summary.md"
-          if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
-        with:
-          name: performance-windows
-          path: |
-            ${{ runner.temp }}/textra-perf-windows/results
-            ${{ runner.temp }}/textra-perf-windows/config.json
-            ${{ runner.temp }}/textra-perf-windows/*.metadata.json
-            ${{ runner.temp }}/textra-perf-windows/*.apk
-            ${{ runner.temp }}/textra-perf-windows/*.zip
-            ${{ runner.temp }}/textra-perf-windows/*-build/perf-build.json
-            ${{ runner.temp }}/textra-perf-windows/build-only.json
-            ${{ runner.temp }}/textra-perf-windows/*-build/perf_host.exe
-            ${{ runner.temp }}/textra-perf-windows/skity.dll
-          retention-days: 14
   linux-skia:
     name: Linux (Skia) / Build
     runs-on: lynx-ubuntu-22.04-large
@@ -532,15 +531,18 @@ jobs:
           python-version: "3.13"
       - name: Download Source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          lfs: true
       - name: Install Common Dependencies
         uses: ./.github/actions/common-deps
       - name: Run Skia demo build check
         run: |
           source tools/envsetup.sh
-          # source tools/fetch_and_build_skia.sh
-          python3 build/linux/sysroot_scripts/install-sysroot.py --arch=x64
-          buildtools/cmake/bin/cmake -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release -DTEXTRA_ENABLE_SKIA=ON -G Ninja -S . -B cmake-build-release
-          buildtools/cmake/bin/cmake --build cmake-build-release -t ttreaderdemo
+          tools/hab sync . --target-only --target skia-linux
+          buildtools/cmake/bin/cmake -DCMAKE_C_COMPILER="$PWD/buildtools/llvm/bin/clang" -DCMAKE_CXX_COMPILER="$PWD/buildtools/llvm/bin/clang++" -DCMAKE_BUILD_TYPE=Release -DTEXTRA_ENABLE_SKIA=ON -G Ninja -S . -B cmake-build-release
+          buildtools/cmake/bin/cmake --build cmake-build-release -t ttreaderdemo SkiaPrebuiltSmoke GradientSkiaTest
+          cmake-build-release/demos/darwin/macos/ttreaderdemo/SkiaPrebuiltSmoke fonts/Inter/Inter-VariableFont_opsz,wght.ttf skia-smoke.png
+          cmake-build-release/test/GradientSkiaTest
     if: github.event_name == 'pull_request'
     needs: protocol-tests
   linux-lvgl:

@@ -7,7 +7,7 @@
 
 #include "include/core/SkBitmap.h"
 #include "include/core/SkFontMgr.h"
-#include "include/ports/SkFontMgr_mac_ct.h"
+#include "include/ports/SkFontMgr_empty.h"
 
 using namespace ttoffice::tttext;
 
@@ -30,7 +30,7 @@ class GradientSkiaTest : public testing::Test {
     helper_->DrawRect(0, 0, 160, 100, painter_.get());
   }
   std::unique_ptr<SkiaTypefaceHelper> MakeTypeface() {
-    auto manager = SkFontMgr_New_CoreText(nullptr);
+    auto manager = SkFontMgr_New_Custom_Empty();
     auto font = manager->makeFromFile(FONT_ROOT
                                       "Inter/Inter-VariableFont_opsz,wght.ttf");
     return std::make_unique<SkiaTypefaceHelper>(std::move(font));
