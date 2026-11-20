@@ -20,9 +20,7 @@ executable("gl_app_demo") {
   ]
   include_dirs = [
     "$gl_app_root/demos/darwin/macos/glfw",
-    "$gl_app_root/third_party/skity/third_party/glad/include",
     "$gl_app_root/third_party/glfw/include",
-    "$gl_app_root/third_party/skity/module/codec/include",
     "$gl_app_root/",
     "$gl_app_root/src/ports",
     "$gl_app_root/public/",

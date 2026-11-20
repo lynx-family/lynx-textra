@@ -2,6 +2,15 @@ plugins {
     id 'com.android.application'
 }
 
+// Fetched and verified by: tools/hab sync . --target-only --target skity-android
+def skityLock = new groovy.json.JsonSlurper().parse(
+        new File(rootDir, '../../hab.ci/skity.json'))
+def skityReleaseAar = new File(rootDir,
+        '../../third_party/skity_release/android/' + skityLock.artifacts.android.filename)
+if (!skityReleaseAar.isFile()) {
+    throw new GradleException('Run tools/hab sync . --target-only --target skity-android first')
+}
+
 android {
     namespace 'com.lynx.textra.skitydemo'
 
@@ -27,7 +36,7 @@ android {
             externalNativeBuild {
                 cmake {
                     cppFlags "-DDEBUG=1"
-                    arguments '-DBUILD_TYPE=debug', '-DANDROID_STL=' + getCppLib(), '-DSKITY_CODEC_MODULE=OFF', '-DSKITY_BUILD_INSTALL=OFF'
+                    arguments '-DBUILD_TYPE=debug', '-DANDROID_STL=' + getCppLib()
                 }
             }
             minifyEnabled false
@@ -38,7 +47,7 @@ android {
             externalNativeBuild {
                 cmake {
                     cppFlags "-DPERFLOG=0"
-                    arguments '-DBUILD_TYPE=release', '-DANDROID_STL=' + getCppLib(), '-DSKITY_CODEC_MODULE=OFF', '-DSKITY_BUILD_INSTALL=OFF'
+                    arguments '-DBUILD_TYPE=release', '-DANDROID_STL=' + getCppLib()
                 }
             }
             signingConfig signingConfigs.debug
@@ -70,6 +79,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.2.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation project(path: ':lynxtextra')
+    implementation files(skityReleaseAar)
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
 }

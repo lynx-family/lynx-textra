@@ -5,6 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(TEXTRA_ENABLE_SKIA "option for enable skia backend" OFF)
+if(TEXTRA_ENABLE_SKIA)
+    include(${CMAKE_SOURCE_DIR}/cmake/SkiaRelease.cmake)
+endif()
 
 set(GN_ARG_LIST "")
 
@@ -15,6 +18,10 @@ else ()
 endif ()
 
 list(APPEND GN_ARG_LIST "use_flutter_cxx=false" "use_xcode=true")
+if(TEXTRA_ENABLE_SKIA)
+    # The prebuilt SDK targets Ubuntu 22.04; use the matching host C runtime.
+    list(APPEND GN_ARG_LIST "use_default_linux_sysroot=false")
+endif()
 
 if (IS_LVGL)
     list(APPEND GN_ARG_LIST "is_lvgl=true")
@@ -60,7 +67,7 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     GEN_CMAKE("//examples/json_parser:json_parser")
     GEN_CMAKE("//examples/json_parser_exe:json_to_image_app")
 
-    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/skity skity.out)
+    include(${CMAKE_SOURCE_DIR}/cmake/SkityRelease.cmake)
     add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/glfw glfw.out)
 
     add_subdirectory("platform/mac")
@@ -73,6 +80,9 @@ endif ()
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     GEN_CMAKE("//platform/linux:lynxtextra")
     add_subdirectory("platform/linux")
+    if(TEXTRA_ENABLE_SKIA)
+        add_subdirectory("test")
+    endif()
 endif ()
 
 if (${IS_LVGL})
@@ -80,17 +90,5 @@ if (${IS_LVGL})
 endif ()
 
 if (${TEXTRA_ENABLE_SKIA})
-    message(STATUS "executing: ${PROJECT_SOURCE_DIR}/tools/fetch_and_build_skia.sh")
-    add_custom_command(
-            OUTPUT ${CMAKE_BINARY_DIR}/skia/libskia.a
-            COMMAND bash ${PROJECT_SOURCE_DIR}/tools/fetch_and_build_skia.sh ${CMAKE_BINARY_DIR}/skia
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-            DEPENDS ${PROJECT_SOURCE_DIR}/tools/fetch_and_build_skia.sh
-            COMMENT "Fetching and Compiling Skia..."
-            USES_TERMINAL TRUE
-    )
-    add_custom_target(FetchAndBuildSkia ALL
-            DEPENDS ${CMAKE_BINARY_DIR}/skia/libskia.a
-    )
     add_subdirectory("demos/darwin/macos/ttreaderdemo")
 endif ()

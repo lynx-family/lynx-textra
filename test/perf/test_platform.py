@@ -28,6 +28,8 @@ class PlatformTest(unittest.TestCase):
         self.assertEqual(set(profile), set(full)-{'buildtools/cmake'})
         for name in profile:
             self.assertEqual(profile[name], full[name], name)
+        self.assertFalse(any(name == 'third_party/skity' or
+                             name.startswith('third_party/skity/') for name in profile))
 
     def test_ios_uses_available_device_type_for_owned_simulator(self):
         devices = {'runtime-ios': [dict(udid='existing',name='iPhone 17',

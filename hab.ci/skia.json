@@ -1,0 +1,35 @@
+{
+  "version": "m130",
+  "revision": "0f81dc8b2e43c060972a8d8d229b346694a674f8",
+  "provider": "Brooooooklyn/canvas",
+  "release": "skia-0f81dc8b",
+  "platform": "linux-x64",
+  "libcxx_version": "18.1.8",
+  "artifacts": {
+    "libskia.a": {
+      "url": "https://github.com/Brooooooklyn/canvas/releases/download/skia-0f81dc8b/libskia-linux-x64-gnu.a",
+      "sha256": "9c51b87df37ba3ccc2d2811897c05269f7c1be73a4a39324ea31298ca71cd8d4",
+      "decompress": false
+    },
+    "packages/libc++-18-dev_18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb": {
+      "url": "https://apt.llvm.org/jammy/pool/main/l/llvm-toolchain-18/libc++-18-dev_18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb",
+      "sha256": "577e4f6e0e4e6ac0d278f7b43c0e9c540404e98ad650740aba3e95f9804efa7c",
+      "decompress": false
+    },
+    "packages/libc++abi-18-dev_18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb": {
+      "url": "https://apt.llvm.org/jammy/pool/main/l/llvm-toolchain-18/libc++abi-18-dev_18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb",
+      "sha256": "db0f1f6e4b7841b8f2828e44dd1071b9323ddb192837a0cabfca367b008b004c",
+      "decompress": false
+    },
+    "packages/libunwind-18-dev_18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb": {
+      "url": "https://apt.llvm.org/jammy/pool/main/l/llvm-toolchain-18/libunwind-18-dev_18.1.8~++20240731024944+3b5b5c1ec4a3-1~exp1~20240731145000.144_amd64.deb",
+      "sha256": "bb4727f2ffcd0585f5e61b4d9206212ae64fbcf13fcf34083a29f9a0d761ba07",
+      "decompress": false
+    },
+    "headers.tar.gz": {
+      "url": "https://codeload.github.com/google/skia/tar.gz/0f81dc8b2e43c060972a8d8d229b346694a674f8",
+      "sha256": "f77efed801e8976b3f6ebf1d649fd37821636eb38094dee56932aa833c2d888a",
+      "decompress": false
+    }
+  }
+}

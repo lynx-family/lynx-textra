@@ -11,6 +11,7 @@ import subprocess
 from pathlib import Path
 
 from gate import benchmark_digest, digest
+from paired_build import verify_shared_dependencies
 
 HERE = Path(__file__).resolve().parent
 SHARED = ('build', 'buildtools', 'third_party', 'tools_shared')
@@ -23,9 +24,7 @@ def execute(args, **kwargs):
 def checkout(source, revision, destination):
     subprocess.run(['git', '-C', str(source), 'worktree', 'add', '--detach',
                     str(destination), revision], env={**os.environ, 'GIT_LFS_SKIP_SMUDGE': '1'}, check=True)
-    for name in ('DEPS', '.gn'):
-        if (destination/name).read_bytes() != (source/name).read_bytes():
-            raise ValueError('paired builds require matching ' + name)
+    verify_shared_dependencies(destination, source)
     for name in SHARED:
         link, target = destination/name, source/name
         if link.exists():

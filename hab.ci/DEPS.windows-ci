@@ -3,8 +3,8 @@
 # LICENSE file in the root directory of this source tree.
 import os
 
-# Keep the source/toolchain pins identical to DEPS. Windows CI installs native
-# CMake 3.31.6 with pip and never uses the legacy buildtools/cmake package.
+# Keep the source/toolchain pins identical to DEPS. Windows CI
+# builds use GN/Ninja and do not need the legacy buildtools/cmake package.
 with open(os.path.join(os.getcwd(), 'DEPS'), encoding='utf-8') as source:
     exec(compile(source.read(), source.name, 'exec'))
 del deps['buildtools/cmake']

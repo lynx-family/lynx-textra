@@ -1,3 +1,5 @@
+// Copyright 2026 The Lynx Authors. All rights reserved.
+// Licensed under the Apache License Version 2.0.
 #include <android/log.h>
 #include <jni.h>
 
@@ -33,12 +35,12 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
   REGISTER_NATIVES(AndroidGLExample)
   // REGISTER_NATIVES(AndroidGLFrameExample)
 
-  skity::Logger::CustomLogger logger{};
+  static skity::Logger::CustomLogger logger{};
   logger.log_i = &skity_log_i;
   logger.log_d = &skity_log_d;
   logger.log_e = &skity_log_e;
 
-  skity::Logger::RegisteLog(&logger);
+  skity::Logger::RegisterLog(&logger);
 
   return JNI_VERSION_1_6;
 }

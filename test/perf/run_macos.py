@@ -13,10 +13,10 @@ import sys
 from pathlib import Path
 
 from gate import benchmark_digest, digest, run
-from paired_build import build_pair
+from paired_build import build_pair, verify_shared_dependencies
 
 HERE = Path(__file__).resolve().parent
-GN_ARGS = 'is_debug=false use_xcode=true use_flutter_cxx=true dynamic_load_harfbuzz=false'
+GN_ARGS = 'is_debug=false use_xcode=true use_flutter_cxx=false dynamic_load_harfbuzz=false'
 
 
 def command(args, **kwargs):
@@ -30,10 +30,8 @@ def prepare(source, baseline, output):
     subprocess.run(['git', '-C', str(source), 'worktree', 'add', '--detach', str(before), baseline],
                    env={**os.environ, 'GIT_LFS_SKIP_SMUDGE': '1'}, check=True)
     # Both engines intentionally use the same fetched dependencies/toolchain.
-    # Reject dependency-changing PRs rather than silently using the wrong pins.
-    for filename in ('DEPS', '.gn'):
-        if (before / filename).read_bytes() != (source / filename).read_bytes():
-            raise ValueError('paired build requires equal ' + filename)
+    # Renderer SDK is shared explicitly; all core/toolchain inputs must match.
+    verify_shared_dependencies(before, source)
     for directory in ('build', 'buildtools', 'third_party', 'tools_shared'):
         if (before / directory).exists():
             raise ValueError('dependency path is tracked: ' + directory)
@@ -68,19 +66,24 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--backend', choices=['macos', 'skity', 'both'], default='macos')
     parser.add_argument('--jobs', type=int, help='total Ninja job budget shared by both revisions')
-    parser.add_argument('--skity-library', type=Path)
+    parser.add_argument('--skity-framework', type=Path,
+                        help='directory containing the released skity.framework')
     parser.add_argument('--harfbuzz-library', type=Path,
                         help='optional pinned dynamic HarfBuzz; default builds bundled HarfBuzz')
     parser.add_argument('--fonts', type=Path, help='JSON array of fixed font file paths for Skity')
     args = parser.parse_args()
     source, output = args.source.resolve(), args.output.resolve()
+    skity = (args.skity_framework.resolve() / 'skity.framework/Versions/A/skity'
+             if args.skity_framework else None)
+    if skity and not skity.is_file():
+        parser.error('Skity release framework binary unavailable')
     if command(['git', '-C', source, 'rev-parse', 'HEAD']) != args.candidate:
         parser.error('checkout does not match candidate SHA')
     if command(['git', '-C', source, 'diff', 'HEAD', '--', 'src', 'public', 'platform',
                 'BUILD.gn', 'config.gni']):
         parser.error('candidate engine has uncommitted changes')
-    if args.backend in ('skity', 'both') and (not args.skity_library or not args.fonts):
-        parser.error('Skity requires a shared library and a fixed font manifest')
+    if args.backend in ('skity', 'both') and (not skity or not args.fonts):
+        parser.error('Skity requires a release framework and a fixed font manifest')
     # The same source tree supplies headers to the external benchmark only via
     # each engine's own compile command. No candidate engine headers leak into
     # the baseline build.
@@ -115,18 +118,17 @@ def main():
             executable = output / version
             build_command = [sys.executable, str(HERE / 'build_macos.py'), '--source', str(tree),
                              '--build', str(build), '--output', str(executable), '--jobs', str(jobs)]
-            if args.skity_library:
-                build_command += ['--skity-library', str(args.skity_library.resolve()),
-                                  '--skity-include', str(source / 'third_party/skity/include')]
+            if args.skity_framework:
+                build_command += ['--skity-framework', str(args.skity_framework.resolve())]
             subprocess.run(build_command, check=True)
             return executable
         compiled = build_pair(compile_revision, revisions, args.jobs)
         for (version,tree,revision),executable in zip(revisions,compiled):
             meta = output / (version + '.metadata.json')
-            metadata(source, revision, gn_args, args.skity_library, args.harfbuzz_library, config['fonts'], meta)
+            metadata(source, revision, gn_args, skity, args.harfbuzz_library, config['fonts'], meta)
             artifacts = [dict(path=str(path), sha256=digest(path))
                          for path in [executable, meta] +
-                         ([args.skity_library.resolve()] if args.skity_library else []) +
+                         ([skity.resolve()] if skity else []) +
                          ([args.harfbuzz_library.resolve()] if args.harfbuzz_library else []) +
                          [Path(f) for f in config['fonts']]]
             config[version] = dict(revision=revision, protocol='jsonl',

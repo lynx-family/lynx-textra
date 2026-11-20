@@ -66,8 +66,6 @@ elseif (APPLE)
               "-framework MetalKit"
               "-framework Metal"
               "-framework IOKit"
-              skity
-              skity-codec
               lynxtextra
     )
 

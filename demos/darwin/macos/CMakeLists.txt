@@ -121,8 +121,6 @@ function(init_target target)
             ${TEXTLAYOUT_DIRECTORY}/include/skia/include
             ${TEXTLAYOUT_DIRECTORY}/include/freetype/include
             ${TEXTLAYOUT_DIRECTORY}/public/textra/platform/skity/
-            ${TEXTLAYOUT_DIRECTORY}/thirdparty/skity/include
-            ${TEXTLAYOUT_DIRECTORY}/thirdparty/skity/third_party/glm
             ${TEXTLAYOUT_DIRECTORY}/thirdparty/glfw-3.3.7/include
             )
     target_link_libraries(${target} PUBLIC
@@ -151,7 +149,10 @@ add_executable(glappdemo_skity
         glfw/gl_app_demo_skity.cc
         ttreaderdemo/paragraph_test.cc
         )
-target_link_libraries(glappdemo_skity PRIVATE skity-static)
+if(NOT TARGET skity)
+    include(${TEXTLAYOUT_DIRECTORY}/cmake/SkityRelease.cmake)
+endif()
+target_link_libraries(glappdemo_skity PRIVATE skity)
 init_target(glappdemo_skity)
 
 add_executable(glappdemo_skia

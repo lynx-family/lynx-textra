@@ -44,7 +44,15 @@ def deps_files_path(targets: list) -> list[Path]:
     spec.loader.exec_module(habitat)
 
     # take .habitat file into account as well
-    res = [habitat_path, LYNX_ROOT_DIR / habitat.solutions[0]["deps_file"]]
+    res = [
+        habitat_path,
+        LYNX_ROOT_DIR / habitat.solutions[0]["deps_file"],
+        LYNX_ROOT_DIR / "hab.ci/skity.json",
+        LYNX_ROOT_DIR / "hab.ci/skia.json",
+        LYNX_ROOT_DIR / "hab.ci/DEPS.skia_linux",
+        LYNX_ROOT_DIR / "hab.ci/DEPS.skity_macos",
+        LYNX_ROOT_DIR / "hab.ci/DEPS.skity_android",
+    ]
     res.extend(
         [
             LYNX_ROOT_DIR / habitat.solutions[0]["target_deps_files"][target]

@@ -95,8 +95,8 @@ int main(int argc, char* argv[]) {
   }
 
   // Save as PNG file
-  std::shared_ptr<skity::Codec> codec = skity::Codec::MakePngCodec();
-  std::shared_ptr<skity::Data> data = codec->Encode(bitmap.GetPixmap().get());
-  data->WriteToFile(output_file.c_str());
+  if (!textra_demo::WriteSkityPng(bitmap, output_file.c_str())) {
+    throw std::runtime_error("Failed to write PNG: " + output_file);
+  }
   std::cout << "Output file: '" << output_file << "'" << std::endl;
 }
