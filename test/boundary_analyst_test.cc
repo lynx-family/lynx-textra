@@ -4,10 +4,12 @@
 
 #include "src/textlayout/internal/boundary_analyst.h"
 
+#include <string_view>
+#include <vector>
+
 #include "gtest/gtest.h"
 #include "src/textlayout/style/style_manager.h"
-#include "test_src.h"
-using namespace tttext;
+using namespace ttoffice::tttext;
 TEST(BoundaryAnalystTest, DefaultBreak) {
   constexpr std::u32string_view text = U"一段文本(一段文本)一段文本";
   const BoundaryAnalyst boundary_analyst(
@@ -200,4 +202,68 @@ TEST(BoundaryAnalystTest, KeepAllAppliesWithPunctuationRestrictionDisabled) {
   EXPECT_EQ(analyst.GetBoundaryType(1), BoundaryType::kLineBreakable);
   EXPECT_EQ(analyst.GetBoundaryType(2), BoundaryType::kLineBreakable);
   EXPECT_EQ(analyst.GetBoundaryType(3), BoundaryType::kWord);
+}
+
+TEST(BoundaryAnalystTest, KeepAllDefaultRespectsLocalOverrides) {
+  constexpr std::u32string_view text = U"中文文本测试";
+  StyleManager styles;
+  StyleImpl default_style;
+  default_style.SetWordBreak(WordBreakType::kKeepAll);
+  styles.SetParagraphStyle(default_style);
+  styles.SetWordBreak(WordBreakType::kNormal, 1, 1);
+  styles.SetWordBreak(WordBreakType::kBreakAll, 3, 1);
+  const BoundaryAnalyst analyst(text.data(), text.size(),
+                                kLineBreakStrategyDefault, styles);
+  const std::vector expected{BoundaryType::kWord, BoundaryType::kLineBreakable,
+                             BoundaryType::kWord, BoundaryType::kLineBreakable,
+                             BoundaryType::kWord, BoundaryType::kLineBreakable};
+  for (auto i = 0u; i < text.size(); ++i) {
+    EXPECT_EQ(analyst.GetBoundaryType(i), expected[i]) << i;
+  }
+}
+
+TEST(BoundaryAnalystTest, KeepAllTracksStyleChanges) {
+  constexpr std::u32string_view text = U"中文文本";
+  StyleManager styles;
+  const auto boundary_at_one = [&]() {
+    return BoundaryAnalyst(text.data(), text.size(), kLineBreakStrategyDefault,
+                           styles)
+        .GetBoundaryType(1);
+  };
+  EXPECT_FALSE(styles.MayHaveKeepAll());
+  EXPECT_EQ(boundary_at_one(), BoundaryType::kLineBreakable);
+  styles.SetWordBreak(WordBreakType::kKeepAll, 1, 1);
+  EXPECT_TRUE(styles.MayHaveKeepAll());
+  EXPECT_EQ(boundary_at_one(), BoundaryType::kWord);
+  styles.SaveStyle();
+  styles.SetWordBreak(WordBreakType::kNormal, 1, 1);
+  EXPECT_FALSE(styles.MayHaveKeepAll());
+  EXPECT_EQ(boundary_at_one(), BoundaryType::kLineBreakable);
+  styles.RestoreStyle();
+  EXPECT_TRUE(styles.MayHaveKeepAll());
+  EXPECT_EQ(boundary_at_one(), BoundaryType::kWord);
+  styles.ClearStyleInRange(kWordBreak, Range::MakeLW(1, 1));
+  EXPECT_FALSE(styles.MayHaveKeepAll());
+  EXPECT_EQ(boundary_at_one(), BoundaryType::kLineBreakable);
+
+  StyleImpl default_style;
+  default_style.SetWordBreak(WordBreakType::kKeepAll);
+  styles.SetParagraphStyle(default_style);
+  EXPECT_TRUE(styles.MayHaveKeepAll());
+  EXPECT_EQ(boundary_at_one(), BoundaryType::kWord);
+  default_style.SetWordBreak(WordBreakType::kNormal);
+  styles.SetParagraphStyle(default_style);
+  EXPECT_FALSE(styles.MayHaveKeepAll());
+  EXPECT_EQ(boundary_at_one(), BoundaryType::kLineBreakable);
+}
+
+TEST(BoundaryAnalystTest, KeepAllHandlesEmptyNullAndSingleCharacter) {
+  StyleManager styles;
+  styles.SetWordBreak(WordBreakType::kKeepAll, 0, 1);
+  const BoundaryAnalyst empty(U"", 0, kLineBreakStrategyDefault, styles);
+  const BoundaryAnalyst null(nullptr, 1, kLineBreakStrategyDefault, styles);
+  const BoundaryAnalyst single(U"中", 1, kLineBreakStrategyDefault, styles);
+  EXPECT_EQ(empty.FindNextBoundary(0, BoundaryType::kLineBreakable), 0u);
+  EXPECT_EQ(null.GetBoundaryType(0), BoundaryType::kLineBreakable);
+  EXPECT_EQ(single.GetBoundaryType(0), BoundaryType::kLineBreakable);
 }

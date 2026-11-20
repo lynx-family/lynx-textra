@@ -27,13 +27,18 @@ enum class CharType {
 };
 class SimpleBreak {
  public:
-  static void SimpleBoundaryBreak(const char32_t* u32_content,
-                                  uint32_t char_count, BoundaryType* boundary,
-                                  LineBreakStrategy line_break_strategy) {
+  static std::unique_ptr<CharType[]> ClassifyCharacters(
+      const char32_t* u32_content, uint32_t char_count) {
     auto char_type = std::make_unique<CharType[]>(char_count);
-    for (auto k = 0u; k < char_count; k++) {
+    for (auto k = 0u; k < char_count; ++k) {
       char_type[k] = GetCharType(u32_content[k]);
     }
+    return char_type;
+  }
+
+  static void SimpleBoundaryBreak(const CharType* char_type,
+                                  uint32_t char_count, BoundaryType* boundary,
+                                  LineBreakStrategy line_break_strategy) {
     for (auto k = 0u; k < char_count; k++) {
       const auto type = char_type[k];
       if (type == CharType::kNone) {
@@ -75,12 +80,14 @@ class SimpleBreak {
     }
   }
 
-  static void ApplyWordBreak(const char32_t* u32_content, uint32_t char_count,
+  static void ApplyWordBreak(const char32_t* u32_content,
+                             const CharType* char_type, uint32_t char_count,
                              BoundaryType* boundary,
                              const StyleManager& style_manager) {
-    auto type = GetCharType(u32_content[0]);
+    auto type = char_type ? char_type[0] : GetCharType(u32_content[0]);
     for (auto k = 0u; k + 1 < char_count; ++k) {
-      const auto next_type = GetCharType(u32_content[k + 1]);
+      const auto next_type =
+          char_type ? char_type[k + 1] : GetCharType(u32_content[k + 1]);
       if (boundary[k] == BoundaryType::kLineBreakable &&
           (type == CharType::kNone || type == CharType::kCJK) &&
           (next_type == CharType::kNone || next_type == CharType::kCJK) &&
@@ -138,15 +145,21 @@ BoundaryAnalyst::BoundaryAnalyst(const char32_t* u32_content,
   }
 #ifdef BOUNDARY_ANALYST_ICU
   boundary_.resize(char_count, BoundaryType::kNone);
+  std::unique_ptr<CharType[]> char_type;
   auto& icu_wrapper = ICUWrapper::GetInstance();
   icu_wrapper.icu_boundary_breaker(u32_content, char_count, boundary_);
 #else
   boundary_.resize(char_count);
-  SimpleBreak::SimpleBoundaryBreak(u32_content, char_count, boundary_.data(),
-                                   line_break_strategy);
+  auto char_type = SimpleBreak::ClassifyCharacters(u32_content, char_count);
+  SimpleBreak::SimpleBoundaryBreak(char_type.get(), char_count,
+                                   boundary_.data(), line_break_strategy);
 #endif
-  SimpleBreak::ApplyWordBreak(u32_content, char_count, boundary_.data(),
-                              style_manager);
+  if (char_count > 1 && style_manager.MayHaveKeepAll()) {
+    // Reuse simple breaking's classification. ICU has no such buffer, so
+    // classify its characters on demand without an additional allocation.
+    SimpleBreak::ApplyWordBreak(u32_content, char_type.get(), char_count,
+                                boundary_.data(), style_manager);
+  }
 }
 uint32_t BoundaryAnalyst::FindNextBoundary(uint32_t start,
                                            BoundaryType type) const {
