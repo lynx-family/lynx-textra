@@ -24,6 +24,8 @@
 #endif
 #include <textra/macro.h>
 
+#include <algorithm>
+
 #include "src/textlayout/paragraph_impl.h"
 #include "src/textlayout/run/base_run.h"
 #include "src/textlayout/shape_cache.h"
@@ -118,7 +120,11 @@ ShapeResultRef TTShaper::ShapeText(const char32_t* text, uint32_t length,
   if (result == nullptr) {
     result = std::make_shared<ShapeResult>(length, rtl);
     OnShapeText(key, result.get());
-    TTASSERT(result->GlyphCount() > 0);
+    // Font matching can fail for every character. Preserve the text range,
+    // but do not access glyph data or cache a transient font failure.
+    if (result->GlyphCount() == 0) {
+      return result;
+    }
 
     for (auto k = 0u; k < length; k++) {
       if (text[k] < 32) {
@@ -151,6 +157,10 @@ void ShapeResult::AppendPlatformShapingResult(
   }
 
   c2glyph_indices_.resize(reader.TextCount(), -1u);
+  if (glyph_count == 0) {
+    std::fill(c2glyph_indices_.begin(), c2glyph_indices_.end(), 0u);
+    return;
+  }
 
   for (auto k = 0u; k < glyph_count; k++) {
     auto c_idx = indices_[k];
@@ -161,8 +171,7 @@ void ShapeResult::AppendPlatformShapingResult(
   }
   for (auto k = 0u; k < reader.TextCount(); k++) {
     if (c2glyph_indices_[k] == -1u) {
-      TTASSERT(k > 0);
-      c2glyph_indices_[k] = c2glyph_indices_[k - 1];
+      c2glyph_indices_[k] = k == 0 ? 0 : c2glyph_indices_[k - 1];
     }
   }
 }

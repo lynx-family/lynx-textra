@@ -23,6 +23,7 @@
 #include "src/ports/shaper/coretext/shaper_core_text_self_rendering.h"
 #endif
 #include "mocks.h"
+#include "src/textlayout/icu_substitute/bidi/algorithm/bidi.h"
 #include "src/textlayout/icu_substitute/bidi/bidi_wrapper.h"
 #include "src/textlayout/shape_cache.h"
 #include "test_utils.h"
@@ -669,4 +670,14 @@ TEST(FontmgrCollectionSessionCache, ClearRejectsInflightOldEpochResult) {
   resolving.join();
   ASSERT_EQ(second.findTypefaces(descriptor).size(), 1u);
   EXPECT_EQ(manager->calls(), 2);
+}
+
+TEST(BidiContext, StoresAndClearsContext) {
+  Bidi bidi(0, 0);
+  bidi.setContext("before", "after");
+  EXPECT_EQ(bidi.prologue, "before");
+  EXPECT_EQ(bidi.epilogue, "after");
+  bidi.setContext("", "");
+  EXPECT_TRUE(bidi.prologue.empty());
+  EXPECT_TRUE(bidi.epilogue.empty());
 }
