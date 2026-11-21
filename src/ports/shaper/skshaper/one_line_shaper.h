@@ -87,8 +87,8 @@ class OneLineShaper : public SkShaper::RunHandler {
     explicit RunBlock(std::shared_ptr<Run> run);
 
     std::shared_ptr<Run> fRun;
-    TextRange fText;
-    GlyphRange fGlyphs;
+    TextRange fText{0, 0};
+    GlyphRange fGlyphs{0, 0};
     bool isFullyResolved() const;
   };
 
@@ -114,6 +114,7 @@ class OneLineShaper : public SkShaper::RunHandler {
   void addFullyResolved();
   TextRange normalizeTextRange(GlyphRange glyphRange);
   void buildProtectedTextRanges();
+  bool splitUnresolvedCombiningRanges();
   TextRange expandTextRangeToProtected(TextRange textRange) const;
   GlyphRange glyphRangeForTextRange(TextRange textRange);
   void addUnresolvedWithRun(GlyphRange glyphRange);

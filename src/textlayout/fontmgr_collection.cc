@@ -94,6 +94,9 @@ std::vector<TypefaceRef> FontmgrCollection::findTypefaces(
     }
   }
 
+  // A failed lookup can recover after fonts become available.
+  if (typefaces.empty()) return typefaces;
+
   {
     std::unique_lock lock(typeface_cache_->mutex);
     if (cache_epoch != typeface_cache_->epoch) return typefaces;

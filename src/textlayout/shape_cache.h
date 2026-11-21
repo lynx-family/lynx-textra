@@ -33,7 +33,7 @@ class ShapeResultPiece {
   bool Valid() const { return CharCount() > 0; }
   uint32_t CharCount() const { return end_char_pos_ - start_char_pos_; }
   uint32_t GlyphCount() const {
-    if (CharCount() == 0 || result_ == nullptr) {
+    if (CharCount() == 0 || result_ == nullptr || result_->GlyphCount() == 0) {
       return 0;
     }
     // Account for non-1:1 char/glyph mappings. The two end-position
