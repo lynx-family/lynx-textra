@@ -32,6 +32,7 @@ executable("TextLayoutLiteTest") {
     "justify_analyst_test.cc",
     "layout_drawer_test.cc",
     "layout_region_test.cc",
+    "one_line_shaper_test.cc",
     "paragraph_image_test.cc",
     "paragraph_style_test.cc",
     "paragraph_test.cc",
@@ -56,6 +57,7 @@ executable("TextLayoutLiteTest") {
   ]
 
   deps = [
+    "//src:skshaper",
     "//src:textlayout",
     "//third_party/googletest:gmock",
     "//third_party/googletest:gtest",

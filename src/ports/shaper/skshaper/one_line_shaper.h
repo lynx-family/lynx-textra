@@ -87,8 +87,8 @@ class OneLineShaper : public SkShaper::RunHandler {
     explicit RunBlock(std::shared_ptr<Run> run);
 
     std::shared_ptr<Run> fRun;
-    TextRange fText;
-    GlyphRange fGlyphs;
+    TextRange fText{0, 0};
+    GlyphRange fGlyphs{0, 0};
     bool isFullyResolved() const;
   };
 
