@@ -10,6 +10,7 @@ group("test") {
     ":TextLayoutLiteTest",
     ":backend_test",
     ":capi_test",
+    ":unicode_script_test",
   ]
   if (is_mac) {
     deps += [
@@ -49,6 +50,7 @@ executable("TextLayoutLiteTest") {
     "text_test.cc",
     "tt_shaper_test.cc",
     "tttext_context_test.cc",
+    "unicode_script_test.cc",
   ]
 
   include_dirs = [
@@ -81,6 +83,26 @@ executable("TextLayoutLiteTest") {
     "-Wno-unused-function",
     "-Wno-unused-private-field",
   ]
+}
+
+# Script and font-policy tests do not require any platform or font libraries.
+executable("unicode_script_test") {
+  testonly = true
+  sources = [
+    "//public/textra/macro.h",
+    "//src/ports/shaper/coretext/default_font_policy.h",
+    "//src/textlayout/utils/grapheme_utils.h",
+    "//src/textlayout/utils/log_util.h",
+    "//src/textlayout/utils/u_8_string.cc",
+    "//src/textlayout/utils/u_8_string.h",
+    "//src/textlayout/utils/unicode_script.h",
+    "unicode_script_test.cc",
+  ]
+  include_dirs = [
+    "//",
+    "//public",
+  ]
+  deps = [ "//third_party/googletest:gtest_main" ]
 }
 
 # Pure host tests do not require the Skity image-test dependencies.

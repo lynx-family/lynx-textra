@@ -4,6 +4,7 @@
 
 #include "shaper_core_text.h"
 
+#include "default_font_policy.h"
 #include "font_feature_settings.h"
 #include "shape_text_encoding.h"
 
@@ -42,6 +43,9 @@
 namespace ttoffice {
 namespace tttext {
 namespace {
+#ifdef USE_UIKIT
+using coretext::DefaultFontSelection;
+#endif
 #ifdef USE_APPKIT
 CFDictionaryRef GetLegacyFontCascadeAttributes() {
   static CFDictionaryRef attributes = []() -> CFDictionaryRef {
@@ -129,12 +133,16 @@ class SystemUIFontFallbacks {
     return entries_[weight_index].attributes;
   }
   // Returns a retained font. Sized derivatives are bounded per calling thread.
-  CTFontRef CopyFont(DefaultFontKind kind, size_t weight, CGFloat size) const;
+  CTFontRef CopyFont(DefaultFontSelection selection, size_t weight,
+                     CGFloat size) const;
 
  private:
   struct Entry {
     CTFontRef system_font = nullptr;
-    std::array<CTFontRef, 4> fonts{};
+    CTFontRef han_font = nullptr;
+    CTFontRef emoji_font = nullptr;
+    CTFontRef thai_font = nullptr;
+    CTFontRef arabic_font = nullptr;
     CFDictionaryRef attributes = nullptr;
   };
 
@@ -146,20 +154,24 @@ class SystemUIFontFallbacks {
             [UIFont systemFontOfSize:14 weight:GetUIFontWeights()[weight]];
         entry.system_font =
             static_cast<CTFontRef>(CFRetain((__bridge CTFontRef)system_font));
-        const CFStringRef samples[] = {CFSTR("\u4E2D"), CFSTR("\U0001F600"),
-                                       CFSTR("\u0E01"), CFSTR("\u0627")};
+        const struct {
+          CFStringRef text;
+          CTFontRef* font;
+        } samples[] = {
+            {CFSTR("\u4E2D"), &entry.han_font},
+            {CFSTR("\U0001F600"), &entry.emoji_font},
+            {CFSTR("\u0E01"), &entry.thai_font},
+            {CFSTR("\u0627"), &entry.arabic_font},
+        };
         CFMutableArrayRef descriptors =
             CFArrayCreateMutable(nullptr, 4, &kCFTypeArrayCallBacks);
         if (!descriptors) continue;
-        for (size_t script = 0; script < entry.fonts.size(); ++script) {
-          CFStringRef sample = samples[script];
-          entry.fonts[script] =
-              CTFontCreateForString((__bridge CTFontRef)system_font, sample,
-                                    CFRangeMake(0, CFStringGetLength(sample)));
+        for (const auto& sample : samples) {
+          *sample.font = CTFontCreateForString(
+              (__bridge CTFontRef)system_font, sample.text,
+              CFRangeMake(0, CFStringGetLength(sample.text)));
           CTFontDescriptorRef descriptor =
-              entry.fonts[script]
-                  ? CTFontCopyFontDescriptor(entry.fonts[script])
-                  : nullptr;
+              *sample.font ? CTFontCopyFontDescriptor(*sample.font) : nullptr;
           if (!descriptor) break;
           CFArrayAppendValue(descriptors, descriptor);
           CFRelease(descriptor);
@@ -173,9 +185,9 @@ class SystemUIFontFallbacks {
         }
         CFRelease(descriptors);
         if (!entry.attributes) {
-          for (auto& font : entry.fonts) {
-            if (font) CFRelease(font);
-            font = nullptr;
+          for (const auto& sample : samples) {
+            if (*sample.font) CFRelease(*sample.font);
+            *sample.font = nullptr;
           }
         }
       }
@@ -188,24 +200,44 @@ CFDictionaryRef GetSystemUIFontCascadeAttributes(size_t weight_index) {
   return SystemUIFontFallbacks::GetInstance().Attributes(weight_index);
 }
 
-CTFontRef SystemUIFontFallbacks::CopyFont(DefaultFontKind kind, size_t weight,
-                                          CGFloat size) const {
-  TTASSERT(kind < DefaultFontKind::kInherited && weight < entries_.size());
+CTFontRef SystemUIFontFallbacks::CopyFont(DefaultFontSelection selection,
+                                          size_t weight, CGFloat size) const {
+  TTASSERT(selection.script != UnicodeScript::kInherited &&
+           weight < entries_.size());
   TTASSERT(size > 0 && std::isfinite(size));
   const auto& entry = entries_[weight];
-  const size_t script = static_cast<size_t>(kind);
-  CTFontRef base =
-      script < entry.fonts.size() ? entry.fonts[script] : entry.system_font;
+  CTFontRef base = nullptr;
+  if (selection.emoji) {
+    base = entry.emoji_font;
+  } else {
+    switch (selection.script) {
+      case UnicodeScript::kHan:
+        base = entry.han_font;
+        break;
+      case UnicodeScript::kThai:
+        base = entry.thai_font;
+        break;
+      case UnicodeScript::kArabic:
+        base = entry.arabic_font;
+        break;
+      case UnicodeScript::kLatin:
+        base = entry.system_font;
+        break;
+      default:
+        break;
+    }
+  }
   if (!base) {
     base = entry.system_font;
-    kind = DefaultFontKind::kFallback;
+    selection = {};
   }
   if (!base) return nullptr;
-  if (kind != DefaultFontKind::kFallback && size == CTFontGetSize(base)) {
+  if (selection.script != UnicodeScript::kUnknown &&
+      size == CTFontGetSize(base)) {
     return static_cast<CTFontRef>(CFRetain(base));
   }
   struct SizedFont {
-    DefaultFontKind kind = DefaultFontKind::kSystem;
+    DefaultFontSelection selection{UnicodeScript::kLatin};
     size_t weight = 0;
     CGFloat size = 0;
     CTFontRef font = nullptr;
@@ -223,13 +255,13 @@ CTFontRef SystemUIFontFallbacks::CopyFont(DefaultFontKind kind, size_t weight,
   // remain valid when this thread evicts an entry or exits.
   static thread_local SizedFonts cache;
   for (const auto& cached : cache.entries) {
-    if (cached.font && cached.kind == kind && cached.weight == weight &&
-        cached.size == size) {
+    if (cached.font && cached.selection == selection &&
+        cached.weight == weight && cached.size == size) {
       return static_cast<CTFontRef>(CFRetain(cached.font));
     }
   }
   CTFontRef font = nullptr;
-  if (kind == DefaultFontKind::kFallback && entry.attributes) {
+  if (selection.script == UnicodeScript::kUnknown && entry.attributes) {
     auto descriptor = CTFontCopyFontDescriptor(base);
     auto safe_descriptor =
         CTFontDescriptorCreateCopyWithAttributes(descriptor, entry.attributes);
@@ -242,7 +274,7 @@ CTFontRef SystemUIFontFallbacks::CopyFont(DefaultFontKind kind, size_t weight,
   if (!font) return nullptr;
   auto& cached = cache.entries[cache.next];
   if (cached.font) CFRelease(cached.font);
-  cached = {kind, weight, size, font};
+  cached = {selection, weight, size, font};
   cache.next = (cache.next + 1) % cache.entries.size();
   return static_cast<CTFontRef>(CFRetain(font));
 }
@@ -283,52 +315,69 @@ CFAttributedStringRef CreateStringWithDefaultFonts(
                                   false);
   const auto& pool = SystemUIFontFallbacks::GetInstance();
   const size_t weight = GetDefaultUIFontWeightIndex(fd);
-  std::array<CTFontRef, 6> fonts{};
-  auto apply = [&](DefaultFontKind kind, CFIndex start, CFIndex end) {
-    auto index = static_cast<size_t>(kind);
-    if (!fonts[index]) fonts[index] = pool.CopyFont(kind, weight, size);
-    if (!fonts[index]) return false;
+  auto apply = [&](DefaultFontSelection selection, CFIndex start, CFIndex end) {
+    // CopyFont already reuses the bounded per-thread size cache.
+    auto font = pool.CopyFont(selection, weight, size);
+    if (!font) return false;
     CFAttributedStringSetAttribute(result, CFRangeMake(start, end - start),
-                                   kCTFontAttributeName, fonts[index]);
+                                   kCTFontAttributeName, font);
+    CFRelease(font);
     return true;
+  };
+  auto select_cluster = [&](CFIndex offset, CFIndex* end) {
+    // Keep surrogate pairs, emoji sequences and combining marks together.
+    auto range = CFStringGetRangeOfComposedCharactersAtIndex(text, offset);
+    *end = range.location + range.length;
+    TTASSERT(range.location == offset && *end > offset && *end <= length);
+    return coretext::SelectDefaultFont(encoded.Text().substr(
+        encoded.Map()[offset], encoded.Map()[*end] - encoded.Map()[offset]));
   };
   CFIndex start = 0;
   CFIndex offset = 0;
-  auto previous = DefaultFontKind::kFallback;
+  DefaultFontSelection previous;
+  UnicodeScript context_script = UnicodeScript::kLatin;
   bool complete = true;
   if (encoded.IsAscii()) {
-    previous = DefaultFontKind::kSystem;
+    previous = {UnicodeScript::kLatin};
     offset = length;
+  } else {
+    // Leading punctuation/marks take the first non-neutral script. An emoji
+    // is independently selected and must not become a punctuation font.
+    for (CFIndex next = 0; next < length;) {
+      auto selection = select_cluster(next, &next);
+      if (!selection.emoji && selection.script != UnicodeScript::kCommon &&
+          selection.script != UnicodeScript::kInherited) {
+        context_script = selection.script;
+        break;
+      }
+    }
   }
   while (offset < length) {
-    // CoreFoundation handles surrogate pairs, emoji ZWJ/tag/keycap sequences,
-    // and combining marks. Never introduce a font boundary inside a grapheme.
-    auto range = CFStringGetRangeOfComposedCharactersAtIndex(text, offset);
-    auto end = range.location + range.length;
-    TTASSERT(range.location == offset && end > offset && end <= length);
-    const auto start32 = encoded.Map()[offset];
-    const auto end32 = encoded.Map()[end];
-    auto kind = ClassifyDefaultFontCluster(
-        encoded.Text().substr(start32, end32 - start32));
-    if (kind == DefaultFontKind::kInherited) kind = previous;
-    if (offset > start && kind != previous) {
+    CFIndex end = offset;
+    auto selection = select_cluster(offset, &end);
+    if (!selection.emoji && selection.script != UnicodeScript::kCommon &&
+        selection.script != UnicodeScript::kInherited) {
+      context_script = selection.script;
+    }
+    selection = coretext::ResolveDefaultFontContext(
+        selection, context_script,
+        encoded.Text().substr(encoded.Map()[offset],
+                              encoded.Map()[end] - encoded.Map()[offset]));
+    if (offset > start && selection != previous) {
       if (!apply(previous, start, offset)) {
         complete = false;
         break;
       }
       start = offset;
     }
-    previous = kind;
+    previous = selection;
     offset = end;
   }
   if (complete && length > 0) complete = apply(previous, start, length);
   if (!complete) {
     // Resolve the entire text uniformly if a script font cannot be created.
     // Partially assigned font attributes must not leak into shaping.
-    complete = apply(DefaultFontKind::kFallback, 0, length);
-  }
-  for (auto font : fonts) {
-    if (font) CFRelease(font);
+    complete = apply({}, 0, length);
   }
   if (!complete) {
     CFRelease(result);
@@ -351,7 +400,7 @@ CFDictionaryRef GetSafeFontCascadeAttributes(CTFontRef font) {
 }  // namespace
 
 ShaperCoreText::ShaperCoreText(FontmgrCollection& font_collection) noexcept
-    : TTShaper(font_collection){};
+    : TTShaper(font_collection) {};
 
 ShaperCoreText::~ShaperCoreText() = default;
 
@@ -531,7 +580,7 @@ void ShaperCoreText::ProcessBidirection(const char32_t* text, uint32_t length,
 
 class CTShapingResult : public PlatformShapingResultReader {
  public:
-  CTShapingResult(){};
+  CTShapingResult() {};
 
  public:
   uint32_t GlyphCount() const override {
