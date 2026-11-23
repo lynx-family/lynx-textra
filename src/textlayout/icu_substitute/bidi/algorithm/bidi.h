@@ -13,6 +13,7 @@
 #define SRC_TEXTLAYOUT_ICU_SUBSTITUTE_BIDI_ALGORITHM_BIDI_H_
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "src/textlayout/icu_substitute/bidi/algorithm/bidi_character.h"
@@ -2061,10 +2062,8 @@ class Bidi {
   }
 
   void setContext(std::string prologue, std::string epilogue) {
-    prologue = prologue.length() > 0
-                   ? prologue
-                   : nullptr;  // TODO(hfuttyh): can string be nullptr?
-    epilogue = epilogue.length() > 0 ? epilogue : nullptr;
+    this->prologue = prologue.length() > 0 ? std::move(prologue) : "";
+    this->epilogue = epilogue.length() > 0 ? std::move(epilogue) : "";
   }
 
   void setParaSuccess() {
