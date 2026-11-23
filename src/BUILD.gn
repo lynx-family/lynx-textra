@@ -299,6 +299,7 @@ source_set("textlayout") {
     "$prj_root/src/textlayout/utils/type_helper.h",
     "$prj_root/src/textlayout/utils/u_8_string.cc",
     "$prj_root/src/textlayout/utils/u_8_string.h",
+    "$prj_root/src/textlayout/utils/unicode_script.h",
     "$prj_root/src/textlayout/utils/value_utils.h",
   ]
 
@@ -318,6 +319,7 @@ source_set("textlayout") {
     ]
 
     sources += [
+      "$prj_root/src/ports/shaper/coretext/default_font_policy.h",
       "$prj_root/src/ports/shaper/coretext/shape_text_encoding.h",
       "$prj_root/src/ports/shaper/coretext/shaper_core_text.h",
       "$prj_root/src/ports/shaper/coretext/shaper_core_text.mm",
