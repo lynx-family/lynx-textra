@@ -65,6 +65,10 @@ float BaseRun::MeasureRunByWidth(uint32_t& break_pos_in_run,
                                  float max_width) const {
   TTASSERT(break_pos_in_run < GetCharCount());
   TTASSERT(shape_result_.Valid());
+  if (shape_result_.GlyphCount() == 0) {
+    break_pos_in_run = GetCharCount();
+    return 0;
+  }
   auto advance_width = 0.f;
   auto width = 0.f;
   auto& idx = break_pos_in_run;
@@ -117,6 +121,11 @@ LayoutMetrics BaseRun::CalculateLayoutMetrics(uint32_t start_char,
                                               bool align_with_bbox) const {
   LayoutMetrics layout_metrics;
   auto typeface = shape_result_.FontByCharId(start_char);
+  if (typeface == nullptr) {
+    // Keep a nominal em of line height when no font is available. Ink bounds
+    // remain empty; the logical text still participates in line breaking.
+    return align_with_bbox ? LayoutMetrics{} : LayoutMetrics{-font_size, 0};
+  }
 
   if (align_with_bbox) {
     auto glyph_start = shape_result_.CharToGlyph(start_char);

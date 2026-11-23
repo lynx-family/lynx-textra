@@ -332,6 +332,9 @@ void LayoutDrawer::DrawDrawerPiece(const TextLine* line,
   const auto* run = run_range->GetRun();
   const auto& metrics = run->GetMetrics();
   if (run->IsTextRun() || (run->IsGhostRun() && run->GetCharCount() > 0)) {
+    if (run->shape_result_.GlyphCount() == 0) {
+      return;
+    }
     auto y_offset = run_range->GetYOffsetInLine();
     auto y = line->GetLineTop() + y_offset;
     RectF background_rect =

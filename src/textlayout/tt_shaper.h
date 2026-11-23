@@ -234,6 +234,10 @@ class ShapeResult {
     return font_[glyph_idx];
   }
   const TypefaceRef& FontByCharId(const uint32_t& char_idx) const {
+    if (font_.empty()) {
+      static const TypefaceRef no_font;
+      return no_font;
+    }
     auto glyph_pos = CharToGlyph(char_idx);
     if (glyph_pos == GlyphCount() && glyph_pos != 0) glyph_pos--;
     return Font(glyph_pos);

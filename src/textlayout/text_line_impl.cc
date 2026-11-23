@@ -578,7 +578,7 @@ void TextLineImpl::StripByEllipsis(const char32_t* ellipsis) {
       auto ellipsis_content = ellipsis_run->GetGhostContent().ToUTF32();
       ShapeStyle shape_style = run->GetShapeStyle();
       auto fd = shape_style.GetFontDescriptor();
-      if (font_mgr != nullptr) {
+      if (font_mgr != nullptr && font != nullptr) {
         fd.platform_font_ = reinterpret_cast<uint64_t>(
             font_mgr->getPlatformFontFromTypeface(font));
       }
@@ -793,6 +793,11 @@ void TextLineImpl::GetDrawerPieceCharTightLeftAndRight(DrawerPiece* piece,
   }
   auto& shape_result = piece_run->shape_result_;
   auto glyph_index = shape_result.CharToGlyph(index);
+  if (glyph_index >= shape_result.GlyphCount()) {
+    *left = 0;
+    *right = 0;
+    return;
+  }
   float font_size = piece_run->GetLayoutStyle().GetScaledTextSize();
   GlyphID glyph = shape_result.Glyphs(glyph_index);
   TypefaceRef font = shape_result.Font(glyph_index);
