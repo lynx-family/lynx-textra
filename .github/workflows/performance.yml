@@ -222,7 +222,18 @@ jobs:
           "DEPOT_TOOLS_WIN_TOOLCHAIN=0" >> $env:GITHUB_ENV
           "GYP_MSVS_OVERRIDE_PATH=${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools" >> $env:GITHUB_ENV
           "WINDOWSSDKDIR=${env:ProgramFiles(x86)}\Windows Kits\10" >> $env:GITHUB_ENV
-      - uses: ./.github/actions/common-deps
+      - name: Sync dependencies with native Windows Habitat
+        shell: pwsh
+        env:
+          HABITAT_CONCURRENCY: 2
+        run: |
+          python -m pip install PyYAML requests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $habitat = Join-Path $env:RUNNER_TEMP "hab.exe"
+          Invoke-WebRequest "https://github.com/lynx-family/habitat/releases/download/0.3.151/hab.exe" -OutFile $habitat
+          if ((Get-FileHash $habitat -Algorithm SHA256).Hash -ne "f40aa7efe0a92c6e536f6f9d0d7220e2a8d2c0e6326b262c40c0c08c2f3c3a0e") { throw "Habitat checksum mismatch" }
+          & $habitat sync .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Compare Windows SkShaper with fixed fonts
         shell: pwsh
         run: |
