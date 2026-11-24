@@ -475,7 +475,10 @@ source_set("skshaper") {
   if (!is_win) {
     defines += [ "HAVE_PTHREADS" ]
   }
-  if (dynamic_load_harfbuzz) {
+
+  # Android must keep HarfBuzz in the separately loaded platform library,
+  # including embedders that provide their own config or override the default.
+  if (dynamic_load_harfbuzz || is_android) {
     sources += [
       "$prj_root/src/ports/shaper/skshaper/harfbuzz_lib_runtime.cc",
       "$prj_root/src/ports/shaper/skshaper/sk_shaper_platform.cc",

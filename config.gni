@@ -18,8 +18,8 @@ declare_args() {
   # select linebreak mode between "simple" and "icu"
   boundary_analyst = "simple"
   enable_16kb_align = false
-  
-  # Whether to dynamically load (dlopen) Harfbuzz .so
-  dynamic_load_harfbuzz = false
+
+  # Android uses the separately loaded platform libharfbuzz.so.
+  dynamic_load_harfbuzz = is_android
   is_lvgl = false
 }

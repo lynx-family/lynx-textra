@@ -97,6 +97,8 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install Common Dependencies
         uses: ./.github/actions/common-deps
+      - name: Check Android HarfBuzz linkage
+        run: python3 test/android_harfbuzz_config_test.py
       - name: Install Android SDK CMake
         run: |
           source tools/envsetup.sh
