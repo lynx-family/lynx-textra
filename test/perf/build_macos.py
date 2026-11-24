@@ -18,6 +18,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--skity-library', type=Path)
     parser.add_argument('--skity-include', type=Path)
+    parser.add_argument('--jobs', type=int, required=True)
     args = parser.parse_args()
     source, build, output = args.source.resolve(), args.build.resolve(), args.output.resolve()
     if platform.system() != 'Darwin':
@@ -43,15 +44,16 @@ def main():
                          if line.startswith('cflags_cc = ') and not all(f in line for f in warning_flags)
                          else line for line in text.split('\n'))
         ninja_file.write_text(text)
-    subprocess.run([str(source/'buildtools/ninja/ninja'), '-C', str(build), 'lynxtextra'], check=True)
+    subprocess.run([str(source/'buildtools/ninja/ninja'), '-C', str(build),
+                    '-j', str(args.jobs), 'lynxtextra'], check=True)
     command[command.index('-c')+1] = str(Path(__file__).with_name('shaping_benchmark.cc').resolve())
     command[command.index('-o')+1] = str(output)+'.o'
     command[command.index('-MF')+1] = str(output)+'.d'
-    header = output.parent/'harness/test/perf/shaping_benchmark.h'
+    header = output.parent/(output.name+'.harness')/'test/perf/shaping_benchmark.h'
     header.parent.mkdir(parents=True, exist_ok=True)
     header.write_bytes(Path(__file__).with_name('shaping_benchmark.h').read_bytes())
     command += ['-I'+str(source/'third_party/rapidjson/include'),
-                '-I'+str(output.parent/'harness')]
+                '-I'+str(header.parents[2])]
     if bool(args.skity_library) != bool(args.skity_include):
         parser.error('supply both Skity library and headers')
     if args.skity_library:

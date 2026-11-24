@@ -17,6 +17,7 @@ import zipfile
 from pathlib import Path
 
 from gate import benchmark_digest, digest, run
+from paired_build import build_pair
 from fetch_fonts import fetch
 from platform_build import HERE, artifacts, build, checkout, cleanup, execute, write_metadata
 
@@ -151,6 +152,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--platform',choices=['ios','android','windows','harmony'],required=True)
     parser.add_argument('--baseline',required=True)
+    parser.add_argument('--jobs',type=int,help='total Ninja job budget shared by both revisions')
     parser.add_argument('--candidate',required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--source',type=Path,default=HERE.parents[1])
@@ -209,11 +211,18 @@ def main():
             arguments.update(target_os='harmony',target_cpu='arm64',harmony_sdk_version='default',
                              enable_skshaper=False,
                              use_flutter_cxx=False)
-        for version,revision in [('baseline',args.baseline),('candidate',args.candidate)]:
+        revisions = [('baseline',args.baseline),('candidate',args.candidate)]
+        # Git worktree registration is serial; only independent GN/Ninja builds
+        # run concurrently. Deployment and sampling start after both join.
+        for version,revision in revisions:
             tree = output/(version+'-source');trees.append(tree)
             checkout(source,revision,tree)
-            build_dir = output/(version+'-build')
-            executable = build(source,tree,build_dir,arguments)
+        def compile_revision(item, jobs):
+            version,_ = item
+            return build(source,output/(version+'-source'),output/(version+'-build'),arguments,jobs)
+        compiled = build_pair(compile_revision,revisions,args.jobs)
+        for (version,revision),executable in zip(revisions,compiled):
+            tree,build_dir = output/(version+'-source'),output/(version+'-build')
             metadata = write_metadata(source,revision,arguments,output/(version+'.metadata.json'),
                                       extra,config['fonts'])
             package = packages[version]

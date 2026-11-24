@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 from gate import benchmark_digest, digest, run
+from paired_build import build_pair
 
 HERE = Path(__file__).resolve().parent
 GN_ARGS = 'is_debug=false use_xcode=true use_flutter_cxx=true dynamic_load_harfbuzz=false'
@@ -65,7 +66,8 @@ def main():
     parser.add_argument('--baseline', required=True)
     parser.add_argument('--candidate', required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--backend', choices=['macos', 'skity'], default='macos')
+    parser.add_argument('--backend', choices=['macos', 'skity', 'both'], default='macos')
+    parser.add_argument('--jobs', type=int, help='total Ninja job budget shared by both revisions')
     parser.add_argument('--skity-library', type=Path)
     parser.add_argument('--harfbuzz-library', type=Path,
                         help='optional pinned dynamic HarfBuzz; default builds bundled HarfBuzz')
@@ -77,7 +79,7 @@ def main():
     if command(['git', '-C', source, 'diff', 'HEAD', '--', 'src', 'public', 'platform',
                 'BUILD.gn', 'config.gni']):
         parser.error('candidate engine has uncommitted changes')
-    if args.backend == 'skity' and (not args.skity_library or not args.fonts):
+    if args.backend in ('skity', 'both') and (not args.skity_library or not args.fonts):
         parser.error('Skity requires a shared library and a fixed font manifest')
     # The same source tree supplies headers to the external benchmark only via
     # each engine's own compile command. No candidate engine headers leak into
@@ -104,18 +106,22 @@ def main():
             parser.error('fixed font unavailable: ' + font)
     try:
         prepare(source, args.baseline, output)
-        for version, tree, revision in [('baseline', before, args.baseline),
-                                         ('candidate', source, args.candidate)]:
+        revisions = [('baseline', before, args.baseline), ('candidate', source, args.candidate)]
+        def compile_revision(item, jobs):
+            version,tree,_ = item
             build = output / (version + '-build')
             subprocess.run([str(source / 'buildtools/gn/gn'), 'gen', str(build),
                             '--root=' + str(tree), '--args=' + gn_args], check=True)
             executable = output / version
             build_command = [sys.executable, str(HERE / 'build_macos.py'), '--source', str(tree),
-                             '--build', str(build), '--output', str(executable)]
+                             '--build', str(build), '--output', str(executable), '--jobs', str(jobs)]
             if args.skity_library:
                 build_command += ['--skity-library', str(args.skity_library.resolve()),
                                   '--skity-include', str(source / 'third_party/skity/include')]
             subprocess.run(build_command, check=True)
+            return executable
+        compiled = build_pair(compile_revision, revisions, args.jobs)
+        for (version,tree,revision),executable in zip(revisions,compiled):
             meta = output / (version + '.metadata.json')
             metadata(source, revision, gn_args, args.skity_library, args.harfbuzz_library, config['fonts'], meta)
             artifacts = [dict(path=str(path), sha256=digest(path))
@@ -125,11 +131,20 @@ def main():
                          [Path(f) for f in config['fonts']]]
             config[version] = dict(revision=revision, protocol='jsonl',
                                    command=runtime + [str(executable), str(meta), '--server'], artifacts=artifacts)
-        (output / 'config.json').write_text(json.dumps(config, indent=2))
         manifest = json.loads((HERE / 'cases.json').read_text())
         config['cases_sha256'] = digest(HERE / 'cases.json')
-        result = run(config, manifest['cases'], output / 'results')
-        return 0 if result['passed'] else 1
+        passed = True
+        # A Skity-enabled host also supports CoreText. Reuse the exact same
+        # pair of executables; run backend comparisons serially after all builds.
+        for backend in (('macos', 'skity') if args.backend == 'both' else (args.backend,)):
+            selected = dict(config,backend=backend,
+                            fonts=config['fonts'] if backend == 'skity' else [])
+            suffix = '.' + backend if args.backend == 'both' else ''
+            (output / ('config'+suffix+'.json')).write_text(json.dumps(selected, indent=2))
+            directory = output/'results'/backend if args.backend == 'both' else output/'results'
+            report = run(selected, manifest['cases'], directory)
+            passed = report['passed'] and passed
+        return 0 if passed else 1
     finally:
         # Leave binaries/reports as artifacts, remove only this owned checkout.
         subprocess.run(['git', '-C', str(source), 'worktree', 'remove', '--force', str(before)], check=False)
