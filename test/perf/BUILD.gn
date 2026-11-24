@@ -31,13 +31,19 @@ template("perf_target") {
       ldflags = [ "-Wl,--undefined=JNI_OnLoad" ]
     }
     if (is_harmony) {
+      # The native-only host still needs ArkGraphics' bidi support. Historical
+      # GN builds attach this implementation to the disabled SkShaper target.
+      sources += [ "//src/textlayout/utils/icu_wrapper_static.cc" ]
       cflags_cc = [ "-Wno-error=deprecated-declarations" ]
       libs = [
         "ace_napi.z",
         "native_drawing",
         "hilog_ndk.z",
       ]
-      configs += [ "//src:harmony_public" ]
+      configs += [
+        "//src:harmony_public",
+        "//src:icu",
+      ]
     }
     if (is_win) {
       defines += [ "TEXTRA_PERF_SKITY" ]
