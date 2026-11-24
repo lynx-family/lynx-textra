@@ -62,14 +62,20 @@ jobs:
           lfs: true
           ref: ${{ env.CANDIDATE }}
       - uses: ./.github/actions/common-deps
+      - name: Install native CMake for Skity and its subprojects
+        if: matrix.backend == 'skity'
+        run: |
+          python3 -m venv "$RUNNER_TEMP/perf-cmake"
+          "$RUNNER_TEMP/perf-cmake/bin/python" -m pip install cmake==3.31.6
+          echo "$RUNNER_TEMP/perf-cmake/bin" >> "$GITHUB_PATH"
       - name: Build shared Skity font backend
         if: matrix.backend == 'skity'
         run: |
           export PATH="$GITHUB_WORKSPACE/buildtools/ninja:$PATH"
           target_arch="$(python3 -c 'import platform; print(platform.machine())')"
           export CFLAGS="-arch $target_arch" CXXFLAGS="-arch $target_arch" LDFLAGS="-arch $target_arch"
-          buildtools/cmake/bin/cmake -S third_party/skity -B out/perf-skity -G Ninja -DCMAKE_OSX_ARCHITECTURES="$target_arch" -DCMAKE_BUILD_TYPE=Release -DSKITY_MTL_BACKEND=OFF -DSKITY_GL_BACKEND=OFF -DSKITY_CODEC_MODULE=OFF -DSKITY_IO_MODULE=OFF
-          buildtools/cmake/bin/cmake --build out/perf-skity --target skity
+          cmake -S third_party/skity -B out/perf-skity -G Ninja -DCMAKE_OSX_ARCHITECTURES="$target_arch" -DCMAKE_BUILD_TYPE=Release -DSKITY_MTL_BACKEND=OFF -DSKITY_GL_BACKEND=OFF -DSKITY_CODEC_MODULE=OFF -DSKITY_IO_MODULE=OFF
+          cmake --build out/perf-skity --target skity
       - name: Compare native CoreText
         if: matrix.backend == 'macos'
         run: |
@@ -229,7 +235,7 @@ jobs:
         env:
           HABITAT_CONCURRENCY: 2
         run: |
-          python -m pip install PyYAML requests
+          python -m pip install PyYAML requests cmake==3.31.6
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $habitat = Join-Path $env:RUNNER_TEMP "hab.exe"
           Invoke-WebRequest "https://github.com/lynx-family/habitat/releases/download/0.3.151/hab.exe" -OutFile $habitat
