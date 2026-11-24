@@ -81,11 +81,11 @@ class SKSHAPER_API SkShaper {
   //    /** The unicode bidi embedding level (even ltr, odd rtl) */
   //    virtual uint8_t currentLevel() const = 0;
   //  };
-  //  class ScriptRunIterator : public RunIterator {
-  //   public:
-  //    /** Should be iso15924 codes. */
-  //    virtual SkFourByteTag currentScript() const = 0;
-  //  };
+  class ScriptRunIterator : public RunIterator {
+   public:
+    // ISO 15924 tag (0 permits backend guessing); offsets count UTF-32 scalars.
+    virtual SkFourByteTag currentScript() const = 0;
+  };
   //  class LanguageRunIterator : public RunIterator {
   //   public:
   //    /** Should be BCP-47, c locale names may also work. */
@@ -250,8 +250,8 @@ class SKSHAPER_API SkShaper {
   };
 
   virtual void shape(const char32_t* utf8, size_t utf8Bytes,
-                     FontRunIterator* font, bool leftToRight, float width,
-                     RunHandler*) const = 0;
+                     FontRunIterator* font, ScriptRunIterator* script,
+                     bool leftToRight, float width, RunHandler*) const = 0;
 
  private:
   SkShaper(const SkShaper&) = delete;

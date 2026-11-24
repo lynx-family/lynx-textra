@@ -19,15 +19,6 @@
 #include "src/textlayout/utils/mutex.h"
 #include "src/textlayout/utils/tt_rectf.h"
 
-// HB_FEATURE_GLOBAL_START and HB_FEATURE_GLOBAL_END were not added until
-// HarfBuzz 2.0 They would have always worked, they just hadn't been named yet.
-#if !defined(HB_FEATURE_GLOBAL_START)
-#define HB_FEATURE_GLOBAL_START 0
-#endif
-#if !defined(HB_FEATURE_GLOBAL_END)
-#define HB_FEATURE_GLOBAL_END ((unsigned int)-1)
-#endif
-
 namespace ttoffice {
 namespace tttext {
 namespace {
@@ -319,8 +310,11 @@ HBBlob stream_to_blob(const TypefaceRef typeface) {
   size_t size = typeface->GetFontDataSize();
   HBBlob blob;
   if (const void* base = typeface->GetFontData()) {
-    blob.reset(tt_hb_blob_create((const char*)base, static_cast<uint32_t>(size),
-                                 HB_MEMORY_MODE_READONLY, nullptr, nullptr));
+    // Cached HB fonts can outlive the caller that supplied this backing data.
+    blob.reset(tt_hb_blob_create(
+        (const char*)base, static_cast<uint32_t>(size), HB_MEMORY_MODE_READONLY,
+        new TypefaceRef(typeface),
+        [](void* owner) { delete static_cast<TypefaceRef*>(owner); }));
   } else {
     TTASSERT(false);
     // SkDebugf("Extra SkStreamAsset copy\n");
@@ -369,19 +363,19 @@ HBFace create_hb_face(const TypefaceRef typeface) {
   return face;
 }
 
-HBFont create_hb_font(const Font& font, const HBFace& face) {
-  //  SkDEBUGCODE(void* dataId = hb_face_get_user_data(face.get(), &gDataIdKey);
-  //              TTASSERT(dataId == font.getTypeface());)
+HBFont create_typeface_hb_font(const TypefaceRef& typeface) {
+  HBFace face(create_hb_face(typeface));
+  if (!face) return nullptr;
+  HBFont font(tt_hb_font_create(face.get()));
+  if (!font) return nullptr;
+  tt_hb_ot_font_set_funcs(font.get());
+  return font;
+}
 
-  HBFont otFont(tt_hb_font_create(face.get()));
-  TTASSERT(otFont);
-  if (!otFont) {
-    return nullptr;
-  }
-  tt_hb_ot_font_set_funcs(otFont.get());
+HBFont create_sub_hb_font(const Font& font, const HBFont& typefaceFont) {
   // Creating a sub font means that non-available functions
   // are found from the parent.
-  HBFont skFont(tt_hb_font_create_sub_font(otFont.get()));
+  HBFont skFont(tt_hb_font_create_sub_font(typefaceFont.get()));
   tt_hb_font_set_funcs(
       skFont.get(), skhb_get_font_funcs(),
       reinterpret_cast<void*>(new Font(font)),
@@ -483,10 +477,11 @@ class ShaperHarfBuzz : public SkShaper {
   hb_language_t fUndefinedLanguage;
 
   void shape(const char32_t* utf8, size_t utf8Bytes, FontRunIterator*,
-             bool leftToRight, SkScalar width, RunHandler*) const override;
+             ScriptRunIterator*, bool leftToRight, SkScalar width,
+             RunHandler*) const override;
 
   virtual void wrap(const char32_t* const utf8, size_t utf8Bytes, bool,
-                    const char*, const SkFourByteTag, FontRunIterator*,
+                    const char*, ScriptRunIterator*, FontRunIterator*,
                     const Feature*, size_t featuresSize, SkScalar width,
                     RunHandler*) const = 0;
 };
@@ -497,7 +492,7 @@ class ShapeDontWrapOrReorder : public ShaperHarfBuzz {
 
  private:
   void wrap(const char32_t* const utf8, size_t utf8Bytes, bool, const char*,
-            const SkFourByteTag, FontRunIterator*, const Feature*,
+            ScriptRunIterator*, FontRunIterator*, const Feature*,
             size_t featuresSize, float width, RunHandler*) const override;
 };
 
@@ -514,8 +509,9 @@ ShaperHarfBuzz::ShaperHarfBuzz(
       fUndefinedLanguage(tt_hb_language_from_string("und", -1)) {}
 
 void ShaperHarfBuzz::shape(const char32_t* utf8, size_t utf8Bytes,
-                           FontRunIterator* font, bool leftToRight,
-                           SkScalar width, RunHandler* handler) const {
+                           FontRunIterator* font, ScriptRunIterator* script,
+                           bool leftToRight, SkScalar width,
+                           RunHandler* handler) const {
   //  SkBidiIterator::Level defaultLevel =
   //      leftToRight ? SkBidiIterator::kLTR : SkBidiIterator::kRTL;
   //  std::unique_ptr<BiDiRunIterator> bidi(MakeSkUnicodeBidiRunIterator(
@@ -535,36 +531,30 @@ void ShaperHarfBuzz::shape(const char32_t* utf8, size_t utf8Bytes,
   //    return;
   //  }
 
-  auto script = 0;  // SkSetFourByteTag(0, 0, 0, 0);
-  //  std::unique_ptr<ScriptRunIterator> script(
-  //      MakeSkUnicodeHbScriptRunIterator(fUnicode.get(), utf8, utf8Bytes));
-  //  if (!script) {
-  //    return;
-  //  }
-
   this->wrap(utf8, utf8Bytes, bidi, language.c_str(), script, font, nullptr, 0,
              width, handler);
 }
 
 void ShapeDontWrapOrReorder::wrap(const char32_t* const utf8, size_t utf8Bytes,
                                   bool bidi, const char* language,
-                                  const SkFourByteTag script,
+                                  ScriptRunIterator* script,
                                   FontRunIterator* font,
                                   const Feature* features, size_t featuresSize,
                                   SkScalar width, RunHandler* handler) const {
   //  sk_ignore_unused_variable(width);
   std::vector<ShapedRun> runs;
 
-  const char32_t* utf8Start = nullptr;
-  const char32_t* utf8End = utf8;
-  while (!font->atEnd()) {
-    font->consume();
-
-    utf8Start = utf8End;
-    utf8End = utf8 + font->endOfCurrentRun();
-
-    runs.emplace_back(shape(utf8, utf8Bytes, utf8Start, utf8End, bidi, language,
-                            script, *font, features, featuresSize));
+  size_t offset = 0;
+  while (offset < utf8Bytes) {
+    if (font->endOfCurrentRun() == offset) font->consume();
+    if (script->endOfCurrentRun() == offset) script->consume();
+    const size_t end =
+        std::min(font->endOfCurrentRun(), script->endOfCurrentRun());
+    TTASSERT(end > offset && end <= utf8Bytes);
+    runs.emplace_back(shape(utf8, utf8Bytes, utf8 + offset, utf8 + end, bidi,
+                            language, script->currentScript(), *font, features,
+                            featuresSize));
+    offset = end;
   }
 
   handler->beginLine();
@@ -584,33 +574,33 @@ void ShapeDontWrapOrReorder::wrap(const char32_t* const utf8, size_t utf8Bytes,
 
 using SkFontID = uint32_t;
 using Mutex = std::mutex;
-class HBLockedFaceCache {
+class HBLockedFontCache {
  public:
-  HBLockedFaceCache(android::LruCache<SkFontID, HBFace>* lruCache, Mutex* mutex)
+  HBLockedFontCache(android::LruCache<SkFontID, HBFont>* lruCache, Mutex* mutex)
       : fLRUCache(lruCache), fMutex(mutex) {
     fMutex->lock();
   }
-  HBLockedFaceCache(const HBLockedFaceCache&) = delete;
-  HBLockedFaceCache& operator=(const HBLockedFaceCache&) = delete;
-  HBLockedFaceCache(HBLockedFaceCache&&) = delete;
-  HBLockedFaceCache& operator=(HBLockedFaceCache&&) = delete;
+  HBLockedFontCache(const HBLockedFontCache&) = delete;
+  HBLockedFontCache& operator=(const HBLockedFontCache&) = delete;
+  HBLockedFontCache(HBLockedFontCache&&) = delete;
+  HBLockedFontCache& operator=(HBLockedFontCache&&) = delete;
 
-  ~HBLockedFaceCache() { fMutex->unlock(); }
+  ~HBLockedFontCache() { fMutex->unlock(); }
 
-  HBFace* find(SkFontID fontId) { return fLRUCache->get(fontId); }
-  HBFace* insert(SkFontID fontId, HBFace hbFace) {
-    return fLRUCache->put(fontId, std::move(hbFace));
+  HBFont* find(SkFontID fontId) { return fLRUCache->get(fontId); }
+  HBFont* insert(SkFontID fontId, HBFont hbFont) {
+    return fLRUCache->put(fontId, std::move(hbFont));
   }
   void reset() { fLRUCache->clear(); }
 
  private:
-  android::LruCache<SkFontID, HBFace>* fLRUCache;
+  android::LruCache<SkFontID, HBFont>* fLRUCache;
   Mutex* fMutex;
 };
-static HBLockedFaceCache get_hbFace_cache() {
-  static Mutex gHBFaceCacheMutex;
-  static android::LruCache<SkFontID, HBFace> gHBFaceCache(100);
-  return HBLockedFaceCache(&gHBFaceCache, &gHBFaceCacheMutex);
+static HBLockedFontCache get_hb_font_cache() {
+  static Mutex gHBFontCacheMutex;
+  static android::LruCache<SkFontID, HBFont> gHBFontCache(100);
+  return HBLockedFontCache(&gHBFontCache, &gHBFontCacheMutex);
 }
 
 ShapedRun ShaperHarfBuzz::shape(
@@ -670,46 +660,26 @@ ShapedRun ShaperHarfBuzz::shape(
   tt_hb_buffer_set_language(buffer, hbLanguage);
   tt_hb_buffer_guess_segment_properties(buffer);
 
-  // TODO(hfuttyh): better cache HBFace (data) / hbfont (typeface)
-  // An HBFace is expensive (it sanitizes the bits).
-  // An HBFont is fairly inexpensive.
-  // An HBFace is actually tied to the data, not the typeface.
-  // The size of 100 here is completely arbitrary and used to match libtxt.
   HBFont hbFont;
   {
-    HBLockedFaceCache cache = get_hbFace_cache();
-    SkFontID dataId = font.currentFont().GetTypeface()->GetUniqueId();
-    HBFace* hbFaceCached = cache.find(dataId);
-    if (!hbFaceCached) {
-      HBFace hbFace(create_hb_face(font.currentFont().GetTypeface()));
-      hbFaceCached = cache.insert(dataId, std::move(hbFace));
+    // Cache the typeface-level OT font; only its sized callback subfont is
+    // per run. The subfont retains its parent if the cache evicts or purges it.
+    HBLockedFontCache cache = get_hb_font_cache();
+    const auto& typeface = font.currentFont().GetTypeface();
+    SkFontID dataId = typeface->GetUniqueId();
+    HBFont* typefaceFont = cache.find(dataId);
+    if (!typefaceFont) {
+      auto created = create_typeface_hb_font(typeface);
+      if (!created) return run;
+      typefaceFont = cache.insert(dataId, std::move(created));
     }
-    hbFont = create_hb_font(font.currentFont(), *hbFaceCached);
+    hbFont = create_sub_hb_font(font.currentFont(), *typefaceFont);
   }
-  if (!hbFont) {
-    return run;
-  }
+  if (!hbFont) return run;
 
-  std::vector<hb_feature_t> hbFeatures(32);
-  //  for (const auto& feature : SkSpan(features, featuresSize)) {
-  //    if (feature.end < SkTo<size_t>(utf8Start - utf8) ||
-  //        SkTo<size_t>(utf8End - utf8) <= feature.start) {
-  //      continue;
-  //    }
-  //    if (feature.start <= SkTo<size_t>(utf8Start - utf8) &&
-  //        SkTo<size_t>(utf8End - utf8) <= feature.end) {
-  //      hbFeatures.push_back({(hb_tag_t)feature.tag, feature.value,
-  //                            HB_FEATURE_GLOBAL_START,
-  //                            HB_FEATURE_GLOBAL_END});
-  //    } else {
-  //      hbFeatures.push_back({(hb_tag_t)feature.tag, feature.value,
-  //                            SkTo<unsigned>(feature.start),
-  //                            SkTo<unsigned>(feature.end)});
-  //    }
-  //  }
-
-  tt_hb_shape(hbFont.get(), buffer, hbFeatures.data(),
-              static_cast<uint32_t>(hbFeatures.size()));
+  // This entry point supplies no OpenType features. Do not manufacture 32
+  // zero-valued entries from what was an inline capacity in upstream SkShaper.
+  tt_hb_shape(hbFont.get(), buffer, nullptr, 0);
   unsigned len = tt_hb_buffer_get_length(buffer);
   if (len == 0) {
     return run;
@@ -785,7 +755,7 @@ std::unique_ptr<SkShaper> SkShaper::MakeShapeDontWrapOrReorderForHB() {
 }
 
 void SkShaper::PurgeHarfBuzzCache() {
-  HBLockedFaceCache cache = get_hbFace_cache();
+  HBLockedFontCache cache = get_hb_font_cache();
   cache.reset();
 }
 }  // namespace tttext

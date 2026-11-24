@@ -10,6 +10,7 @@ group("test") {
     ":TextLayoutLiteTest",
     ":backend_test",
     ":capi_test",
+    ":script_shaping_test",
     ":unicode_script_test",
   ]
   if (is_mac) {
@@ -38,6 +39,7 @@ executable("TextLayoutLiteTest") {
     "paragraph_style_test.cc",
     "paragraph_test.cc",
     "run_test.cc",
+    "script_run_iterator_test.cc",
     "shape_cache_test.cc",
     "shape_test.cc",
     "skity_typeface_helper_test.cc",
@@ -83,6 +85,31 @@ executable("TextLayoutLiteTest") {
     "-Wno-unused-function",
     "-Wno-unused-private-field",
   ]
+}
+
+# Focused Script iterator and fallback tests without image/golden dependencies.
+executable("script_shaping_test") {
+  testonly = true
+  sources = [
+    "one_line_shaper_test.cc",
+    "script_run_iterator_test.cc",
+  ]
+  include_dirs = [
+    "//",
+    "//public",
+  ]
+  deps = [
+    "//src:skshaper",
+    "//src:textlayout",
+    "//third_party/googletest:gmock",
+    "//third_party/googletest:gtest_main",
+  ]
+  if (is_mac) {
+    frameworks = [
+      "AppKit.framework",
+      "CoreText.framework",
+    ]
+  }
 }
 
 # Script and font-policy tests do not require any platform or font libraries.

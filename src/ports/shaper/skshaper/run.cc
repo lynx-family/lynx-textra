@@ -14,6 +14,7 @@ Run::Run(const char32_t* owner, const SkShaper::RunHandler::RunInfo& info,
     : fOwner(owner),
       fTextRange(static_cast<uint32_t>(firstChar + info.utf8Range.begin()),
                  static_cast<uint32_t>(firstChar + info.utf8Range.end())),
+      fClusterStart(static_cast<TextIndex>(firstChar)),
       fFont(info.fFont) {
   fBidiLevel = info.fBidiLevel;
   //  fAdvance = info.fAdvance;

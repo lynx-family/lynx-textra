@@ -40,10 +40,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unordered_set>
 
 #include "src/ports/shaper/skshaper/run.h"
+#include "src/ports/shaper/skshaper/script_run_iterator.h"
 #include "src/textlayout/tt_shaper.h"
 #include "src/textlayout/utils/grapheme_utils.h"
 #include "src/textlayout/utils/hasher.h"
 #include "src/textlayout/utils/log_util.h"
+#include "src/textlayout/utils/u_8_string.h"
 
 namespace ttoffice {
 namespace tttext {
@@ -62,6 +64,90 @@ void AddProtectedRange(std::vector<TextRange>* ranges, TextIndex start,
   }
 
   ranges->emplace_back(range);
+}
+
+// Preselect only ordinary ASCII/basic Han. Batch the cmap requests so cached
+// Skity lookups do not take one mutex acquisition per character.
+class CoverageFontIterator final : public SkShaper::FontRunIterator {
+ public:
+  CoverageFontIterator(const Font& primary, const char32_t* text, size_t length,
+                       std::function<TypefaceRef(Unichar)> fallback)
+      : primary_(primary),
+        current_(primary),
+        text_(text),
+        length_(length),
+        fallback_(std::move(fallback)),
+        primary_glyphs_(length),
+        missing_index_(length) {
+    primary_.UnicharsToGlyphs(reinterpret_cast<const Unichar*>(text),
+                              static_cast<uint32_t>(length),
+                              primary_glyphs_.data());
+    for (size_t i = 0; i < length; ++i) {
+      if (primary_glyphs_[i] == 0) {
+        missing_index_[i] = missing_chars_.size();
+        missing_chars_.push_back(text[i]);
+      }
+    }
+  }
+  void consume() override {
+    auto selected = pending_ ? std::move(pending_) : select(end_);
+    current_ = Font(selected, primary_.GetSize());
+    current_.SetSubpixel(primary_.IsSubpixel());
+    current_.SetScaleX(primary_.GetScaleX());
+    ++end_;
+    while (end_ < length_) {
+      auto next = select(end_);
+      if (next != selected) {
+        pending_ = std::move(next);
+        break;
+      }
+      ++end_;
+    }
+  }
+  size_t endOfCurrentRun() const override { return end_; }
+  bool atEnd() const override { return end_ == length_; }
+  const Font& currentFont() const override { return current_; }
+
+ private:
+  TypefaceRef select(size_t index) {
+    if (primary_glyphs_[index]) return primary_.GetTypeface();
+    const size_t missing = missing_index_[index];
+    if (last_ && fallback_glyphs_[missing]) return last_;
+    last_ = fallback_(text_[index]);
+    if (last_) {
+      fallback_glyphs_.resize(missing_chars_.size());
+      last_->UnicharsToGlyphs(missing_chars_.data(),
+                              static_cast<uint32_t>(missing_chars_.size()),
+                              fallback_glyphs_.data());
+    }
+    return last_ ? last_ : primary_.GetTypeface();
+  }
+  Font primary_;
+  Font current_;
+  const char32_t* text_;
+  size_t length_;
+  size_t end_ = 0;
+  TypefaceRef pending_;
+  TypefaceRef last_;
+  std::function<TypefaceRef(Unichar)> fallback_;
+  std::vector<GlyphID> primary_glyphs_;
+  std::vector<size_t> missing_index_;
+  std::vector<Unichar> missing_chars_;
+  std::vector<GlyphID> fallback_glyphs_;
+};
+
+Unichar FindPreselectionCodepoint(const char32_t* text, uint32_t length) {
+  Unichar candidate = 0;
+  for (uint32_t i = 0; i < length; ++i) {
+    const auto ch = text[i];
+    if (ch >= 0x20 && ch <= 0x7E) continue;
+    if (base::IsCJKUnifiedIdeographBMP(ch)) {
+      if (candidate == 0) candidate = ch;
+    } else {
+      return 0;
+    }
+  }
+  return candidate;
 }
 
 bool NextFallbackCodepoint(const char32_t* text, TextRange range,
@@ -362,7 +448,11 @@ TextRange OneLineShaper::expandTextRangeToProtected(TextRange textRange) const {
   bool expanded = true;
   while (expanded) {
     expanded = false;
-    for (const auto& protectedRange : fProtectedTextRanges) {
+    for (const auto& range : fProtectedTextRanges) {
+      // A grapheme may contain marks from another script. Keep fallback within
+      // the current shaping run even when the protected range crosses it.
+      const auto protectedRange =
+          TextRange::Intersect(range, fCurrentRun->textRange());
       if (textRange.IsIntersect(protectedRange) &&
           !textRange.Contain(protectedRange)) {
         textRange.SetStart(
@@ -378,13 +468,20 @@ TextRange OneLineShaper::expandTextRangeToProtected(TextRange textRange) const {
 GlyphRange OneLineShaper::glyphRangeForTextRange(TextRange textRange) {
   GlyphIndex start = static_cast<GlyphIndex>(fCurrentRun->size());
   GlyphIndex end = 0;
-  for (GlyphIndex i = 0; i < fCurrentRun->size(); ++i) {
-    const TextRange glyphText = normalizeTextRange(GlyphRange(i, i + 1));
-    if (!glyphText.IsIntersect(textRange)) {
-      continue;
+  for (GlyphIndex i = 0; i < fCurrentRun->size();) {
+    GlyphIndex next = i + 1;
+    while (next < fCurrentRun->size() &&
+           clusterIndex(next) == clusterIndex(i)) {
+      ++next;
     }
-    start = std::min(start, i);
-    end = std::max(end, static_cast<GlyphIndex>(i + 1));
+    // A cluster may contain several glyphs. Normalizing individual glyphs
+    // would produce empty ranges and leave part of the cluster resolved.
+    const TextRange glyphText = normalizeTextRange(GlyphRange(i, next));
+    if (glyphText.IsIntersect(textRange)) {
+      start = std::min(start, i);
+      end = std::max(end, next);
+    }
+    i = next;
   }
 
   if (start >= end) {
@@ -588,7 +685,10 @@ void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
   }
 
   for (const auto& typeface : typefaces) {
-    if (visitor(typeface) == Resolved::Everything) {
+    if (visitor(typeface, typefaces.size() == 1 && fd.platform_font_ == 0 &&
+                              fd.font_family_list_.empty() &&
+                              fFontCollection_.fontFallbackEnabled()) ==
+        Resolved::Everything) {
       // Resolved everything
       return;
     }
@@ -635,7 +735,7 @@ void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
         }
 
         if (typeface != nullptr) {
-          auto resolved = visitor(typeface);
+          auto resolved = visitor(typeface, false);
           if (resolved == Resolved::Everything) {
             // Resolved everything, no need to try another font
             goto exit;
@@ -690,7 +790,13 @@ bool OneLineShaper::shape(const char32_t* content, uint32_t len,
   fCurrentText = TextRange{0, len};
   fUnresolvedBlocks.emplace_back(RunBlock(fRange));
 
-  matchResolvedFonts(style, [&](std::shared_ptr<ITypefaceHelper> typeface) {
+  const auto preselection_codepoint = FindPreselectionCodepoint(content, len);
+  matchResolvedFonts(style, [&](std::shared_ptr<ITypefaceHelper> typeface,
+                                bool preselect) {
+    // A primary font that covers the first Han character stays on the normal
+    // path; coverage preselection would otherwise duplicate its cmap work.
+    preselect = preselect && preselection_codepoint != 0 &&
+                typeface->UnicharToGlyph(preselection_codepoint) == 0;
     // Create one more font to try
     Font font(typeface, style.GetFontSize());
     font.SetSubpixel(true);
@@ -709,10 +815,36 @@ bool OneLineShaper::shape(const char32_t* content, uint32_t len,
 
       SkShaper::TrivialFontRunIterator fontIter(font,
                                                 unresolvedRange.GetLength());
+      UnicodeScriptRunIterator scriptIter(content_ + unresolvedRange.GetStart(),
+                                          unresolvedRange.GetLength());
       fCurrentText = unresolvedRange;
-      shaper_->shape(content_ + unresolvedRange.GetStart(),
-                     unresolvedRange.GetLength(), &fontIter, !rtl,
-                     limitlessWidth, this);
+      if (preselect) {
+        auto fallback = [&](Unichar ch) {
+          FontKey key(ch, style.GetFontDescriptor().font_style_, "");
+          {
+            std::lock_guard<std::mutex> lock(fFallbackFontsMutex);
+            auto found = fFallbackFonts.find(key);
+            if (found != fFallbackFonts.end()) return found->second;
+          }
+          auto found = fFontCollection_.defaultFallback(
+              ch, style.GetFontDescriptor().font_style_, "");
+          if (found) {
+            std::lock_guard<std::mutex> lock(fFallbackFontsMutex);
+            fFallbackFonts.emplace(key, found);
+          }
+          return found;
+        };
+        CoverageFontIterator covered(font,
+                                     content_ + unresolvedRange.GetStart(),
+                                     unresolvedRange.GetLength(), fallback);
+        shaper_->shape(content_ + unresolvedRange.GetStart(),
+                       unresolvedRange.GetLength(), &covered, &scriptIter, !rtl,
+                       limitlessWidth, this);
+      } else {
+        shaper_->shape(content_ + unresolvedRange.GetStart(),
+                       unresolvedRange.GetLength(), &fontIter, &scriptIter,
+                       !rtl, limitlessWidth, this);
+      }
 
       // Take off the queue the block we tried to resolved -
       // whatever happened, we have now smaller pieces of it to deal with

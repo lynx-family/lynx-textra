@@ -80,7 +80,7 @@ class ShapingBlockReader : public PlatformShapingResultReader {
   uint32_t ReadIndices(uint32_t idx) const override {
     auto& block = block_list_[SeekBlock(idx)];
     auto idx_in_block = idx - glyph_offset_;
-    auto offset = block.fRun->textRange().GetStart();
+    auto offset = block.fRun->clusterStart();
     if (!block.fRun->leftToRight()) {
       idx_in_block = block.fGlyphs.GetLength() - idx_in_block - 1;
       // offset = block.fRun->textRange().GetEnd();
