@@ -17,6 +17,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "src/ports/shaper/skshaper/script_run_iterator.h"
 #include "src/ports/shaper/skshaper/shaper_skshaper.h"
 #include "src/textlayout/shape_cache.h"
 #include "test/mocks.h"
@@ -34,6 +35,10 @@ class CoverageTypeface final : public ITypefaceHelper {
       : ITypefaceHelper(NextId()), coverage_(coverage) {}
 
   float GetHorizontalAdvance(GlyphID, float size) const override {
+    if (purge_cache_on_advance) {
+      purge_cache_on_advance = false;
+      SkShaper::PurgeCaches();
+    }
     return size;
   }
   void GetHorizontalAdvances(GlyphID[], uint32_t count, float widths[],
@@ -50,7 +55,10 @@ class CoverageTypeface final : public ITypefaceHelper {
     rect[2] = size * static_cast<float>(count);
     rect[3] = count == 0 ? 0 : size;
   }
-  const void* GetFontData() const override { return kFontData; }
+  const void* GetFontData() const override {
+    ++font_data_queries;
+    return kFontData;
+  }
   size_t GetFontDataSize() const override { return sizeof(kFontData); }
   int GetFontIndex() const override { return 0; }
   uint32_t GetUnitsPerEm() const override { return 1000; }
@@ -66,6 +74,8 @@ class CoverageTypeface final : public ITypefaceHelper {
   }
 
   mutable size_t glyph_queries = 0;
+  mutable size_t font_data_queries = 0;
+  mutable bool purge_cache_on_advance = false;
 
  protected:
   void OnCreateFontInfo(FontInfo* info, float size) const override {
@@ -82,7 +92,7 @@ class CoverageTypeface final : public ITypefaceHelper {
   std::unordered_set<Unichar> coverage_;
 };
 
-class CoverageFontManager final : public IFontManager {
+class CoverageFontManager : public IFontManager {
  public:
   CoverageFontManager(
       std::initializer_list<std::initializer_list<Unichar>> coverages) {
@@ -128,6 +138,151 @@ TEST(CoverageTypefaceBounds, WritesOneAggregateRect) {
       EXPECT_FLOAT_EQ(output[i], kSentinel);
     }
   }
+}
+
+class TwoFontIterator final : public SkShaper::FontRunIterator {
+ public:
+  TwoFontIterator(Font first, Font second) : first_(first), second_(second) {}
+  void consume() override { end_ = end_ == 0 ? 3 : 4; }
+  size_t endOfCurrentRun() const override { return end_; }
+  bool atEnd() const override { return end_ == 4; }
+  const Font& currentFont() const override {
+    return end_ <= 3 ? first_ : second_;
+  }
+
+ private:
+  Font first_;
+  Font second_;
+  size_t end_ = 0;
+};
+
+class CollectRuns final : public SkShaper::RunHandler {
+ public:
+  void beginLine() override {}
+  void runInfo(const RunInfo&) override {}
+  void commitRunInfo() override {}
+  Buffer runBuffer(const RunInfo& info) override {
+    ranges.emplace_back(info.utf8Range.begin(), info.utf8Range.end());
+    fonts.push_back(info.fFont.GetTypeface());
+    glyphs.resize(info.glyphCount);
+    advances.resize(info.glyphCount);
+    clusters.resize(info.glyphCount);
+    return {glyphs.data(), advances.data(), clusters.data()};
+  }
+  void commitRunBuffer(const RunInfo&) override {
+    indices.insert(indices.end(), clusters.begin(), clusters.end());
+    widths.insert(widths.end(), advances.begin(), advances.end());
+  }
+  void commitLine() override {}
+  std::vector<std::pair<size_t, size_t>> ranges;
+  std::vector<TypefaceRef> fonts;
+  std::vector<uint32_t> indices;
+  std::vector<float> widths;
+
+ private:
+  std::vector<GlyphID> glyphs;
+  std::vector<float> advances;
+  std::vector<uint32_t> clusters;
+};
+
+class ShaperRunIntersectionTest : public testing::TestWithParam<bool> {};
+TEST_P(ShaperRunIntersectionTest, CombinesFontAndScriptBoundaries) {
+  auto shaper = GetParam() ? SkShaper::MakeShapeDontWrapOrReorder()
+                           : SkShaper::MakeShapeDontWrapOrReorderForPlatform();
+  if (!shaper) GTEST_SKIP() << "Backend not built/available";
+  auto first = std::make_shared<CoverageTypeface>(
+      std::initializer_list<Unichar>{U'A', U'中', U'B', U'C'});
+  auto second =
+      std::make_shared<CoverageTypeface>(std::initializer_list<Unichar>{U'C'});
+  for (bool ltr : {false, true}) {
+    TwoFontIterator fonts(Font(first, 16), Font(second, 16));
+    UnicodeScriptRunIterator scripts(U"A中BC", 4);
+    CollectRuns collector;
+    shaper->shape(U"A中BC", 4, &fonts, &scripts, ltr, 1000, &collector);
+    EXPECT_EQ(collector.ranges, (std::vector<std::pair<size_t, size_t>>{
+                                    {0, 1}, {1, 2}, {2, 3}, {3, 4}}));
+    EXPECT_EQ(collector.indices, (std::vector<uint32_t>{0, 1, 2, 3}));
+    ASSERT_EQ(collector.fonts.size(), 4u);
+    EXPECT_EQ(collector.fonts[2], first);
+    EXPECT_EQ(collector.fonts[3], second);
+  }
+}
+INSTANTIATE_TEST_SUITE_P(Backends, ShaperRunIntersectionTest, testing::Bool());
+
+std::vector<float> ShapeAtSize(
+    const std::shared_ptr<CoverageTypeface>& typeface, float size) {
+  auto shaper = SkShaper::MakeShapeDontWrapOrReorder();
+  SkShaper::TrivialFontRunIterator fonts(Font(typeface, size), 1);
+  UnicodeScriptRunIterator scripts(U"A", 1);
+  CollectRuns collector;
+  shaper->shape(U"A", 1, &fonts, &scripts, true, 1000, &collector);
+  return collector.widths;
+}
+
+class HarfBuzzFontCacheTest : public testing::Test {
+ protected:
+  void SetUp() override {
+    if (!ShaperSkShaper::Preload()) GTEST_SKIP() << "HarfBuzz unavailable";
+    SkShaper::PurgeCaches();
+  }
+  void TearDown() override { SkShaper::PurgeCaches(); }
+};
+
+TEST_F(HarfBuzzFontCacheTest, ReusesBaseFontWithIndependentSizes) {
+  auto typeface =
+      std::make_shared<CoverageTypeface>(std::initializer_list<Unichar>{U'A'});
+  const auto first = ShapeAtSize(typeface, 12);
+  ASSERT_EQ(first.size(), 1u);
+  EXPECT_FLOAT_EQ(first[0], 12);
+  const auto data_queries = typeface->font_data_queries;
+  EXPECT_GT(data_queries, 0u);
+  for (float size : {48.f, 12.f, 24.f}) {
+    const auto widths = ShapeAtSize(typeface, size);
+    ASSERT_EQ(widths.size(), 1u);
+    EXPECT_FLOAT_EQ(widths[0], size);
+    EXPECT_EQ(typeface->font_data_queries, data_queries);
+  }
+}
+
+TEST_F(HarfBuzzFontCacheTest, RetainsFontDataUntilPurge) {
+  std::weak_ptr<CoverageTypeface> weak;
+  {
+    auto typeface = std::make_shared<CoverageTypeface>(
+        std::initializer_list<Unichar>{U'A'});
+    weak = typeface;
+    ASSERT_EQ(ShapeAtSize(typeface, 16).size(), 1u);
+  }
+  EXPECT_FALSE(weak.expired());
+  SkShaper::PurgeCaches();
+  EXPECT_TRUE(weak.expired());
+}
+
+TEST_F(HarfBuzzFontCacheTest, EvictsOldFontsAndReleasesOwners) {
+  std::vector<std::weak_ptr<CoverageTypeface>> fonts;
+  for (uint32_t i = 0; i < 101; ++i) {
+    auto typeface = std::make_shared<CoverageTypeface>(
+        std::initializer_list<Unichar>{U'A'});
+    ASSERT_EQ(ShapeAtSize(typeface, 16).size(), 1u);
+    fonts.push_back(typeface);
+    if (i == 99) EXPECT_FALSE(fonts.front().expired());
+  }
+  EXPECT_TRUE(fonts.front().expired());
+  EXPECT_FALSE(fonts.back().expired());
+  SkShaper::PurgeCaches();
+  for (const auto& font : fonts) EXPECT_TRUE(font.expired());
+}
+
+TEST_F(HarfBuzzFontCacheTest, ActiveSubfontSurvivesCachePurge) {
+  auto typeface =
+      std::make_shared<CoverageTypeface>(std::initializer_list<Unichar>{U'A'});
+  typeface->purge_cache_on_advance = true;
+  const auto widths = ShapeAtSize(typeface, 16);
+  ASSERT_EQ(widths.size(), 1u);
+  EXPECT_FLOAT_EQ(widths[0], 16);
+  EXPECT_FALSE(typeface->purge_cache_on_advance);
+  std::weak_ptr<CoverageTypeface> weak = typeface;
+  typeface.reset();
+  EXPECT_TRUE(weak.expired());
 }
 
 class OneLineShaperFallbackTest : public testing::TestWithParam<bool> {};
@@ -186,6 +341,174 @@ TEST(OneLineShaperMissingFonts, LayoutAndDrawingPreserveLogicalText) {
       .Times(0);
   LayoutDrawer drawer(&canvas);
   drawer.DrawLayoutPage(&region);
+}
+
+TEST_P(OneLineShaperFallbackTest, SingleFontMixedScriptsKeepGlobalIndices) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{
+          {U'A', U'中', U'ا', U'ก', U'꧔'}});
+  FontmgrCollection collection(manager);
+  ShaperSkShaper shaper(collection);
+  const ShapeStyle style(FontDescriptor(), 16.f);
+  const std::u32string text = U"A中اก꧔";
+  auto result = shaper.ShapeText(text.data(), text.size(), &style, GetParam());
+  ASSERT_TRUE(result);
+  ASSERT_EQ(result->CharCount(), text.size());
+  ASSERT_EQ(result->GlyphCount(), text.size());
+  for (uint32_t i = 0; i < text.size(); ++i) {
+    EXPECT_EQ(result->GlyphToChar(i), i);
+    EXPECT_EQ(result->CharToGlyph(i), i);
+    EXPECT_NE(result->Glyphs(i), 0);
+  }
+}
+
+TEST_P(OneLineShaperFallbackTest, PreselectedFontsPreserveSpacesAndIndices) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{{U'A', U'B', U' '},
+                                                            {U'中', U'文'}});
+  FontmgrCollection collection(manager);
+  ShaperSkShaper shaper(collection);
+  const ShapeStyle style(FontDescriptor(), 16.f);
+  const std::u32string text = U"A 中文 B中文";
+  auto result = shaper.ShapeText(text.data(), text.size(), &style, GetParam());
+  ASSERT_TRUE(result);
+  ASSERT_EQ(result->GlyphCount(), text.size());
+  for (uint32_t i = 0; i < text.size(); ++i) {
+    EXPECT_EQ(result->GlyphToChar(i), i);
+    EXPECT_NE(result->Glyphs(i), 0);
+    EXPECT_EQ(result->FontByCharId(i),
+              manager->fonts[text[i] == U'中' || text[i] == U'文' ? 1 : 0]);
+  }
+}
+
+TEST_P(OneLineShaperFallbackTest, SupportedPrimaryStaysOnNormalPath) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{
+          {U'A', U'中', U'文', U' '}, {U'中', U'文'}});
+  FontmgrCollection collection(manager);
+  ShaperSkShaper shaper(collection);
+  const ShapeStyle style(FontDescriptor(), 16.f);
+  const std::u32string text = U"A 中文";
+  auto result = shaper.ShapeText(text.data(), text.size(), &style, GetParam());
+  ASSERT_TRUE(result);
+  ASSERT_EQ(result->CharCount(), text.size());
+  for (uint32_t i = 0; i < text.size(); ++i) {
+    EXPECT_EQ(result->FontByCharId(i), manager->fonts[0]);
+  }
+  EXPECT_EQ(manager->fonts[1]->glyph_queries, 0u);
+}
+
+TEST_P(OneLineShaperFallbackTest, FirstHanProbeDoesNotSuppressLaterFallback) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{{U'A', U'中', U' '},
+                                                            {U'文'}});
+  FontmgrCollection collection(manager);
+  ShaperSkShaper shaper(collection);
+  const ShapeStyle style(FontDescriptor(), 16.f);
+  auto result = shaper.ShapeText(U"A中 文", 4, &style, GetParam());
+  ASSERT_TRUE(result);
+  ASSERT_EQ(result->CharCount(), 4u);
+  EXPECT_EQ(result->FontByCharId(1), manager->fonts[0]);
+  EXPECT_EQ(result->FontByCharId(3), manager->fonts[1]);
+}
+
+TEST_P(OneLineShaperFallbackTest, PreselectionPreservesMissingGlyphs) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{{U'A'}});
+  FontmgrCollection collection(manager);
+  ShaperSkShaper shaper(collection);
+  const ShapeStyle style(FontDescriptor(), 16.f);
+  auto result = shaper.ShapeText(U"A中", 2, &style, GetParam());
+  ASSERT_TRUE(result);
+  ASSERT_EQ(result->CharCount(), 2u);
+  ASSERT_EQ(result->GlyphCount(), 2u);
+  EXPECT_NE(result->Glyphs(result->CharToGlyph(0)), 0);
+  EXPECT_EQ(result->Glyphs(result->CharToGlyph(1)), 0);
+}
+
+class OrderedFamilyManager final : public CoverageFontManager {
+ public:
+  OrderedFamilyManager() : CoverageFontManager({{U'A'}, {U'中'}, {U'中'}}) {}
+  TypefaceRef matchFamilyStyle(const char family[], const FontStyle&) override {
+    return fonts[std::string(family) == "secondary" ? 1 : 0];
+  }
+  TypefaceRef matchFamilyStyleCharacter(const char[], const FontStyle&,
+                                        const char*[], int,
+                                        uint32_t ch) override {
+    return fonts[2]->UnicharToGlyph(ch) ? fonts[2] : nullptr;
+  }
+};
+
+TEST_P(OneLineShaperFallbackTest, PreselectionRespectsFamilyPriority) {
+  auto manager = std::make_shared<OrderedFamilyManager>();
+  FontmgrCollection collection(manager);
+  ShaperSkShaper shaper(collection);
+  FontDescriptor descriptor;
+  descriptor.font_family_list_ = {"primary", "secondary"};
+  const ShapeStyle style(descriptor, 16.f);
+  auto result = shaper.ShapeText(U"A中", 2, &style, GetParam());
+  ASSERT_TRUE(result);
+  EXPECT_EQ(result->FontByCharId(0), manager->fonts[0]);
+  EXPECT_EQ(result->FontByCharId(1), manager->fonts[1]);
+}
+
+TEST_P(OneLineShaperFallbackTest, PreselectionRespectsDisabledFallback) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{{U'A'}, {U'中'}});
+  FontmgrCollection collection;
+  collection.SetAssetFontManager(manager);
+  collection.disableFontFallback();
+  ShaperSkShaper shaper(collection);
+  const ShapeStyle style(FontDescriptor(), 16.f);
+  auto result = shaper.ShapeText(U"A中", 2, &style, GetParam());
+  ASSERT_TRUE(result);
+  ASSERT_EQ(result->CharCount(), 2u);
+  ASSERT_EQ(result->GlyphCount(), 2u);
+  EXPECT_EQ(result->Glyphs(result->CharToGlyph(1)), 0);
+  EXPECT_EQ(manager->fonts[1]->glyph_queries, 0u);
+}
+
+TEST_P(OneLineShaperFallbackTest, MixedScriptMarksFallbackWithinShapingRun) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{
+          {U'এ'}, {U'ۣ', U'ۖ'}, {U'ิ'}, {U'꧔'}});
+  FontmgrCollection collection(manager);
+  ShaperSkShaper shaper(collection);
+  const ShapeStyle style(FontDescriptor(), 16.f);
+  const std::u32string text = U"এۣۖิ꧔";
+  auto result = shaper.ShapeText(text.data(), text.size(), &style, GetParam());
+  ASSERT_TRUE(result);
+  EXPECT_EQ(result->CharCount(), text.size());
+  ASSERT_GT(result->GlyphCount(), 0u);
+  for (uint32_t i = 0; i < text.size(); ++i) {
+    EXPECT_LT(result->CharToGlyph(i), result->GlyphCount());
+    EXPECT_NE(result->Glyphs(result->CharToGlyph(i)), 0);
+  }
+  for (uint32_t i = 0; i < result->GlyphCount(); ++i) {
+    EXPECT_LT(result->GlyphToChar(i), text.size());
+  }
+  EXPECT_LT(manager->fonts.front()->glyph_queries, 1000u);
+}
+
+TEST_P(OneLineShaperFallbackTest,
+       EmojiSequenceKeepsOneFallbackFontBetweenScripts) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{
+          {U'A'}, {U' ', 0x1F3F3, 0xFE0F, 0x200D, 0x1F308}, {U'ا'}});
+  FontmgrCollection collection(manager);
+  ShaperSkShaper shaper(collection);
+  const ShapeStyle style(FontDescriptor(), 16.f);
+  const std::u32string text = U"A🏳️‍🌈ا";
+  auto result = shaper.ShapeText(text.data(), text.size(), &style, GetParam());
+  ASSERT_TRUE(result);
+  ASSERT_EQ(result->CharCount(), text.size());
+  EXPECT_EQ(result->FontByCharId(0), manager->fonts[0]);
+  EXPECT_EQ(result->FontByCharId(1), manager->fonts[1]);
+  EXPECT_EQ(result->FontByCharId(4), manager->fonts[1]);
+  EXPECT_EQ(result->FontByCharId(5), manager->fonts[2]);
+  for (uint32_t i = 0; i < result->GlyphCount(); ++i) {
+    EXPECT_LT(result->GlyphToChar(i), text.size());
+  }
 }
 
 INSTANTIATE_TEST_SUITE_P(Directions, OneLineShaperFallbackTest,

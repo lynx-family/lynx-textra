@@ -57,6 +57,8 @@ class Run {
   size_t clusterIndex(size_t pos) const { return fClusterIndexes[pos]; }
 
   TextRange textRange() const { return fTextRange; }
+  // Cluster values are relative to the whole shaping input, not this subrun.
+  TextIndex clusterStart() const { return fClusterStart; }
 
   void commit();
 
@@ -72,6 +74,7 @@ class Run {
 
   const char32_t* fOwner;
   TextRange fTextRange;
+  TextIndex fClusterStart;
 
   Font fFont;
   std::vector<GlyphID> fGlyphs;

@@ -2,6 +2,7 @@
 // Licensed under the Apache License Version 2.0 that can be found in the
 // LICENSE file in the root directory of this source tree.
 
+#include <algorithm>
 #include <locale>
 #include <vector>
 
@@ -91,10 +92,11 @@ class ShaperPlatform : public SkShaper {
 
  private:
   void shape(const char32_t* utf8, size_t utf8Bytes, FontRunIterator*,
-             bool leftToRight, SkScalar width, RunHandler*) const override;
+             ScriptRunIterator*, bool leftToRight, SkScalar width,
+             RunHandler*) const override;
 
   virtual void wrap(const char32_t* const utf8, size_t utf8Bytes, bool,
-                    const char*, const SkFourByteTag, FontRunIterator*,
+                    const char*, ScriptRunIterator*, FontRunIterator*,
                     const Feature*, size_t featuresSize, SkScalar width,
                     RunHandler*) const = 0;
 };
@@ -105,41 +107,42 @@ class ShapeDontWrapOrReorder : public ShaperPlatform {
 
  private:
   void wrap(const char32_t* const utf8, size_t utf8Bytes, bool, const char*,
-            const SkFourByteTag, FontRunIterator*, const Feature*,
+            ScriptRunIterator*, FontRunIterator*, const Feature*,
             size_t featuresSize, float width, RunHandler*) const override;
 };
 
 ShaperPlatform::ShaperPlatform() {}
 
 void ShaperPlatform::shape(const char32_t* utf8, size_t utf8Bytes,
-                           FontRunIterator* font, bool leftToRight,
-                           SkScalar width, RunHandler* handler) const {
+                           FontRunIterator* font, ScriptRunIterator* script,
+                           bool leftToRight, SkScalar width,
+                           RunHandler* handler) const {
   auto bidi = !leftToRight;
   auto language = std::locale().name();
-  auto script = 0;
   this->wrap(utf8, utf8Bytes, bidi, language.c_str(), script, font, nullptr, 0,
              width, handler);
 }
 
 void ShapeDontWrapOrReorder::wrap(const char32_t* const utf8, size_t utf8Bytes,
                                   bool bidi, const char* language,
-                                  const SkFourByteTag script,
+                                  ScriptRunIterator* script,
                                   FontRunIterator* font,
                                   const Feature* features, size_t featuresSize,
                                   SkScalar width, RunHandler* handler) const {
   //  sk_ignore_unused_variable(width);
   std::vector<ShapedRun> runs;
 
-  const char32_t* utf8Start = nullptr;
-  const char32_t* utf8End = utf8;
-  while (!font->atEnd()) {
-    font->consume();
-
-    utf8Start = utf8End;
-    utf8End = utf8 + font->endOfCurrentRun();
-
-    runs.emplace_back(shape(utf8, utf8Bytes, utf8Start, utf8End, bidi, language,
-                            script, *font, features, featuresSize));
+  size_t offset = 0;
+  while (offset < utf8Bytes) {
+    if (font->endOfCurrentRun() == offset) font->consume();
+    if (script->endOfCurrentRun() == offset) script->consume();
+    const size_t end =
+        std::min(font->endOfCurrentRun(), script->endOfCurrentRun());
+    TTASSERT(end > offset && end <= utf8Bytes);
+    runs.emplace_back(shape(utf8, utf8Bytes, utf8 + offset, utf8 + end, bidi,
+                            language, script->currentScript(), *font, features,
+                            featuresSize));
+    offset = end;
   }
 
   handler->beginLine();
@@ -165,7 +168,7 @@ ShapedRun ShaperPlatform::shape(
     const size_t featuresSize) const {
   const Font& font = fontRunIterator.currentFont();
 
-  size_t numGlyphs = utf8End - utf8Start;
+  const auto numGlyphs = static_cast<uint32_t>(utf8End - utf8Start);
   std::vector<Unichar> unichars(numGlyphs);
   std::unique_ptr<GlyphID[]> glyphIDs(new GlyphID[numGlyphs]);
   std::unique_ptr<SkScalar[]> advances(new SkScalar[numGlyphs]);
@@ -186,7 +189,7 @@ ShapedRun ShaperPlatform::shape(
     shapedGlyph.fID = glyphIDs[i];
     shapedGlyph.fAdvance.SetX(advances[i]);
     // offset default to 0, 0
-    shapedGlyph.fCluster = utf8Start - utf8 + i;
+    shapedGlyph.fCluster = static_cast<uint32_t>(utf8Start - utf8 + i);
 
     totalAdvanceX += advances[i];
   }

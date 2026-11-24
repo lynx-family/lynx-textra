@@ -225,6 +225,10 @@ source_set("textlayout") {
   configs += [ ":textlayout_internal" ]
   public_configs = [ ":textlayout_public" ]
   public = textlayout_public_headers
+  friend = [
+    ":skshaper",
+    "//test:script_shaping_test",
+  ]
 
   sources = []
 
@@ -309,6 +313,9 @@ source_set("textlayout") {
 
   if (enable_skshaper) {
     deps += [ ":skshaper" ]
+
+    # The shaper uses textlayout's private ranges, Script classifier and runs.
+    allow_circular_includes_from = [ ":skshaper" ]
   }
 
   if (enable_ctshaper) {
@@ -452,6 +459,7 @@ source_set("skshaper") {
     "$prj_root/src/ports/shaper/skshaper/one_line_shaper.h",
     "$prj_root/src/ports/shaper/skshaper/run.cc",
     "$prj_root/src/ports/shaper/skshaper/run.h",
+    "$prj_root/src/ports/shaper/skshaper/script_run_iterator.h",
     "$prj_root/src/ports/shaper/skshaper/shaper_skshaper.cc",
     "$prj_root/src/ports/shaper/skshaper/shaper_skshaper.h",
     "$prj_root/src/ports/shaper/skshaper/sk_shaper.cc",
