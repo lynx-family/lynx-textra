@@ -114,6 +114,7 @@ class OneLineShaper : public SkShaper::RunHandler {
   void addFullyResolved();
   TextRange normalizeTextRange(GlyphRange glyphRange);
   void buildProtectedTextRanges();
+  bool splitUnresolvedCombiningRanges();
   TextRange expandTextRangeToProtected(TextRange textRange) const;
   GlyphRange glyphRangeForTextRange(TextRange textRange);
   void addUnresolvedWithRun(GlyphRange glyphRange);

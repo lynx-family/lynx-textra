@@ -130,7 +130,113 @@ TEST(CoverageTypefaceBounds, WritesOneAggregateRect) {
   }
 }
 
-class OneLineShaperFallbackTest : public testing::TestWithParam<bool> {};
+class OneLineShaperFallbackTest : public testing::TestWithParam<bool> {
+ protected:
+  std::shared_ptr<ShapeResult> Shape(
+      const std::u32string& text,
+      const std::shared_ptr<CoverageFontManager>& manager) {
+    FontmgrCollection collection(manager);
+    ShaperSkShaper shaper(collection);
+    const ShapeStyle style(FontDescriptor(), 16.f);
+    const ShapeKey key(text.data(), static_cast<uint32_t>(text.size()), &style,
+                       GetParam());
+    auto result = std::make_shared<ShapeResult>(
+        static_cast<uint32_t>(text.size()), GetParam());
+    shaper.OnShapeText(key, result.get());
+    EXPECT_EQ(result->CharCount(), text.size());
+    EXPECT_GT(result->GlyphCount(), 0u);
+    EXPECT_LE(result->GlyphCount(), text.size() * 2);
+    for (uint32_t i = 0; i < result->GlyphCount(); ++i) {
+      EXPECT_LT(result->GlyphToChar(i), text.size());
+    }
+    size_t queries = 0;
+    for (const auto& font : manager->fonts) queries += font->glyph_queries;
+    EXPECT_LT(queries, 1000u);
+    return result;
+  }
+};
+
+TEST_P(OneLineShaperFallbackTest, MixedScriptMarksWithPartialCoverage) {
+  // No font covers the entire protected mark cluster, and U+A9D4 is missing.
+  // Expanding missing pieces creates [2,6) and [2,7); they must be merged
+  // before reporting progress or trying another fallback font.
+  const std::u32string text =
+      U"\u2728\u5B89\u098F\u06E3\u06D6\u0E34\uA9D4\u7136\u2728";
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{
+          {0x2728}, {0x5B89, 0x7136}, {0x098F}, {0x06E3, 0x06D6}, {0x0E34}});
+  auto result = Shape(text, manager);
+  // Preserve all characters that the available fonts can display, even when
+  // no single font covers this mixed-script combining sequence.
+  const size_t expected_fonts[] = {0, 1, 2, 3, 3, 4, 0, 1, 0};
+  for (uint32_t i = 0; i < text.size(); ++i) {
+    if (i == 6) continue;  // U+A9D4 has no font in this fixture.
+    EXPECT_EQ(result->FontByCharId(i), manager->fonts[expected_fonts[i]]);
+    EXPECT_NE(result->Glyphs(result->CharToGlyph(i)), 0);
+  }
+  EXPECT_EQ(result->Glyphs(result->CharToGlyph(6)), 0);
+}
+
+TEST_P(OneLineShaperFallbackTest, MissingGlyphsRemainFinite) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{{}});
+  auto result = Shape(U"\u5B89\u098F\u06E3\u06D6\u0E34", manager);
+  for (uint32_t i = 0; i < result->GlyphCount(); ++i) {
+    EXPECT_EQ(result->Glyphs(i), 0);
+  }
+}
+
+TEST_P(OneLineShaperFallbackTest, CompleteClusterUsesFallbackFont) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{
+          {U'A', U'B'}, {0x098F, 0x06E3, 0x06D6, 0x0E34}});
+  auto result = Shape(U"A\u098F\u06E3\u06D6\u0E34B", manager);
+  for (uint32_t i = 1; i < 5; ++i) {
+    EXPECT_EQ(result->FontByCharId(i), manager->fonts[1]);
+  }
+  EXPECT_EQ(result->FontByCharId(0), manager->fonts[0]);
+  EXPECT_EQ(result->FontByCharId(5), manager->fonts[0]);
+  for (uint32_t i = 0; i < result->GlyphCount(); ++i) {
+    EXPECT_NE(result->Glyphs(i), 0);
+  }
+}
+
+TEST_P(OneLineShaperFallbackTest, MissingMarkDoesNotHideSupportedBase) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{{U'A', U'B'}});
+  auto result = Shape(U"A\u0301B", manager);
+  EXPECT_NE(result->Glyphs(result->CharToGlyph(0)), 0);
+  EXPECT_EQ(result->Glyphs(result->CharToGlyph(1)), 0);
+  EXPECT_NE(result->Glyphs(result->CharToGlyph(2)), 0);
+}
+
+TEST_P(OneLineShaperFallbackTest, PartialEmojiRemainsProtectedDuringRetry) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{
+          {U'A', U' '}, {0x0301}, {0x1F3F3, 0xFE0F, 0x200D}, {0x1F308}});
+  auto result = Shape(U"A\u0301 \U0001F3F3\uFE0F\u200D\U0001F308", manager);
+  EXPECT_EQ(result->FontByCharId(0), manager->fonts[0]);
+  EXPECT_NE(result->Glyphs(result->CharToGlyph(0)), 0);
+  EXPECT_EQ(result->FontByCharId(1), manager->fonts[1]);
+  EXPECT_NE(result->Glyphs(result->CharToGlyph(1)), 0);
+  for (uint32_t i = 4; i < 7; ++i) {
+    EXPECT_EQ(result->FontByCharId(i), result->FontByCharId(3));
+  }
+}
+
+TEST_P(OneLineShaperFallbackTest, AdjacentEmojiClustersUseSeparateFonts) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{
+          {}, {0x1F3F3, 0xFE0F, 0x200D, 0x1F308}, {0x1F1E8, 0x1F1F3}});
+  auto result =
+      Shape(U"\U0001F3F3\uFE0F\u200D\U0001F308\U0001F1E8\U0001F1F3", manager);
+  for (uint32_t i = 0; i < 4; ++i) {
+    EXPECT_EQ(result->FontByCharId(i), manager->fonts[1]);
+  }
+  for (uint32_t i = 4; i < 6; ++i) {
+    EXPECT_EQ(result->FontByCharId(i), manager->fonts[2]);
+  }
+}
 
 TEST_P(OneLineShaperFallbackTest,
        MissingFontsPreserveTextAndRetryAfterLoading) {

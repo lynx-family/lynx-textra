@@ -194,16 +194,18 @@ void OneLineShaper::fillGaps(size_t startingCount) {
     TextRange resolvedText(resolvedTextStart, fCurrentRun->leftToRight()
                                                   ? unresolved.fText.GetStart()
                                                   : unresolved.fText.GetEnd());
-    if (resolvedText.Width() > 0) {
-      if (!fCurrentRun->leftToRight()) {
-        resolvedText.Swap();
-      }
-
-      GlyphRange resolvedGlyphs(resolvedGlyphsStart,
-                                unresolved.fGlyphs.GetStart());
+    if (!fCurrentRun->leftToRight()) {
+      resolvedText.Swap();
+    }
+    GlyphRange resolvedGlyphs(resolvedGlyphsStart,
+                              unresolved.fGlyphs.GetStart());
+    // A reversed interval is overlap, not newly resolved text. Width() takes
+    // an absolute value and would incorrectly report progress in that case.
+    if (!resolvedText.Empty() &&
+        resolvedGlyphs.GetStart() <= resolvedGlyphs.GetEnd()) {
       RunBlock resolved(fCurrentRun, resolvedText, resolvedGlyphs);
 
-      if (resolvedGlyphs.Width() == 0) {
+      if (resolvedGlyphs.Empty()) {
         // Extend the unresolved block with an empty resolved
         if (unresolved.fText.GetEnd() <= resolved.fText.GetStart()) {
           unresolved.fText.SetEnd(resolved.fText.GetEnd());
@@ -222,13 +224,13 @@ void OneLineShaper::fillGaps(size_t startingCount) {
   }
 
   TextRange resolvedText(resolvedTextStart, resolvedTextLimits.GetEnd());
-  if (resolvedText.Width() > 0) {
-    if (!fCurrentRun->leftToRight()) {
-      resolvedText.Swap();
-    }
-
-    GlyphRange resolvedGlyphs(resolvedGlyphsStart,
-                              static_cast<unsigned int>(fCurrentRun->size()));
+  if (!fCurrentRun->leftToRight()) {
+    resolvedText.Swap();
+  }
+  GlyphRange resolvedGlyphs(resolvedGlyphsStart,
+                            static_cast<unsigned int>(fCurrentRun->size()));
+  if (!resolvedText.Empty() &&
+      resolvedGlyphs.GetStart() <= resolvedGlyphs.GetEnd()) {
     RunBlock resolved(fCurrentRun, resolvedText, resolvedGlyphs);
     fResolvedBlocks.emplace_back(resolved);
   }
@@ -335,6 +337,17 @@ void OneLineShaper::addFullyResolved() {
 
 // Make it [left:right) regardless of a text direction
 TextRange OneLineShaper::normalizeTextRange(GlyphRange glyphRange) {
+  // A shaping cluster can contain both resolved and missing glyphs. Always
+  // include the complete cluster, even when the missing glyph is in its middle.
+  while (glyphRange.GetStart() > 0 && clusterIndex(glyphRange.GetStart() - 1) ==
+                                          clusterIndex(glyphRange.GetStart())) {
+    glyphRange.SetStart(glyphRange.GetStart() - 1);
+  }
+  while (glyphRange.GetEnd() < fCurrentRun->size() &&
+         clusterIndex(glyphRange.GetEnd() - 1) ==
+             clusterIndex(glyphRange.GetEnd())) {
+    glyphRange.SetEnd(glyphRange.GetEnd() + 1);
+  }
   if (fCurrentRun->leftToRight()) {
     return TextRange(clusterIndex(glyphRange.GetStart()),
                      clusterIndex(glyphRange.GetEnd()));
@@ -358,6 +371,59 @@ void OneLineShaper::buildProtectedTextRanges() {
   }
 }
 
+bool OneLineShaper::splitUnresolvedCombiningRanges() {
+  std::vector<TextRange> relaxedRanges;
+  fProtectedTextRanges.erase(
+      std::remove_if(
+          fProtectedTextRanges.begin(), fProtectedTextRanges.end(),
+          [this, &relaxedRanges](const TextRange& range) {
+            if (IsGraphemeClusterJoinable(content_[range.GetStart()])) {
+              return false;
+            }
+            relaxedRanges.push_back(range);
+            return true;
+          }),
+      fProtectedTextRanges.end());
+  if (relaxedRanges.empty()) {
+    return false;
+  }
+
+  bool split = false;
+  std::deque<RunBlock> blocks;
+  for (const auto& unresolved : fUnresolvedBlocks) {
+    auto start = unresolved.fText.GetStart();
+    const auto end = unresolved.fText.GetEnd();
+    for (const auto& range : relaxedRanges) {
+      if (range.GetEnd() <= start) {
+        continue;
+      }
+      if (range.GetStart() >= end) {
+        break;
+      }
+      if (start < range.GetStart()) {
+        blocks.emplace_back(TextRange(start, range.GetStart()));
+        start = range.GetStart();
+      }
+      // Shaping a leading sequence of marks can merge them into one cluster
+      // again. Shape each codepoint separately only after whole-grapheme
+      // fallback has failed. New blocks must not reuse the old run's glyphs.
+      const auto splitEnd = std::min(end, range.GetEnd());
+      while (start < splitEnd) {
+        blocks.emplace_back(TextRange(start, start + 1));
+        ++start;
+      }
+      split = true;
+    }
+    if (start == unresolved.fText.GetStart()) {
+      blocks.push_back(unresolved);
+    } else if (start < end) {
+      blocks.emplace_back(TextRange(start, end));
+    }
+  }
+  fUnresolvedBlocks = std::move(blocks);
+  return split;
+}
+
 TextRange OneLineShaper::expandTextRangeToProtected(TextRange textRange) const {
   bool expanded = true;
   while (expanded) {
@@ -378,13 +444,18 @@ TextRange OneLineShaper::expandTextRangeToProtected(TextRange textRange) const {
 GlyphRange OneLineShaper::glyphRangeForTextRange(TextRange textRange) {
   GlyphIndex start = static_cast<GlyphIndex>(fCurrentRun->size());
   GlyphIndex end = 0;
-  for (GlyphIndex i = 0; i < fCurrentRun->size(); ++i) {
-    const TextRange glyphText = normalizeTextRange(GlyphRange(i, i + 1));
-    if (!glyphText.IsIntersect(textRange)) {
-      continue;
+  for (GlyphIndex i = 0; i < fCurrentRun->size();) {
+    GlyphIndex clusterEnd = i + 1;
+    while (clusterEnd < fCurrentRun->size() &&
+           clusterIndex(clusterEnd) == clusterIndex(i)) {
+      ++clusterEnd;
     }
-    start = std::min(start, i);
-    end = std::max(end, static_cast<GlyphIndex>(i + 1));
+    const TextRange glyphText = normalizeTextRange(GlyphRange(i, clusterEnd));
+    if (glyphText.IsIntersect(textRange)) {
+      start = std::min(start, i);
+      end = clusterEnd;
+    }
+    i = clusterEnd;
   }
 
   if (start >= end) {
@@ -394,43 +465,36 @@ GlyphRange OneLineShaper::glyphRangeForTextRange(TextRange textRange) {
 }
 
 void OneLineShaper::addUnresolvedWithRun(GlyphRange glyphRange) {
-  auto text_range = expandTextRangeToProtected(normalizeTextRange(glyphRange));
-  glyphRange = glyphRangeForTextRange(text_range);
-  RunBlock unresolved(fCurrentRun, text_range, glyphRange);
-  if (unresolved.fGlyphs.GetLength() == fCurrentRun->size()) {
-    TTASSERT(unresolved.fText.GetLength() ==
-             fCurrentRun->fTextRange.GetLength());
-  } else if (!fUnresolvedBlocks.empty()) {
-    auto& lastUnresolved = fUnresolvedBlocks.back();
-    if (lastUnresolved.fRun != nullptr &&
-        lastUnresolved.fRun == unresolved.fRun) {
-      if (lastUnresolved.fText.GetEnd() == unresolved.fText.GetStart()) {
-        // Two pieces next to each other - can join them
-        lastUnresolved.fText.SetEnd(unresolved.fText.GetEnd());
-        lastUnresolved.fGlyphs.SetEnd(glyphRange.GetEnd());
-        return;
-      } else if (lastUnresolved.fText == unresolved.fText) {
-        // Nothing was resolved; ignore it
-        return;
-      } else if (lastUnresolved.fText.Contain(unresolved.fText)) {
-        // We get here for the very first unresolved piece
-        return;
-      } else if (!tttext::Range::Intersect(lastUnresolved.fText,
-                                           unresolved.fText)
-                      .Empty()) {
-        // Few pieces of the same unresolved text block can ignore the second
-        // one
-        lastUnresolved.fGlyphs.SetStart(
-            std::min(lastUnresolved.fGlyphs.GetStart(), glyphRange.GetStart()));
-        lastUnresolved.fGlyphs.SetEnd(
-            std::max(lastUnresolved.fGlyphs.GetEnd(), glyphRange.GetEnd()));
-        lastUnresolved.fText.SetStart(std::min(lastUnresolved.fText.GetStart(),
-                                               unresolved.fText.GetStart()));
-        lastUnresolved.fText.SetEnd(
-            std::max(lastUnresolved.fText.GetEnd(), unresolved.fText.GetEnd()));
-        return;
-      }
+  auto text_range = normalizeTextRange(glyphRange);
+  // Grapheme and shaping-cluster boundaries need not coincide. Expand to both
+  // until the text and glyph intervals describe the same complete clusters.
+  while (true) {
+    auto expanded = expandTextRangeToProtected(text_range);
+    expanded.Intersect(fCurrentRun->textRange());
+    glyphRange = glyphRangeForTextRange(expanded);
+    auto aligned = normalizeTextRange(glyphRange);
+    aligned.Merge(expanded);
+    if (glyphRange.GetLength() == fCurrentRun->size()) {
+      aligned = fCurrentRun->textRange();
     }
+    if (aligned == text_range) {
+      break;
+    }
+    text_range = aligned;
+  }
+  RunBlock unresolved(fCurrentRun, text_range, glyphRange);
+  // Merge even when expansion covers every glyph in the run. Keeping that
+  // block separate would duplicate unresolved text and manufacture gaps.
+  while (!fUnresolvedBlocks.empty()) {
+    const auto& lastUnresolved = fUnresolvedBlocks.back();
+    if (lastUnresolved.fRun != unresolved.fRun ||
+        (!lastUnresolved.fText.IsIntersect(unresolved.fText) &&
+         !unresolved.fText.IsAdjacent(lastUnresolved.fText))) {
+      break;
+    }
+    unresolved.fText.Merge(lastUnresolved.fText);
+    unresolved.fGlyphs.Merge(lastUnresolved.fGlyphs);
+    fUnresolvedBlocks.pop_back();
   }
   fUnresolvedBlocks.emplace_back(unresolved);
 }
@@ -690,7 +754,7 @@ bool OneLineShaper::shape(const char32_t* content, uint32_t len,
   fCurrentText = TextRange{0, len};
   fUnresolvedBlocks.emplace_back(RunBlock(fRange));
 
-  matchResolvedFonts(style, [&](std::shared_ptr<ITypefaceHelper> typeface) {
+  auto shapeWithTypeface = [&](std::shared_ptr<ITypefaceHelper> typeface) {
     // Create one more font to try
     Font font(typeface, style.GetFontSize());
     font.SetSubpixel(true);
@@ -726,7 +790,18 @@ bool OneLineShaper::shape(const char32_t* content, uint32_t len,
     } else {
       return Resolved::Nothing;
     }
-  });
+  };
+
+  matchResolvedFonts(style, shapeWithTypeface);
+
+  if (!fUnresolvedBlocks.empty() && fFontCollection_.fontFallbackEnabled() &&
+      splitUnresolvedCombiningRanges()) {
+    // Prefer one font for a complete grapheme. If no font can cover a generic
+    // combining sequence, retry its unresolved codepoints separately so a
+    // missing mark does not hide otherwise supported text.
+    // Keep emoji sequences and script-specific conjuncts protected.
+    matchResolvedFonts(style, shapeWithTypeface);
+  }
 
   this->finish(fRange);
   return true;
