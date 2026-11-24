@@ -245,6 +245,7 @@ jobs:
           if ((Get-FileHash $habitat -Algorithm SHA256).Hash -ne "f40aa7efe0a92c6e536f6f9d0d7220e2a8d2c0e6326b262c40c0c08c2f3c3a0e") { throw "Habitat checksum mismatch" }
           & $habitat sync .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "$env:GITHUB_WORKSPACE\buildtools\ninja" >> $env:GITHUB_PATH
       - name: Compare Windows SkShaper with fixed fonts
         shell: pwsh
         run: |
