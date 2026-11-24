@@ -46,6 +46,16 @@ TEST(UnicodeScriptTest, DistinguishesScriptsWithoutChoosingFonts) {
   }
 }
 
+TEST(UnicodeScriptTest, ClassifiesHalfwidthKanaAndSharedMarks) {
+  for (uint32_t ch = 0xFF61; ch <= 0xFFA0; ++ch) {
+    const auto expected = ch == 0xFFA0 ? UnicodeScript::kUnknown
+                          : ch <= 0xFF65 || ch == 0xFF70 || ch >= 0xFF9E
+                              ? UnicodeScript::kCommon
+                              : UnicodeScript::kKatakana;
+    EXPECT_EQ(GetUnicodeScript(ch), expected) << ch;
+  }
+}
+
 TEST(CoreTextDefaultFontPolicyTest, UsesUnicodeScriptForFontSelection) {
   const char32_t codepoints[] = {U'A',          U'é',          U'Ａ', U'中',
                                  U'\U00030000', U'\U0002A6E0', U'ۣ',   U'ิ',

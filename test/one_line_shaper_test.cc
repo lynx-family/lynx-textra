@@ -34,7 +34,8 @@ class CoverageTypeface final : public ITypefaceHelper {
   explicit CoverageTypeface(std::initializer_list<Unichar> coverage)
       : ITypefaceHelper(NextId()), coverage_(coverage) {}
 
-  float GetHorizontalAdvance(GlyphID, float size) const override {
+  float GetHorizontalAdvance(GlyphID glyph, float size) const override {
+    if (glyph == 0) ++missing_advances;
     if (purge_cache_on_advance) {
       purge_cache_on_advance = false;
       SkShaper::PurgeCaches();
@@ -74,6 +75,7 @@ class CoverageTypeface final : public ITypefaceHelper {
   }
 
   mutable size_t glyph_queries = 0;
+  mutable size_t missing_advances = 0;
   mutable size_t font_data_queries = 0;
   mutable bool purge_cache_on_advance = false;
 
@@ -488,6 +490,68 @@ TEST_P(OneLineShaperFallbackTest, MixedScriptMarksFallbackWithinShapingRun) {
     EXPECT_LT(result->GlyphToChar(i), text.size());
   }
   EXPECT_LT(manager->fonts.front()->glyph_queries, 1000u);
+}
+
+TEST_P(OneLineShaperFallbackTest, FallbackDoesNotShapeUnrelatedBlocks) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{
+          {U'A'}, {0x1F600}, {U'ا'}});
+  FontmgrCollection collection(manager);
+  ShaperSkShaper shaper(collection);
+  const ShapeStyle style(FontDescriptor(), 16.f);
+  const std::u32string text = U"A😀اA😀ا";
+  auto result = shaper.ShapeText(text.data(), text.size(), &style, GetParam());
+  ASSERT_TRUE(result);
+  ASSERT_EQ(result->GlyphCount(), text.size());
+  for (uint32_t i = 0; i < text.size(); ++i) {
+    EXPECT_NE(result->Glyphs(result->CharToGlyph(i)), 0);
+    EXPECT_EQ(result->FontByCharId(i), manager->fonts[i % 3]);
+  }
+  // Font-manager coverage queries are allowed; an emoji candidate must not
+  // actually shape the separate Arabic blocks and request .notdef advances.
+  EXPECT_EQ(manager->fonts[1]->missing_advances, 0u);
+}
+
+TEST_P(OneLineShaperFallbackTest, FailedFallbackDoesNotAdvanceAnotherBlock) {
+  class UnresolvedEmojiManager final : public CoverageFontManager {
+   public:
+    UnresolvedEmojiManager() : CoverageFontManager({{U'A'}, {U'ا'}, {U'ا'}}) {}
+    TypefaceRef matchFamilyStyleCharacter(const char[], const FontStyle&,
+                                          const char*[], int,
+                                          uint32_t ch) override {
+      if (ch == 0x1F600) return fonts[1];  // Candidate cannot resolve emoji.
+      return ch == U'ا' ? fonts[2] : nullptr;
+    }
+  };
+  auto manager = std::make_shared<UnresolvedEmojiManager>();
+  FontmgrCollection collection(manager);
+  ShaperSkShaper shaper(collection);
+  const ShapeStyle style(FontDescriptor(), 16.f);
+  auto result = shaper.ShapeText(U"A😀ا", 3, &style, GetParam());
+  ASSERT_TRUE(result);
+  ASSERT_EQ(result->CharCount(), 3u);
+  ASSERT_EQ(result->GlyphCount(), 3u);
+  EXPECT_EQ(result->Glyphs(result->CharToGlyph(1)), 0);
+  EXPECT_NE(result->Glyphs(result->CharToGlyph(2)), 0);
+  EXPECT_EQ(result->FontByCharId(2), manager->fonts[2]);
+}
+
+TEST_P(OneLineShaperFallbackTest, PartialFallbackKeepsItsChildrenFirst) {
+  auto manager = std::make_shared<CoverageFontManager>(
+      std::initializer_list<std::initializer_list<Unichar>>{
+          {U'A'}, {0x1F600}, {0x1F601}, {U'ا'}});
+  FontmgrCollection collection(manager);
+  ShaperSkShaper shaper(collection);
+  const ShapeStyle style(FontDescriptor(), 16.f);
+  const std::u32string text = U"A😀😁ا";
+  auto result = shaper.ShapeText(text.data(), text.size(), &style, GetParam());
+  ASSERT_TRUE(result);
+  ASSERT_EQ(result->CharCount(), text.size());
+  ASSERT_EQ(result->GlyphCount(), text.size());
+  for (uint32_t i = 0; i < text.size(); ++i) {
+    EXPECT_NE(result->Glyphs(result->CharToGlyph(i)), 0);
+    EXPECT_EQ(result->FontByCharId(i), manager->fonts[i]);
+  }
 }
 
 TEST_P(OneLineShaperFallbackTest,

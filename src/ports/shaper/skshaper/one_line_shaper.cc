@@ -685,9 +685,11 @@ void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
   }
 
   for (const auto& typeface : typefaces) {
-    if (visitor(typeface, typefaces.size() == 1 && fd.platform_font_ == 0 &&
-                              fd.font_family_list_.empty() &&
-                              fFontCollection_.fontFallbackEnabled()) ==
+    const bool preselect = typefaces.size() == 1 && fd.platform_font_ == 0 &&
+                           fd.font_family_list_.empty() &&
+                           fFontCollection_.fontFallbackEnabled();
+    if (visitor(typeface,
+                preselect ? FontVisit::kPreselect : FontVisit::kRequested) ==
         Resolved::Everything) {
       // Resolved everything
       return;
@@ -735,7 +737,11 @@ void OneLineShaper::matchResolvedFonts(const ShapeStyle& textStyle,
         }
 
         if (typeface != nullptr) {
-          auto resolved = visitor(typeface, false);
+          const auto visit =
+              IsCommonEmoji(unicode) || IsCombiningEnclosingKeycap(unicode)
+                  ? FontVisit::kEmojiFallback
+                  : FontVisit::kRequested;
+          auto resolved = visitor(typeface, visit);
           if (resolved == Resolved::Everything) {
             // Resolved everything, no need to try another font
             goto exit;
@@ -792,11 +798,12 @@ bool OneLineShaper::shape(const char32_t* content, uint32_t len,
 
   const auto preselection_codepoint = FindPreselectionCodepoint(content, len);
   matchResolvedFonts(style, [&](std::shared_ptr<ITypefaceHelper> typeface,
-                                bool preselect) {
+                                FontVisit visit) {
     // A primary font that covers the first Han character stays on the normal
     // path; coverage preselection would otherwise duplicate its cmap work.
-    preselect = preselect && preselection_codepoint != 0 &&
-                typeface->UnicharToGlyph(preselection_codepoint) == 0;
+    const bool preselect =
+        visit == FontVisit::kPreselect && preselection_codepoint != 0 &&
+        typeface->UnicharToGlyph(preselection_codepoint) == 0;
     // Create one more font to try
     Font font(typeface, style.GetFontSize());
     font.SetSubpixel(true);
@@ -811,6 +818,18 @@ bool OneLineShaper::shape(const char32_t* content, uint32_t len,
         // Duplicate blocks should be ignored
         fUnresolvedBlocks.pop_front();
         continue;
+      }
+
+      if (visit == FontVisit::kEmojiFallback) {
+        const auto key = EmojiFallbackKey(content_, unresolvedRange.GetStart(),
+                                          unresolvedRange.GetEnd());
+        if (!IsCommonEmoji(key) && !IsCombiningEnclosingKeycap(key)) {
+          // Keep skipped blocks in order. This candidate was selected with
+          // emoji presentation preference, not for unrelated script runs.
+          fUnresolvedBlocks.push_back(std::move(fUnresolvedBlocks.front()));
+          fUnresolvedBlocks.pop_front();
+          continue;
+        }
       }
 
       SkShaper::TrivialFontRunIterator fontIter(font,
