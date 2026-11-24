@@ -65,6 +65,7 @@ jobs:
       - name: Build shared Skity font backend
         if: matrix.backend == 'skity'
         run: |
+          export PATH="$GITHUB_WORKSPACE/buildtools/ninja:$PATH"
           buildtools/cmake/bin/cmake -S third_party/skity -B out/perf-skity -G Ninja -DCMAKE_BUILD_TYPE=Release -DSKITY_MTL_BACKEND=OFF -DSKITY_GL_BACKEND=OFF -DSKITY_CODEC_MODULE=OFF -DSKITY_IO_MODULE=OFF
           buildtools/cmake/bin/cmake --build out/perf-skity --target skity
       - name: Compare native CoreText
@@ -151,7 +152,14 @@ jobs:
           distribution: zulu
       - uses: ./.github/actions/common-deps
       - name: Install Android build tools
-        run: sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;21.1.6352462"
+        run: |
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          if [ -z "$sdk_root" ]; then
+            sdk_root="$(dirname "$(dirname "$(readlink -f "$(command -v adb)")")")"
+          fi
+          test -d "$sdk_root/platform-tools"
+          echo "ANDROID_HOME=$sdk_root" >> "$GITHUB_ENV"
+          sdkmanager --sdk_root="$sdk_root" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;21.1.6352462"
       - name: Start the existing Lynx runner AVD on an owned port
         run: python3 test/perf/android_emulator.py start --state "$RUNNER_TEMP/textra-perf-emulator.json"
       - name: Compare native Android on the same emulator
@@ -189,6 +197,17 @@ jobs:
       BASELINE: ${{ github.event.pull_request.base.sha || inputs.baseline }}
       CANDIDATE: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
+      - name: Install pinned Git LFS for checkout
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP "git-lfs.zip"
+          Invoke-WebRequest "https://github.com/git-lfs/git-lfs/releases/download/v3.7.1/git-lfs-windows-amd64-v3.7.1.zip" -OutFile $archive
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne "8683cdc3d6c029b49393dcebbaa6265bd6efd9abdcf837be855b4cd42e5e80b6") { throw "Git LFS checksum mismatch" }
+          $destination = Join-Path $env:RUNNER_TEMP "git-lfs"
+          Expand-Archive $archive -DestinationPath $destination
+          $binary = Get-ChildItem $destination -Recurse -Filter git-lfs.exe | Select-Object -First 1
+          if (-not $binary) { throw "Git LFS executable missing" }
+          $binary.DirectoryName >> $env:GITHUB_PATH
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
