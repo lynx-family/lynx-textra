@@ -47,7 +47,8 @@ inline UnicodeScript GetUnicodeScript(uint32_t codepoint) {
       (codepoint >= 0xFE30 && codepoint <= 0xFE6F) ||
       (codepoint >= 0xFF01 && codepoint <= 0xFF20) ||
       (codepoint >= 0xFF3B && codepoint <= 0xFF40) ||
-      (codepoint >= 0xFF5B && codepoint <= 0xFF65)) {
+      (codepoint >= 0xFF5B && codepoint <= 0xFF65) || codepoint == 0xFF70 ||
+      (codepoint >= 0xFF9E && codepoint <= 0xFF9F)) {
     return IsZeroWidthJoiner(codepoint) || IsZeroWidthNonJoiner(codepoint)
                ? UnicodeScript::kInherited
                : UnicodeScript::kCommon;
@@ -81,6 +82,8 @@ inline UnicodeScript GetUnicodeScript(uint32_t codepoint) {
       {0xF900, 0xFAFF, UnicodeScript::kHan},
       {0xFB50, 0xFDFF, UnicodeScript::kArabic},
       {0xFE70, 0xFEFC, UnicodeScript::kArabic},
+      {0xFF66, 0xFF6F, UnicodeScript::kKatakana},
+      {0xFF71, 0xFF9D, UnicodeScript::kKatakana},
       {0x10EC0, 0x10EFF, UnicodeScript::kArabic},
       {0x1EE00, 0x1EEFF, UnicodeScript::kArabic},
       {0x20000, 0x2A6DF, UnicodeScript::kHan},

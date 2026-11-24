@@ -68,6 +68,17 @@ TEST(ScriptRunIterator, CoalescesKanaButPreservesOtherScriptBoundaries) {
                                                {6, Tag("Arab")}}));
 }
 
+TEST(ScriptRunIterator, CoalescesHalfwidthKanaAndSharedMarks) {
+  EXPECT_EQ(Collect(U"日本語ｶﾀｶﾅひらがなガギグ。"),
+            (ScriptRuns{{3, Tag("Hani")}, {15, Tag("Kana")}}));
+  EXPECT_EQ(Collect(U"ｶﾞﾊﾟｰひらがなカナ"), (ScriptRuns{{11, Tag("Kana")}}));
+  EXPECT_EQ(Collect(U"ｰｶﾞA中ا"), (ScriptRuns{{3, Tag("Kana")},
+                                             {4, Tag("Latn")},
+                                             {5, Tag("Hani")},
+                                             {6, Tag("Arab")}}));
+  EXPECT_EQ(Collect(U"\uFF9E\uFF9F"), (ScriptRuns{{2, Tag("Zyyy")}}));
+}
+
 TEST(ScriptRunIterator, KeepsEmojiAndIndicSequencesTogether) {
   for (const auto* text : {U"🏳️‍🌈", U"🇨🇳", U"1️⃣", U"क्\u200Dष",
                            U"\U0001F3F4\U000E0067\U000E0062\U000E007F"}) {

@@ -95,8 +95,9 @@ class OneLineShaper : public SkShaper::RunHandler {
   enum Resolved { Nothing, Something, Everything };
 
  private:
+  enum class FontVisit { kRequested, kPreselect, kEmojiFallback };
   using TypefaceVisitor = std::function<Resolved(
-      std::shared_ptr<ITypefaceHelper> typeface, bool preselect)>;
+      std::shared_ptr<ITypefaceHelper> typeface, FontVisit visit)>;
   void matchResolvedFonts(const ShapeStyle& textStyle,
                           const TypefaceVisitor& visitor);
   void finish(TextRange text);
