@@ -92,7 +92,9 @@ Build checks and performance gates share one job per platform, including one
 checkout and dependency/toolchain setup. macOS Debug remains separate from
 Release, but the Release library and C API tests reuse one GN directory. The
 Metal demo and CPU/golden tests share a Metal-enabled CMake tree. Android demos
-build the emulator ABI via `-PabiList=...`; iOS demos use `iphonesimulator` on the
+build the emulator ABI via `-PabiList=...` under JDK 11, without a retained
+Gradle daemon. SDK tools and benchmark packaging use JDK 17. iOS demos use
+`iphonesimulator` on the
 runner's host architecture. Linux Skia and LVGL configurations remain separate.
 
 Both revisions are checked out serially, then compiled concurrently in isolated
