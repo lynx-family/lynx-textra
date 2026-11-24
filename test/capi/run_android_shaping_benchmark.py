@@ -9,6 +9,8 @@ import sys
 import time
 import zipfile
 
+from summarize_android_shaping import REPORT_VERSION
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -70,7 +72,7 @@ def main():
                 continue
             report = args.output / f'run-{number}.json'
             report.write_bytes(result.stdout)
-            if (data.get('version') != 4 or data.get('global_warmup_ms') != 2000
+            if (data.get('version') != REPORT_VERSION or data.get('global_warmup_ms') != 2000
                     or data.get('workload_rotation') != rotation or data.get('rounds') != args.rounds
                     or not data.get('results_equal') or data.get('cleanup_status', data.get('unregister_status')) != 0):
                 raise RuntimeError(f'Incomplete or failed benchmark: {report}')

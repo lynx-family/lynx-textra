@@ -58,6 +58,16 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Install Common Dependencies
         uses: ./.github/actions/common-deps
+      - name: Run C API regression tests
+        run: |
+          source tools/envsetup.sh
+          python3 -m unittest discover -s test/capi -p 'test_*.py'
+          gn gen out/capi_regression --args='is_debug=false use_flutter_cxx=false'
+          ninja -C out/capi_regression backend_test capi_test
+          pushd out/capi_regression
+          ./backend_test
+          ./capi_test
+          popd
       - name: Run macOS build check - mtl_app_demo
         run: |
           source tools/envsetup.sh

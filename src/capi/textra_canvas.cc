@@ -102,7 +102,7 @@ CallbackCanvas::CallbackCanvas(const textra_canvas_options_t& options)
 }
 
 CallbackCanvas::~CallbackCanvas() {
-  callbacks_.destroy(userdata_, native_canvas_);
+  if (callbacks_.destroy) callbacks_.destroy(userdata_, native_canvas_);
 }
 
 std::unique_ptr<Painter> CallbackCanvas::CreatePainter() {

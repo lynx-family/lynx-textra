@@ -197,7 +197,24 @@ static textra_status_t native(void* u, void* p, const void** out) {
   return 0;
 }
 
+static void test_borrowed_canvas(void) {
+  textra_backend_canvas_api_t callbacks = {0};
+  callbacks.struct_size = sizeof(callbacks);
+  callbacks.version = TEXTRA_CANVAS_API_VERSION;
+  textra_canvas_options_t canvas = {
+      sizeof(canvas), TEXTRA_RENDERING_BACKEND_SKIA, 0, &token, &callbacks,
+      &token};
+  textra_layout_drawer_options_t options = {sizeof(options), &canvas, NULL,
+                                            NULL};
+  textra_layout_drawer_t* drawer = NULL;
+  OK(textra_layout_drawer_create(&options, &drawer));
+  assert(drawer != NULL);
+  textra_layout_drawer_destroy(drawer);
+  assert(live_objects == 0);
+}
+
 int main(void) {
+  test_borrowed_canvas();
   textra_backend_canvas_api_t canvas_api = {0};
   canvas_api.struct_size = sizeof(canvas_api);
   canvas_api.version = TEXTRA_CANVAS_API_VERSION;

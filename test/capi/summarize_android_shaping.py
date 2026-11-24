@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 import statistics
 
+REPORT_VERSION = 6
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('runs', type=Path, nargs='+')
@@ -14,7 +17,7 @@ def main():
     if not runs:
         raise ValueError('No benchmark runs')
     version = runs[0].get('version')
-    if version not in (2, 3, 4):
+    if version not in (2, 3, 4, REPORT_VERSION):
         raise ValueError('Unsupported benchmark version')
     fields = ('rounds', 'batch', 'warmup') + (('global_warmup_ms',) if version >= 3 else ())
     key = ('case', 'codepoints', 'metrics_round', 'mode')
@@ -56,7 +59,7 @@ def main():
     summary = dict(version=version, runs=len(runs), rounds_per_run=runs[0]['rounds'], batch=runs[0]['batch'], warmup=runs[0]['warmup'],
                    results_equal=True, unit='microseconds_per_call', percent_method='median of paired block-mean ratios',
                    rows=output)
-    if version == 3:
+    if version >= 3:
         summary.update(global_warmup_ms=runs[0]['global_warmup_ms'],
                        workload_rotations=[run.get('workload_rotation') for run in runs])
     args.output.write_text(json.dumps(summary, ensure_ascii=False, indent=2)+'\n')
