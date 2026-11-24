@@ -66,7 +66,9 @@ jobs:
         if: matrix.backend == 'skity'
         run: |
           export PATH="$GITHUB_WORKSPACE/buildtools/ninja:$PATH"
-          buildtools/cmake/bin/cmake -S third_party/skity -B out/perf-skity -G Ninja -DCMAKE_BUILD_TYPE=Release -DSKITY_MTL_BACKEND=OFF -DSKITY_GL_BACKEND=OFF -DSKITY_CODEC_MODULE=OFF -DSKITY_IO_MODULE=OFF
+          target_arch="$(python3 -c 'import platform; print(platform.machine())')"
+          export CFLAGS="-arch $target_arch" CXXFLAGS="-arch $target_arch" LDFLAGS="-arch $target_arch"
+          buildtools/cmake/bin/cmake -S third_party/skity -B out/perf-skity -G Ninja -DCMAKE_OSX_ARCHITECTURES="$target_arch" -DCMAKE_BUILD_TYPE=Release -DSKITY_MTL_BACKEND=OFF -DSKITY_GL_BACKEND=OFF -DSKITY_CODEC_MODULE=OFF -DSKITY_IO_MODULE=OFF
           buildtools/cmake/bin/cmake --build out/perf-skity --target skity
       - name: Compare native CoreText
         if: matrix.backend == 'macos'
