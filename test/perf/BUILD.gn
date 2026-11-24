@@ -46,6 +46,8 @@ template("perf_target") {
       ]
     }
     if (is_win) {
+      # Match the platform library's dependency for non-ICU SkShaper bidi.
+      deps += [ "//src:bidi" ]
       defines += [ "TEXTRA_PERF_SKITY" ]
       include_dirs += [ "//third_party/skity/include" ]
       libs = [ getenv("TEXTRA_PERF_SKITY_LIBRARY") ]
