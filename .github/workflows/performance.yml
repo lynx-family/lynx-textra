@@ -230,6 +230,7 @@ jobs:
         shell: pwsh
         run: |
           "DEPOT_TOOLS_WIN_TOOLCHAIN=0" >> $env:GITHUB_ENV
+          "vs2022_install=${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools" >> $env:GITHUB_ENV
           "GYP_MSVS_OVERRIDE_PATH=${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools" >> $env:GITHUB_ENV
           "WINDOWSSDKDIR=${env:ProgramFiles(x86)}\Windows Kits\10" >> $env:GITHUB_ENV
       - name: Sync dependencies with native Windows Habitat
