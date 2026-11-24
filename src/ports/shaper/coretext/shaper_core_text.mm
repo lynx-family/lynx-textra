@@ -400,7 +400,7 @@ CFDictionaryRef GetSafeFontCascadeAttributes(CTFontRef font) {
 }  // namespace
 
 ShaperCoreText::ShaperCoreText(FontmgrCollection& font_collection) noexcept
-    : TTShaper(font_collection) {};
+    : TTShaper(font_collection) {}
 
 ShaperCoreText::~ShaperCoreText() = default;
 
@@ -580,7 +580,7 @@ void ShaperCoreText::ProcessBidirection(const char32_t* text, uint32_t length,
 
 class CTShapingResult : public PlatformShapingResultReader {
  public:
-  CTShapingResult() {};
+  CTShapingResult() {}
 
  public:
   uint32_t GlyphCount() const override {
