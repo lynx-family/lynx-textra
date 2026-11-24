@@ -45,7 +45,11 @@ Both native CoreText and Skity/SkShaper jobs run. The Skity job builds one share
 font backend and uses `fonts.macos.json` for both engines. System-font files must
 exist on the runner; their file checksums are recorded, with no silent font
 substitution. Downloaded/generated dependencies are not committed. macOS host
-architecture is detected instead of hard-coding arm64. For historical revisions,
+architecture is detected instead of hard-coding arm64. The Skity job installs
+native CMake 3.31.6 in an isolated environment, since the repository's Intel
+CMake can otherwise select the wrong target and libpng processor sources on
+Apple Silicon. Skity and its subprojects receive matching architecture flags.
+For historical revisions,
 the timing builder keeps integer-narrowing/nontrivial-memory-call warnings as
 warnings in both generated builds if supported by that compiler. It changes no
 engine source or optimization flag; the exact compatibility flags are recorded
@@ -129,9 +133,12 @@ scope explicitly.
 
 ### Windows
 
-The runner must provide the same VS 2022 BuildTools, Windows SDK and system
-CMake used for Lynx Windows builds. The workflow sets the existing Lynx toolchain
-environment values. One Release Skity build and fixed font files are shared by both engines.
+The runner supplies the same VS 2022 BuildTools and Windows SDK as Lynx Windows
+builds. The workflow exports the installation paths, installs CMake 3.31.6, and
+uses Python 3.11 with UTF-8 mode for the pinned GN scripts. Git LFS 3.7.1 and
+native Windows Habitat 0.3.151 are downloaded with fixed SHA-256 checksums; the
+Unix Habitat launcher is not used. Ninja is exposed to the Windows compiler
+wrappers. One Release Skity build and fixed font files are shared by both engines.
 Repository fonts are supplemented by the Noto files in `fonts.lock.json`, pinned
 to a full google/fonts commit and individual SHA-256 checksums. Missing Windows
 language packs therefore do not change the test set. Downloads stay in the
