@@ -204,6 +204,7 @@ jobs:
     env:
       BASELINE: ${{ github.event.pull_request.base.sha || inputs.baseline }}
       CANDIDATE: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONUTF8: "1"
     steps:
       - name: Install pinned Git LFS for checkout
         shell: pwsh
@@ -223,7 +224,8 @@ jobs:
           ref: ${{ env.CANDIDATE }}
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
-          python-version: "3.13"
+          # The pinned GN Windows scripts still import pipes/distutils.
+          python-version: "3.11"
       - name: Configure the Lynx Windows toolchain
         shell: pwsh
         run: |
