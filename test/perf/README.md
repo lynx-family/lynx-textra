@@ -34,18 +34,20 @@ A missing device/toolchain is **not** a passing performance result.
 
 ## macOS automatic CQ
 
-`.github/workflows/performance.yml` runs on PRs and builds the exact PR base and
+`.github/workflows/ci.yml` runs on PRs and builds the exact PR base and
 head in separate GN output directories. It uses existing macOS runner labels,
 Release `-Oz`, bundled libc++, and bundled HarfBuzz. The base checkout is a
 short-lived owned worktree; engine headers come from the matching checkout.
 Fetched dependencies are shared and `DEPS`/`.gn` must match. Dependency-changing
 PRs fail explicitly instead of silently comparing incorrect dependency pins.
 
-Both native CoreText and Skity/SkShaper jobs run. The Skity job builds one shared
-font backend and uses `fonts.macos.json` for both engines. System-font files must
+One macOS job runs native CoreText and Skity/SkShaper serially using the same
+pair of benchmark executables. The benchmark is linked with Skity once per
+revision and selects the backend per request. The macOS job reuses the shared
+Skity library built for the demo and unit tests and uses `fonts.macos.json` for both engines. System-font files must
 exist on the runner; their file checksums are recorded, with no silent font
 substitution. Downloaded/generated dependencies are not committed. macOS host
-architecture is detected instead of hard-coding arm64. The Skity job installs
+architecture is detected instead of hard-coding arm64. The macOS job installs
 native CMake 3.31.6 in an isolated environment, since the repository's Intel
 CMake can otherwise select the wrong target and libpng processor sources on
 Apple Silicon. Skity and its subprojects receive matching architecture flags.
@@ -86,6 +88,29 @@ The workflow reuses Lynx develop's existing runner labels and platform setup:
 | Windows | `lynx-windows-2022-large` | Skity executable and fixed fonts |
 | Harmony | `lynx-custom-container` | Two benchmark NAPI libraries built in the Lynx SDK image; no runtime result |
 
+Build checks and performance gates share one job per platform, including one
+checkout and dependency/toolchain setup. macOS Debug remains separate from
+Release, but the Release library and C API tests reuse one GN directory. The
+Metal demo and CPU/golden tests share a Metal-enabled CMake tree. Android demos
+build the emulator ABI via `-PabiList=...`; iOS demos use `iphonesimulator` on the
+runner's host architecture. Linux Skia and LVGL configurations remain separate.
+
+Both revisions are checked out serially, then compiled concurrently in isolated
+output directories. `--jobs` specifies the **total** Ninja budget (default:
+available CPUs, capped at eight), divided between the two builds. A single-job
+budget falls back to serial compilation. Even if one build fails, both compiler
+workers are joined before cleanup. Packaging, deployment, functional tests and
+performance sampling do not overlap with these compilers. CoreText and Skity
+comparisons are serial; baseline/candidate sampling still alternates within each.
+
+macOS `--backend both` writes `config.macos.json`, `config.skity.json`, and
+`results/{macos,skity}/`, all referencing one baseline/candidate executable pair.
+Single-backend CLI invocations retain `config.json` and `results/`.
+
+PRs that touch only demos still run build checks; performance runs for engine,
+backend, benchmark, dependency or workflow changes. Manual dispatch selects a
+platform and runs its paired gate, without rebuilding unrelated demos.
+
 These are fixed workflow jobs: no `TEXTRA_PERF_RUNNERS` or
 `TEXTRA_PERF_BUILDERS` repository variables or externally installed builders are
 required. `run_platform.py` and the test hosts under `hosts/` are repository-owned.
@@ -123,8 +148,9 @@ A small framework-only Activity initializes the real Textra Java/JNI runtime
 and invokes the same C++ benchmark. Packaging uses SDK `aapt`, `d8`, `zipalign`
 and `apksigner`, with an ephemeral test keystore and run-specific application IDs, instead of a second Gradle
 project. SDK/NDK/Java classes come from the matching source revision. The native-only Android and Harmony test hosts disable the unused SkShaper
-port in both builds (recorded in GN arguments), avoiding duplicate ICU wrapper
-objects in historical GN source sets. No Appium
+port in both builds (recorded in GN arguments). Android avoids duplicate ICU
+wrapper objects in historical GN source sets; the Harmony host explicitly links
+the static system-ICU wrapper needed by ArkGraphics. No Appium
 server or external builder installation is needed. Android's existing JavaShaper
 exposes UTF-16 text units and widths rather than actual font glyph IDs. Its output
 signature therefore verifies those units, maps and metrics; a zero missing count

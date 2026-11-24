@@ -55,7 +55,7 @@ def overlay(tree):
         shutil.copytree(HERE/'hosts', destination/'hosts', dirs_exist_ok=True)
 
 
-def build(source, tree, output, arguments):
+def build(source, tree, output, arguments, jobs):
     overlay(tree)
     root_build = tree/'BUILD.gn'
     root_build.write_text(root_build.read_text() +
@@ -73,9 +73,10 @@ def build(source, tree, output, arguments):
                          if line.startswith('cflags_cc = ') else line
                          for line in text.split('\n'))
         path.write_text(text)
-    subprocess.run([str(ninja), '-C', str(output), 'perf_host'], check=True)
+    invocation = [str(ninja), '-C', str(output), '-j', str(jobs), 'perf_host']
+    subprocess.run(invocation, check=True)
     (output/'perf-build.json').write_text(json.dumps(dict(source=str(tree), args=arguments,
-        harness=benchmark_digest(HERE), command=[str(ninja), '-C', str(output), 'perf_host']), indent=2))
+        harness=benchmark_digest(HERE), command=invocation), indent=2))
     return output/('perf_host.exe' if os.name == 'nt' else 'perf_host')
 
 
