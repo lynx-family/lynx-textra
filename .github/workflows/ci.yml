@@ -1,4 +1,4 @@
-name: Lynx Textra CI Test
+name: Lynx Textra CI
 permissions:
   contents: read
 "on":
@@ -41,6 +41,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   protocol-tests:
+    name: Performance Harness / Tests
     runs-on: lynx-ubuntu-22.04-medium
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
@@ -69,7 +70,8 @@ jobs:
       CANDIDATE: ${{ github.event.pull_request.head.sha || github.sha }}
     outputs:
       performance: ${{ steps.impact.outputs.performance }}
-  macos-build-check:
+  macos:
+    name: macOS / Build, Tests & Performance
     if: github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'macos'
     needs: protocol-tests
     runs-on: lynx-darwin-15.6.1-medium
@@ -151,8 +153,8 @@ jobs:
             ${{ runner.temp }}/textra-perf-macos/baseline
             ${{ runner.temp }}/textra-perf-macos/candidate
           retention-days: 14
-    name: macOS build, tests and performance
-  android-example-build-check:
+  android:
+    name: Android (Emulator) / Build & Performance
     if: github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'android'
     needs: protocol-tests
     runs-on: lynx-ubuntu-22.04-physical-medium
@@ -229,8 +231,8 @@ jobs:
             ${{ runner.temp }}/textra-perf-android/*-build/perf-build.json
             ${{ runner.temp }}/textra-perf-android/build-only.json
           retention-days: 14
-    name: Android build and emulator performance
-  ios-example-build-check:
+  ios:
+    name: iOS (Simulator) / Build & Performance
     if: github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'ios'
     needs: protocol-tests
     runs-on: lynx-darwin-15.6.1-medium
@@ -283,9 +285,8 @@ jobs:
             ${{ runner.temp }}/textra-perf-ios/*-build/perf-build.json
             ${{ runner.temp }}/textra-perf-ios/build-only.json
           retention-days: 14
-    name: iOS simulator build and performance
-  build-harmony:
-    name: Harmony demo and benchmark build (no runtime measurement)
+  harmony:
+    name: Harmony / Build Only
     if: github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'harmony'
     needs: protocol-tests
     runs-on: lynx-custom-container
@@ -347,6 +348,7 @@ jobs:
             ${{ runner.temp }}/textra-perf-harmony/*-build/libperf_host.so
           retention-days: 14
   windows:
+    name: Windows / Build & Performance
     if:
       (github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'windows') && needs.protocol-tests.outputs.performance
       == 'true'
@@ -422,7 +424,8 @@ jobs:
             ${{ runner.temp }}/textra-perf-windows/*-build/perf_host.exe
             ${{ runner.temp }}/textra-perf-windows/skity.dll
           retention-days: 14
-  linux-skia-demo-build-check:
+  linux-skia:
+    name: Linux (Skia) / Build
     runs-on: lynx-ubuntu-22.04-large
     timeout-minutes: 60
     steps:
@@ -443,7 +446,8 @@ jobs:
           buildtools/cmake/bin/cmake --build cmake-build-release -t ttreaderdemo
     if: github.event_name == 'pull_request'
     needs: protocol-tests
-  lvgl-demo-build-check:
+  linux-lvgl:
+    name: Linux (LVGL) / Build
     runs-on: lynx-ubuntu-22.04-large
     timeout-minutes: 60
     steps:
