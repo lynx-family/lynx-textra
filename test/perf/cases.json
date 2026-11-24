@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "id": "ascii-short",
+      "text": "The quick brown fox jumps over the lazy dog.",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "ascii-long",
+      "text": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Han",
+      "text": "中文字体排版性能测试，中文字体排版性能测试，中文字体排版性能测试，中文字体排版性能测试，中文字体排版性能测试，中文字体排版性能测试，中文字体排版性能测试，中文字体排版性能测试，",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Arabic",
+      "text": "مرحبا بالعالم مرحبا بالعالم مرحبا بالعالم مرحبا بالعالم ",
+      "rtl": true,
+      "primary": "default"
+    },
+    {
+      "id": "Thai",
+      "text": "ภาษาไทย ภาษาไทย ภาษาไทย ภาษาไทย ภาษาไทย ภาษาไทย ภาษาไทย ภาษาไทย ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Latin-Han",
+      "text": "Hello 中文 Hello 中文 Hello 中文 Hello 中文 Hello 中文 Hello 中文 Hello 中文 Hello 中文 ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "mixed-scripts",
+      "text": "Hello 中文 مرحبا ภาษาไทย Hello 中文 مرحبا ภาษาไทย Hello 中文 مرحبا ภาษาไทย Hello 中文 مرحبا ภาษาไทย ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "emoji",
+      "text": "😀🏳️‍🌈1️⃣😀🏳️‍🌈1️⃣😀🏳️‍🌈1️⃣😀🏳️‍🌈1️⃣",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "RTL-emoji-mixed",
+      "text": "A🏳️‍🌈اA🏳️‍🌈اA🏳️‍🌈اA🏳️‍🌈ا",
+      "rtl": true,
+      "primary": "default"
+    },
+    {
+      "id": "unknown-Tamil",
+      "text": "தமிழ் தமிழ் தமிழ் தமிழ் தமிழ் தமிழ் தமிழ் தமிழ் ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "special-marks",
+      "text": "এۣۖิ꧔",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Latin-Han-tight",
+      "text": "Hello中文Hello中文Hello中文Hello中文Hello中文Hello中文Hello中文Hello中文",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Latin-Han-long-runs",
+      "text": "Hello Hello Hello Hello Hello Hello Hello Hello 中文中文中文中文中文中文中文中文Hello Hello Hello Hello Hello Hello Hello Hello 中文中文中文中文中文中文中文中文",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Han-basic",
+      "text": "中文字体排版性能测试中文字体排版性能测试中文字体排版性能测试中文字体排版性能测试中文字体排版性能测试中文字体排版性能测试中文字体排版性能测试中文字体排版性能测试",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Han-covered-primary",
+      "text": "中文字体排版性能测试中文字体排版性能测试中文字体排版性能测试中文字体排版性能测试中文字体排版性能测试中文字体排版性能测试中文字体排版性能测试中文字体排版性能测试",
+      "rtl": false,
+      "primary": "han"
+    },
+    {
+      "id": "Latin-accented",
+      "text": "Café déjà vu naïve Straße résumé Café déjà vu naïve Straße résumé Café déjà vu naïve Straße résumé Café déjà vu naïve Straße résumé ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Latin-combining",
+      "text": "Café Ångström ñ Café Ångström ñ Café Ångström ñ Café Ångström ñ ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Greek",
+      "text": "Ελληνικό κείμενο για δοκιμή Ελληνικό κείμενο για δοκιμή Ελληνικό κείμενο για δοκιμή Ελληνικό κείμενο για δοκιμή ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Cyrillic",
+      "text": "Проверка русского текста Проверка русского текста Проверка русского текста Проверка русского текста ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Hebrew",
+      "text": "שלום עולם בדיקת טקסט שלום עולם בדיקת טקסט שלום עולם בדיקת טקסט שלום עולם בדיקת טקסט ",
+      "rtl": true,
+      "primary": "default"
+    },
+    {
+      "id": "Bengali",
+      "text": "বাংলা ভাষার পরীক্ষা বাংলা ভাষার পরীক্ষা বাংলা ভাষার পরীক্ষা বাংলা ভাষার পরীক্ষা ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Devanagari",
+      "text": "हिन्दी भाषा का परीक्षण हिन्दी भाषा का परीक्षण हिन्दी भाषा का परीक्षण हिन्दी भाषा का परीक्षण ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Japanese",
+      "text": "日本語のテキストとカタカナ、ひらがな。日本語のテキストとカタカナ、ひらがな。日本語のテキストとカタカナ、ひらがな。日本語のテキストとカタカナ、ひらがな。",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Hangul",
+      "text": "한국어 텍스트 성능 테스트 한국어 텍스트 성능 테스트 한국어 텍스트 성능 테스트 한국어 텍스트 성능 테스트 ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Javanese",
+      "text": "ꦧꦱꦗꦮ ꦲꦤꦕꦫꦏ ꦧꦱꦗꦮ ꦲꦤꦕꦫꦏ ꦧꦱꦗꦮ ꦲꦤꦕꦫꦏ ꦧꦱꦗꦮ ꦲꦤꦕꦫꦏ ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Latin-Arabic-RTL",
+      "text": "Hello مرحبا world بالعالم Hello مرحبا world بالعالم Hello مرحبا world بالعالم Hello مرحبا world بالعالم ",
+      "rtl": true,
+      "primary": "default"
+    },
+    {
+      "id": "Arabic-Thai-alternating",
+      "text": "مرحباภาษาไทยمرحباภาษาไทย مرحباภาษาไทยمرحباภาษาไทย مرحباภาษาไทยمرحباภาษาไทย مرحباภาษาไทยمرحباภาษาไทย ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Devanagari-Bengali",
+      "text": "हिन्दीবাংলাहिन्दीবাংলা हिन्दीবাংলাहिन्दीবাংলা हिन्दीবাংলাहिन्दीবাংলা हिन्दीবাংলাहिन्दीবাংলা ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Kana-alternating",
+      "text": "ひらがなカタカナひらがなカタカナひらがなカタカナひらがなカタカナひらがなカタカナひらがなカタカナひらがなカタカナひらがなカタカナ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Kana-combining",
+      "text": "がガぱパぎギがガぱパぎギがガぱパぎギがガぱパぎギがガぱパぎギがガぱパぎギがガぱパぎギがガぱパぎギ",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Japanese-halfwidth",
+      "text": "日本語ｶﾀｶﾅひらがなガギグ。日本語ｶﾀｶﾅひらがなガギグ。日本語ｶﾀｶﾅひらがなガギグ。日本語ｶﾀｶﾅひらがなガギグ。",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Kana-punctuation",
+      "text": "カタカナ、ひらがな。（カナ）かな！カタカナ、ひらがな。（カナ）かな！カタカナ、ひらがな。（カナ）かな！カタカナ、ひらがな。（カナ）かな！",
+      "rtl": false,
+      "primary": "default"
+    },
+    {
+      "id": "Japanese-Latin",
+      "text": "日本語HelloひらがなABCカタカナ123。日本語HelloひらがなABCカタカナ123。日本語HelloひらがなABCカタカナ123。日本語HelloひらがなABCカタカナ123。",
+      "rtl": false,
+      "primary": "default"
+    }
+  ]
+}
