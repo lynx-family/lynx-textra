@@ -1,0 +1,281 @@
+name: Lynx Textra Performance Gate
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "public/**"
+      - "src/**"
+      - "platform/**"
+      - "test/perf/**"
+      - "DEPS"
+      - "BUILD.gn"
+      - "config.gni"
+      - "patches/**"
+      - ".github/actions/**"
+      - ".gn"
+      - ".github/workflows/performance.yml"
+  workflow_dispatch:
+    inputs:
+      baseline:
+        description: Full baseline commit SHA
+        required: true
+        type: string
+      platform:
+        description: Native CI platform (Harmony builds only)
+        type: choice
+        default: all
+        options: [all, macos, android, ios, harmony, windows]
+
+concurrency:
+  group: textra-performance-${{ github.event.pull_request.number || github.ref }}-${{ inputs.platform || 'macos' }}
+  cancel-in-progress: true
+
+jobs:
+  protocol-tests:
+    runs-on: lynx-ubuntu-22.04-medium
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - run: python3 -m unittest discover -s test/perf -p 'test_*.py'
+
+  macos:
+    if: github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'macos'
+    needs: protocol-tests
+    runs-on: lynx-darwin-15.6.1-medium
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [macos, skity]
+    env:
+      BASELINE: ${{ github.event.pull_request.base.sha || inputs.baseline }}
+      CANDIDATE: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          lfs: true
+          ref: ${{ env.CANDIDATE }}
+      - uses: ./.github/actions/common-deps
+      - name: Build shared Skity font backend
+        if: matrix.backend == 'skity'
+        run: |
+          buildtools/cmake/bin/cmake -S third_party/skity -B out/perf-skity -G Ninja -DCMAKE_BUILD_TYPE=Release -DSKITY_MTL_BACKEND=OFF -DSKITY_GL_BACKEND=OFF -DSKITY_CODEC_MODULE=OFF -DSKITY_IO_MODULE=OFF
+          buildtools/cmake/bin/cmake --build out/perf-skity --target skity
+      - name: Compare native CoreText
+        if: matrix.backend == 'macos'
+        run: |
+          python3 test/perf/run_macos.py --baseline "$BASELINE" --candidate "$CANDIDATE" --backend macos --output "$RUNNER_TEMP/textra-perf-macos"
+      - name: Compare SkShaper with fixed fonts
+        if: matrix.backend == 'skity'
+        run: |
+          python3 test/perf/run_macos.py --baseline "$BASELINE" --candidate "$CANDIDATE" --backend skity --skity-library out/perf-skity/libskity.dylib --fonts test/perf/fonts.macos.json --output "$RUNNER_TEMP/textra-perf-skity"
+      - name: Publish summary
+        if: always()
+        env:
+          BACKEND: ${{ matrix.backend }}
+        run: |
+          report="$RUNNER_TEMP/textra-perf-$BACKEND/results/summary.md"
+          if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: performance-${{ matrix.backend }}
+          path: |
+            ${{ runner.temp }}/textra-perf-${{ matrix.backend }}/results
+            ${{ runner.temp }}/textra-perf-${{ matrix.backend }}/config.json
+            ${{ runner.temp }}/textra-perf-${{ matrix.backend }}/*.metadata.json
+            ${{ runner.temp }}/textra-perf-${{ matrix.backend }}/*.build.json
+            ${{ runner.temp }}/textra-perf-${{ matrix.backend }}/baseline
+            ${{ runner.temp }}/textra-perf-${{ matrix.backend }}/candidate
+          retention-days: 14
+
+  ios:
+    if: github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'ios'
+    needs: protocol-tests
+    runs-on: lynx-darwin-15.6.1-medium
+    timeout-minutes: 60
+    env:
+      BASELINE: ${{ github.event.pull_request.base.sha || inputs.baseline }}
+      CANDIDATE: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          ref: ${{ env.CANDIDATE }}
+      - uses: ./.github/actions/common-deps
+      - name: Compare native iOS on one owned simulator
+        run: |
+          python3 test/perf/run_platform.py --platform ios --baseline "$BASELINE" --candidate "$CANDIDATE" --output "$RUNNER_TEMP/textra-perf-ios"
+      - name: Publish paired performance summary
+        if: always()
+        shell: bash
+        run: |
+          report="$RUNNER_TEMP/textra-perf-ios/results/summary.md"
+          if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: performance-ios
+          path: |
+            ${{ runner.temp }}/textra-perf-ios/results
+            ${{ runner.temp }}/textra-perf-ios/config.json
+            ${{ runner.temp }}/textra-perf-ios/*.metadata.json
+            ${{ runner.temp }}/textra-perf-ios/*.apk
+            ${{ runner.temp }}/textra-perf-ios/*.zip
+            ${{ runner.temp }}/textra-perf-ios/*-build/perf-build.json
+            ${{ runner.temp }}/textra-perf-ios/build-only.json
+          retention-days: 14
+
+  android:
+    if: github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'android'
+    needs: protocol-tests
+    runs-on: lynx-ubuntu-22.04-physical-medium
+    timeout-minutes: 60
+    env:
+      BASELINE: ${{ github.event.pull_request.base.sha || inputs.baseline }}
+      CANDIDATE: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          ref: ${{ env.CANDIDATE }}
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          java-version: 17
+          distribution: zulu
+      - uses: ./.github/actions/common-deps
+      - name: Install Android build tools
+        run: sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;21.1.6352462"
+      - name: Start the existing Lynx runner AVD on an owned port
+        run: python3 test/perf/android_emulator.py start --state "$RUNNER_TEMP/textra-perf-emulator.json"
+      - name: Compare native Android on the same emulator
+        run: |
+          python3 test/perf/run_platform.py --platform android --device "$ANDROID_SERIAL" --baseline "$BASELINE" --candidate "$CANDIDATE" --output "$RUNNER_TEMP/textra-perf-android"
+      - name: Stop the owned emulator
+        if: always()
+        run: python3 test/perf/android_emulator.py stop --state "$RUNNER_TEMP/textra-perf-emulator.json"
+      - name: Publish paired performance summary
+        if: always()
+        shell: bash
+        run: |
+          report="$RUNNER_TEMP/textra-perf-android/results/summary.md"
+          if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: performance-android
+          path: |
+            ${{ runner.temp }}/textra-perf-android/results
+            ${{ runner.temp }}/textra-perf-android/config.json
+            ${{ runner.temp }}/textra-perf-android/*.metadata.json
+            ${{ runner.temp }}/textra-perf-android/*.apk
+            ${{ runner.temp }}/textra-perf-android/*.zip
+            ${{ runner.temp }}/textra-perf-android/*-build/perf-build.json
+            ${{ runner.temp }}/textra-perf-android/build-only.json
+          retention-days: 14
+
+  windows:
+    if: github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'windows'
+    needs: protocol-tests
+    runs-on: lynx-windows-2022-large
+    timeout-minutes: 60
+    env:
+      BASELINE: ${{ github.event.pull_request.base.sha || inputs.baseline }}
+      CANDIDATE: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          lfs: true
+          ref: ${{ env.CANDIDATE }}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.13"
+      - name: Configure the Lynx Windows toolchain
+        shell: pwsh
+        run: |
+          "DEPOT_TOOLS_WIN_TOOLCHAIN=0" >> $env:GITHUB_ENV
+          "GYP_MSVS_OVERRIDE_PATH=${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools" >> $env:GITHUB_ENV
+          "WINDOWSSDKDIR=${env:ProgramFiles(x86)}\Windows Kits\10" >> $env:GITHUB_ENV
+      - uses: ./.github/actions/common-deps
+      - name: Compare Windows SkShaper with fixed fonts
+        shell: pwsh
+        run: |
+          python test/perf/run_platform.py --platform windows --baseline $env:BASELINE --candidate $env:CANDIDATE --output "$env:RUNNER_TEMP/textra-perf-windows"
+      - name: Publish paired performance summary
+        if: always()
+        shell: bash
+        run: |
+          report="$RUNNER_TEMP/textra-perf-windows/results/summary.md"
+          if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: performance-windows
+          path: |
+            ${{ runner.temp }}/textra-perf-windows/results
+            ${{ runner.temp }}/textra-perf-windows/config.json
+            ${{ runner.temp }}/textra-perf-windows/*.metadata.json
+            ${{ runner.temp }}/textra-perf-windows/*.apk
+            ${{ runner.temp }}/textra-perf-windows/*.zip
+            ${{ runner.temp }}/textra-perf-windows/*-build/perf-build.json
+            ${{ runner.temp }}/textra-perf-windows/build-only.json
+            ${{ runner.temp }}/textra-perf-windows/*-build/perf_host.exe
+            ${{ runner.temp }}/textra-perf-windows/skity.dll
+          retention-days: 14
+
+  harmony-build:
+    name: Harmony benchmark build (no runtime measurement)
+    if: github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'harmony'
+    needs: protocol-tests
+    runs-on: lynx-custom-container
+    timeout-minutes: 60
+    container:
+      image: ghcr.io/lynx-family/ubuntu24.04-harmony@sha256:da3d7313011f5f0e63a118197d15c005617cf3147282e77b1cd30402dcd142ac
+      credentials:
+        username: lynx-family
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      BASELINE: ${{ github.event.pull_request.base.sha || inputs.baseline }}
+      CANDIDATE: ${{ github.event.pull_request.head.sha || github.sha }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          ref: ${{ env.CANDIDATE }}
+      - uses: ./.github/actions/common-deps
+      - name: Build both Harmony benchmark NAPI hosts
+        run: |
+          source tools/envsetup.sh
+          python3 test/perf/run_platform.py --platform harmony --baseline "$BASELINE" --candidate "$CANDIDATE" --output "$RUNNER_TEMP/textra-perf-harmony"
+      - name: Report build-only scope
+        run: echo 'Harmony benchmark hosts built. Runtime performance is NOT measured because the referenced Lynx runner has no device pool.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish paired performance summary
+        if: always()
+        shell: bash
+        run: |
+          report="$RUNNER_TEMP/textra-perf-harmony/results/summary.md"
+          if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: performance-harmony
+          path: |
+            ${{ runner.temp }}/textra-perf-harmony/results
+            ${{ runner.temp }}/textra-perf-harmony/config.json
+            ${{ runner.temp }}/textra-perf-harmony/*.metadata.json
+            ${{ runner.temp }}/textra-perf-harmony/*.apk
+            ${{ runner.temp }}/textra-perf-harmony/*.zip
+            ${{ runner.temp }}/textra-perf-harmony/*-build/perf-build.json
+            ${{ runner.temp }}/textra-perf-harmony/build-only.json
+            ${{ runner.temp }}/textra-perf-harmony/*-build/libperf_host.so
+          retention-days: 14

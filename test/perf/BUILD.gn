@@ -1,0 +1,62 @@
+# Copyright 2026 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0 that can be found in the
+# LICENSE file in the root directory of this source tree.
+import("//config.gni")
+
+# This harness is copied unchanged into both engine checkouts by run_platform.py.
+template("perf_target") {
+  target(invoker.kind, target_name) {
+    sources = [ "shaping_benchmark.cc" ] + invoker.host_sources
+    include_dirs = [
+      "//",
+      "//public",
+      "//third_party/rapidjson/include",
+    ]
+    deps = [ "//src:capi" ]
+    defines = []
+    if (is_ios || is_android || is_harmony) {
+      defines += [ "TEXTRA_PERF_NO_MAIN" ]
+    }
+    if (is_ios) {
+      cflags_objcc = [ "-fobjc-arc" ]
+      frameworks = [
+        "UIKit.framework",
+        "Foundation.framework",
+        "CoreText.framework",
+        "CoreGraphics.framework",
+      ]
+    }
+    if (is_android) {
+      libs = [ "log" ]
+      ldflags = [ "-Wl,--undefined=JNI_OnLoad" ]
+    }
+    if (is_harmony) {
+      cflags_cc = [ "-Wno-error=deprecated-declarations" ]
+      libs = [
+        "ace_napi.z",
+        "native_drawing",
+        "hilog_ndk.z",
+      ]
+      configs += [ "//src:harmony_public" ]
+    }
+    if (is_win) {
+      defines += [ "TEXTRA_PERF_SKITY" ]
+      include_dirs += [ "//third_party/skity/include" ]
+      libs = [ getenv("TEXTRA_PERF_SKITY_LIBRARY") ]
+    }
+  }
+}
+
+perf_target("perf_host") {
+  kind = "executable"
+  host_sources = []
+  if (is_ios) {
+    host_sources = [ "hosts/ios_main.mm" ]
+  } else if (is_android) {
+    kind = "shared_library"
+    host_sources = [ "hosts/android_jni.cc" ]
+  } else if (is_harmony) {
+    kind = "shared_library"
+    host_sources = [ "hosts/harmony_napi.cc" ]
+  }
+}
