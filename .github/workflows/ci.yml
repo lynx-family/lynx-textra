@@ -49,6 +49,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
       - run: python3 -m unittest discover -s test/perf -p 'test_*.py'
+      - run: python3 -m unittest discover -s test/size -p 'test_*.py'
       - name: Select performance coverage
         id: impact
         run: |-
@@ -134,6 +135,37 @@ jobs:
           python3 test/perf/run_macos.py --baseline "$BASELINE" --candidate "$CANDIDATE" --backend both --skity-library cmake-build-ci/skity.out/libskity.dylib
           --fonts test/perf/fonts.macos.json --output "$RUNNER_TEMP/textra-perf-macos"
         if: needs.protocol-tests.outputs.performance == 'true'
+      - name: Compare Release package size (advisory)
+        id: package-size
+        if: always() && !cancelled() && github.event_name == 'pull_request'
+        continue-on-error: true
+        timeout-minutes: 40
+        run: |
+          python3 test/size/run.py --platform macos --baseline "$BASELINE" --candidate "$CANDIDATE" --output "$RUNNER_TEMP/textra-size-macos"
+      - name: Publish package size summary
+        if: always() && !cancelled() && github.event_name == 'pull_request'
+        continue-on-error: true
+        shell: bash
+        run: |
+          if [ "${{ steps.package-size.outcome }}" != 'success' ]; then
+            echo '::warning::Package size comparison did not complete successfully; this advisory does not gate CI.'
+          fi
+          report="$RUNNER_TEMP/textra-size-macos/summary.md"
+          if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Upload package size artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && !cancelled() && github.event_name == 'pull_request'
+        continue-on-error: true
+        with:
+          name: package-size-macos
+          path: |-
+            ${{ runner.temp }}/textra-size-macos/report.json
+            ${{ runner.temp }}/textra-size-macos/summary.md
+            ${{ runner.temp }}/textra-size-macos/*-build/**/*.aar
+            ${{ runner.temp }}/textra-size-macos/*-build/**/*.dylib
+            ${{ runner.temp }}/textra-size-macos/*-build/**/*.dll
+            ${{ runner.temp }}/textra-size-macos/*-build/**/build.json
+          retention-days: 14
       - name: Publish performance summaries
         if: always()
         run: |-
@@ -212,6 +244,40 @@ jobs:
       - name: Stop the owned emulator
         if: always()
         run: python3 test/perf/android_emulator.py stop --state "$RUNNER_TEMP/textra-perf-emulator.json"
+      - name: Compare Release package size (advisory)
+        id: package-size
+        if: always() && !cancelled() && github.event_name == 'pull_request'
+        continue-on-error: true
+        timeout-minutes: 40
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_11_X64 }}
+        run: |
+          export PATH="$JAVA_HOME/bin:$PATH"
+          python3 test/size/run.py --platform android --baseline "$BASELINE" --candidate "$CANDIDATE" --output "$RUNNER_TEMP/textra-size-android"
+      - name: Publish package size summary
+        if: always() && !cancelled() && github.event_name == 'pull_request'
+        continue-on-error: true
+        shell: bash
+        run: |
+          if [ "${{ steps.package-size.outcome }}" != 'success' ]; then
+            echo '::warning::Package size comparison did not complete successfully; this advisory does not gate CI.'
+          fi
+          report="$RUNNER_TEMP/textra-size-android/summary.md"
+          if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Upload package size artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && !cancelled() && github.event_name == 'pull_request'
+        continue-on-error: true
+        with:
+          name: package-size-android
+          path: |-
+            ${{ runner.temp }}/textra-size-android/report.json
+            ${{ runner.temp }}/textra-size-android/summary.md
+            ${{ runner.temp }}/textra-size-android/*-build/**/*.aar
+            ${{ runner.temp }}/textra-size-android/*-build/**/*.dylib
+            ${{ runner.temp }}/textra-size-android/*-build/**/*.dll
+            ${{ runner.temp }}/textra-size-android/*-build/**/build.json
+          retention-days: 14
       - name: Publish paired performance summary
         if: always()
         shell: bash
@@ -349,9 +415,7 @@ jobs:
           retention-days: 14
   windows:
     name: Windows / Build & Performance
-    if:
-      (github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'windows') && needs.protocol-tests.outputs.performance
-      == 'true'
+    if: github.event_name == 'pull_request' || inputs.platform == 'all' || inputs.platform == 'windows'
     needs: protocol-tests
     runs-on: lynx-windows-2022-large
     timeout-minutes: 60
@@ -400,9 +464,42 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           "$env:GITHUB_WORKSPACE\buildtools\ninja" >> $env:GITHUB_PATH
       - name: Compare Windows SkShaper with fixed fonts
+        if: needs.protocol-tests.outputs.performance == 'true'
         shell: pwsh
         run: |
           python test/perf/run_platform.py --platform windows --baseline $env:BASELINE --candidate $env:CANDIDATE --output "$env:RUNNER_TEMP/textra-perf-windows"
+      - name: Compare Release package size (advisory)
+        id: package-size
+        if: always() && !cancelled() && github.event_name == 'pull_request'
+        continue-on-error: true
+        timeout-minutes: 40
+        shell: pwsh
+        run: |
+          python test/size/run.py --platform windows --baseline $env:BASELINE --candidate $env:CANDIDATE --output "$env:RUNNER_TEMP/textra-size-windows"
+      - name: Publish package size summary
+        if: always() && !cancelled() && github.event_name == 'pull_request'
+        continue-on-error: true
+        shell: bash
+        run: |
+          if [ "${{ steps.package-size.outcome }}" != 'success' ]; then
+            echo '::warning::Package size comparison did not complete successfully; this advisory does not gate CI.'
+          fi
+          report="$RUNNER_TEMP/textra-size-windows/summary.md"
+          if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Upload package size artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && !cancelled() && github.event_name == 'pull_request'
+        continue-on-error: true
+        with:
+          name: package-size-windows
+          path: |-
+            ${{ runner.temp }}/textra-size-windows/report.json
+            ${{ runner.temp }}/textra-size-windows/summary.md
+            ${{ runner.temp }}/textra-size-windows/*-build/**/*.aar
+            ${{ runner.temp }}/textra-size-windows/*-build/**/*.dylib
+            ${{ runner.temp }}/textra-size-windows/*-build/**/*.dll
+            ${{ runner.temp }}/textra-size-windows/*-build/**/build.json
+          retention-days: 14
       - name: Publish paired performance summary
         if: always()
         shell: bash

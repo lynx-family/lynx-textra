@@ -78,6 +78,11 @@ they must not be mistaken for a PR comparison.
 
 ## Platform CQ configuration
 
+Android, macOS and Windows also run an advisory [package size comparison](../size/README.md)
+after performance measurement on PRs. Growth above 10 KiB warns without failing
+CI; unavailable size comparisons are reported separately. The extra builds
+never overlap with paired performance sampling.
+
 The workflow reuses Lynx develop's existing runner labels and platform setup:
 
 | Platform | Runner | Execution |
