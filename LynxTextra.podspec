@@ -20,7 +20,7 @@ Pod::Spec.new do |s|
 
   s.subspec "LynxTextra" do |sp|
     sp.header_mappings_dir    = "public"
-    sp.preserve_paths        = "public/textra/platform/**/*.h"
+    sp.preserve_paths         = "public/textra/platform/**/*.h"
     sp.public_header_files    = "public/textra/capi/*.h",
                                 "public/textra/font_info.h",
                                 "public/textra/fontmgr_collection.h",
@@ -48,7 +48,9 @@ Pod::Spec.new do |s|
                                 "public/textra/tt_path.h",
                                 "public/textra/tttext_context.h"
 
-    sp.private_header_files   = "src/capi/*.h",
+    sp.private_header_files   = "public/textra/platform/skia/*.{h,hpp}",
+                                "public/textra/platform/skity/*.{h,hpp}",
+                                "src/capi/*.h",
                                 "src/ports/native/*.h",
                                 "src/ports/native/ios/*.h",
                                 "src/ports/rendering_backend_internal.h",
@@ -80,6 +82,18 @@ Pod::Spec.new do |s|
                                 "public/textra/painter.h",
                                 "public/textra/paragraph.h",
                                 "public/textra/paragraph_style.h",
+                                "public/textra/platform/skia/skia_canvas_helper.h",
+                                "public/textra/platform/skia/skia_font_manager.h",
+                                "public/textra/platform/skia/skia_gradient.h",
+                                "public/textra/platform/skia/skia_painter.h",
+                                "public/textra/platform/skia/skia_typeface_helper.h",
+                                "public/textra/platform/skity/skity_canvas_helper.h",
+                                "public/textra/platform/skity/skity_font_data.h",
+                                "public/textra/platform/skity/skity_font_manager.h",
+                                "public/textra/platform/skity/skity_font_manager_coretext.h",
+                                "public/textra/platform/skity/skity_font_manager_coretext_webkit.h",
+                                "public/textra/platform/skity/skity_gradient.h",
+                                "public/textra/platform/skity/skity_typeface_helper.h",
                                 "src/ports/native/ios/ios_canvas_base.h",
                                 "src/ports/native/ios/ios_font_manager.h",
                                 "src/ports/native/ios/typeface_coretext.h",
@@ -96,6 +110,7 @@ Pod::Spec.new do |s|
                                 "public/textra/tttext_context.h",
                                 "src/ports/platform_helper.cc",
                                 "src/ports/shaper/coretext/default_font_policy.h",
+                                "src/ports/shaper/coretext/font_feature_settings.h",
                                 "src/ports/shaper/coretext/shape_text_encoding.h",
                                 "src/ports/rendering_backend_internal.h",
                                 "src/ports/shaper/coretext/shaper_core_text.h",
@@ -143,6 +158,7 @@ Pod::Spec.new do |s|
                                 "src/textlayout/run/layout_metrics.h",
                                 "src/textlayout/run/object_run.h",
                                 "src/textlayout/shape_cache.h",
+                                "src/textlayout/single_line_paragraph_impl.h",
                                 "src/textlayout/style/paragraph_style_impl.cc",
                                 "src/textlayout/style/paragraph_style_impl.h",
                                 "src/textlayout/style/style_impl.cc",
