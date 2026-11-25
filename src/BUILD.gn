@@ -327,6 +327,7 @@ source_set("textlayout") {
 
     sources += [
       "$prj_root/src/ports/shaper/coretext/default_font_policy.h",
+      "$prj_root/src/ports/shaper/coretext/font_feature_settings.h",
       "$prj_root/src/ports/shaper/coretext/shape_text_encoding.h",
       "$prj_root/src/ports/shaper/coretext/shaper_core_text.h",
       "$prj_root/src/ports/shaper/coretext/shaper_core_text.mm",

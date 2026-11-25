@@ -9,6 +9,23 @@ declare_args() {
 }
 
 source_set("LynxTextra") {
+  # Package host platform adapters without importing optional rendering
+  # backends into the native module's public umbrella header.
+  public = []
+  sources = [
+    "$root_path/public/textra/platform/skia/skia_canvas_helper.h",
+    "$root_path/public/textra/platform/skia/skia_font_manager.h",
+    "$root_path/public/textra/platform/skia/skia_gradient.h",
+    "$root_path/public/textra/platform/skia/skia_painter.h",
+    "$root_path/public/textra/platform/skia/skia_typeface_helper.h",
+    "$root_path/public/textra/platform/skity/skity_canvas_helper.h",
+    "$root_path/public/textra/platform/skity/skity_font_data.h",
+    "$root_path/public/textra/platform/skity/skity_font_manager.h",
+    "$root_path/public/textra/platform/skity/skity_font_manager_coretext.h",
+    "$root_path/public/textra/platform/skity/skity_font_manager_coretext_webkit.h",
+    "$root_path/public/textra/platform/skity/skity_gradient.h",
+    "$root_path/public/textra/platform/skity/skity_typeface_helper.h",
+  ]
   include_dirs = [
     "$root_path/public",
     "//ROOT",
