@@ -42,6 +42,16 @@ class RenderingBackendConfigTest(unittest.TestCase):
                         f"{str(backend in expected).lower()}) return {i + 1};"
                         for i, backend in enumerate(BACKENDS)
                     ]
+                    for backend in BACKENDS:
+                        selected = "Invalid"
+                        if backend in {"Skia", "Skity"}:
+                            if backend in expected:
+                                selected = backend
+                            elif "SkityCoreText" in expected:
+                                selected = "SkityCoreText"
+                        checks.append(
+                            f"if (GetSelfRenderingBackend(RenderingBackend::k{backend}) != "
+                            f"RenderingBackend::k{selected}) return 100;")
                     source.write_text(
                         '#include "src/ports/rendering_backend_internal.h"\n'
                         'using namespace ttoffice::tttext;\n'

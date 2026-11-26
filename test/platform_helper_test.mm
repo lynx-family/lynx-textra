@@ -28,6 +28,18 @@ int main() {
   static_assert(sizeof(RenderingBackend) == sizeof(textra_rendering_backend_t));
   static_assert(static_cast<uint32_t>(RenderingBackend::kSkityCoreText) ==
                 TEXTRA_RENDERING_BACKEND_SKITY_CORETEXT);
+  for (auto preferred : {RenderingBackend::kSkia, RenderingBackend::kSkity}) {
+    const auto selected = PlatformHelper::GetSelfRenderingBackend(preferred);
+    CHECK(selected == (PlatformHelper::IsBackendAvailable(preferred)
+                           ? preferred
+                           : RenderingBackend::kSkityCoreText));
+    auto fonts = PlatformHelper::CreateFontManager();
+    ttoffice::tttext::FontmgrCollection collection(fonts);
+    auto layout = PlatformHelper::CreateTextLayout(selected, &collection);
+    CHECK(layout && layout->IsValid());
+  }
+  CHECK(PlatformHelper::GetSelfRenderingBackend(RenderingBackend::kMacOS) ==
+        RenderingBackend::kInvalid);
   auto manager = PlatformHelper::CreateFontManager();
   auto native_font = CTFontCreateWithName(CFSTR("Helvetica"), 20, nullptr);
   auto font = PlatformHelper::CreateTypefaceHelper(native_font, manager);
