@@ -136,6 +136,37 @@ static void test_font_features(void) {
   CHECK(textra_get_abi_version_minor() == TEXTRA_ABI_VERSION_MINOR);
 }
 
+static void test_self_rendering_backend(void) {
+  const textra_rendering_backend_t inputs[] = {
+      TEXTRA_RENDERING_BACKEND_INVALID,
+      TEXTRA_RENDERING_BACKEND_SKIA,
+      TEXTRA_RENDERING_BACKEND_SKITY,
+      TEXTRA_RENDERING_BACKEND_ANDROID,
+      TEXTRA_RENDERING_BACKEND_IOS,
+      TEXTRA_RENDERING_BACKEND_MACOS,
+      TEXTRA_RENDERING_BACKEND_OHOS,
+      TEXTRA_RENDERING_BACKEND_LVGL,
+      TEXTRA_RENDERING_BACKEND_IOS_SELF_RENDERING,
+      TEXTRA_RENDERING_BACKEND_MACOS_SELF_RENDERING,
+      TEXTRA_RENDERING_BACKEND_SKITY_CORETEXT,
+      UINT32_MAX};
+  for (size_t i = 0; i < sizeof(inputs) / sizeof(inputs[0]); ++i) {
+    const textra_rendering_backend_t preferred = inputs[i];
+    const textra_rendering_backend_t selected =
+        textra_get_self_rendering_backend(preferred);
+    if (preferred == TEXTRA_RENDERING_BACKEND_SKIA ||
+        preferred == TEXTRA_RENDERING_BACKEND_SKITY) {
+      CHECK(selected == preferred ||
+            selected == TEXTRA_RENDERING_BACKEND_SKITY_CORETEXT ||
+            selected == TEXTRA_RENDERING_BACKEND_INVALID);
+    } else {
+      CHECK(selected == TEXTRA_RENDERING_BACKEND_INVALID);
+    }
+  }
+  CHECK(textra_get_abi_version_major() == 1u);
+  CHECK(textra_get_abi_version_minor() >= 1u);
+}
+
 static void test_values(void) {
   textra_style_t* style = NULL;
   textra_style_t* copy = NULL;
@@ -682,6 +713,7 @@ static void test_enum_options(void) {
 }
 
 int main(void) {
+  test_self_rendering_backend();
 #if defined(__APPLE__)
 
 #endif

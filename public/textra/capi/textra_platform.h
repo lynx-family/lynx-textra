@@ -50,9 +50,18 @@ typedef struct textra_typeface_options {
   void* userdata;
 } textra_typeface_options_t;
 
+TEXTRA_EXTERN_C_BEGIN
+/* Select the compiled host-drawn shaping backend for SKIA or SKITY.
+ * Prefer the requested SkShaper backend, then SKITY_CORETEXT when available.
+ * The caller supplies compatible canvas/font callbacks, including native
+ * CoreText font access for the fallback. Returns INVALID for other inputs or
+ * when neither implementation is compiled. Does not preload runtime shaping
+ * dependencies or change explicit factory behavior. Available since ABI 1.1. */
+TEXTRA_API textra_rendering_backend_t TEXTRA_CALL
+textra_get_self_rendering_backend(textra_rendering_backend_t preferred);
+
 /* Initializes the original Android Java/C++ SDK.
  * Other engine builds return UNSUPPORTED. Call before concurrent layout. */
-TEXTRA_EXTERN_C_BEGIN
 TEXTRA_API textra_status_t TEXTRA_CALL
 textra_android_runtime_initialize(void* jni_env);
 TEXTRA_EXTERN_C_END

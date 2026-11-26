@@ -39,6 +39,17 @@ C++ callers supplying custom I* implementations are responsible for compatibilit
 Skity do not silently switch to CoreText or platform shaping if HarfBuzz is
 unavailable. Shaping cache entries are separated by rendering backend.
 
+## Self-rendering selection (ABI 1.1)
+
+`textra_get_self_rendering_backend(preferred)` is the C counterpart of
+`PlatformHelper::GetSelfRenderingBackend`. Pass `SKIA` or `SKITY` to prefer
+SkShaper when compiled, with CoreText self-rendering as the fallback. Other
+inputs and builds with neither implementation return `INVALID`. This query
+checks compiled capabilities, not runtime HarfBuzz availability. Hosts supply
+compatible drawing/font adapters, including CoreText font access for the
+fallback, and use the returned backend consistently across layout and adapters.
+Explicit backend factories do not apply this selection automatically.
+
 ## PlatformHelper factories (ABI 1.0)
 
 The original C++ `PlatformHelper` provides `CreateFontManager`,

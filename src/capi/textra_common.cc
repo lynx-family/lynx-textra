@@ -47,6 +47,13 @@ void TEXTRA_CALL textra_layout_drawer_destroy(textra_layout_drawer_t* drawer) {
   Release(drawer);
 }
 
+textra_rendering_backend_t TEXTRA_CALL
+textra_get_self_rendering_backend(textra_rendering_backend_t preferred) {
+  return static_cast<textra_rendering_backend_t>(
+      tt::PlatformHelper::GetSelfRenderingBackend(
+          static_cast<tt::RenderingBackend>(preferred)));
+}
+
 uint32_t TEXTRA_CALL textra_get_abi_version_major(void) {
   return TEXTRA_ABI_VERSION_MAJOR;
 }
