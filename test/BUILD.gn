@@ -197,7 +197,10 @@ if (is_mac) {
     testonly = true
     sources = [ "platform_helper_test.mm" ]
     cflags_objcc = [ "-fobjc-arc" ]
-    deps = [ "//src:textlayout" ]
+    deps = [
+      "//src:capi",
+      "//src:textlayout",
+    ]
     frameworks = [
       "AppKit.framework",
       "CoreText.framework",

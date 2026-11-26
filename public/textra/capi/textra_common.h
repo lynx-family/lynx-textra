@@ -86,7 +86,7 @@
 #endif
 
 #define TEXTRA_ABI_VERSION_MAJOR 1u
-#define TEXTRA_ABI_VERSION_MINOR 0u
+#define TEXTRA_ABI_VERSION_MINOR 1u
 
 typedef int32_t textra_status_t;
 #define TEXTRA_STATUS_OK ((textra_status_t)0)

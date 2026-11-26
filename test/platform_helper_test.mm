@@ -6,6 +6,7 @@
 #import <AppKit/AppKit.h>
 #include <CoreGraphics/CoreGraphics.h>
 #include <CoreText/CoreText.h>
+#include <textra/capi/textra_platform.h>
 #include <textra/fontmgr_collection.h>
 #include <textra/layout_drawer.h>
 #include <textra/platform_helper.h>
@@ -30,6 +31,9 @@ int main() {
                 TEXTRA_RENDERING_BACKEND_SKITY_CORETEXT);
   for (auto preferred : {RenderingBackend::kSkia, RenderingBackend::kSkity}) {
     const auto selected = PlatformHelper::GetSelfRenderingBackend(preferred);
+    CHECK(textra_get_self_rendering_backend(
+              static_cast<textra_rendering_backend_t>(preferred)) ==
+          static_cast<textra_rendering_backend_t>(selected));
     CHECK(selected == (PlatformHelper::IsBackendAvailable(preferred)
                            ? preferred
                            : RenderingBackend::kSkityCoreText));
