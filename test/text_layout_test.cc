@@ -1559,6 +1559,30 @@ TEST_F(TextLayoutTest, ParagraphStyle_OverflowWrap) {
   }
 }
 
+TEST_F(TextLayoutTest, DiscretionaryHyphenMustFitLine) {
+  ParagraphImpl paragraph;
+  Style style;
+  style.SetTextSize(1.f);
+  paragraph.AddTextRun(&style, "abcdefghij");
+
+  TTTextContext context;
+  context.SetHyphenation(
+      HyphenationMode::kAuto,
+      [](std::u32string_view word, uint32_t before) -> uint32_t {
+        if (word != U"abcdefghij") return 0;
+        if (before > 5) return 5;
+        return before > 3 ? 3 : 0;
+      });
+  TextLayout layout(GetFixedSizeMockShaper());
+  LayoutRegion region(5.f, 20.f);
+  ASSERT_EQ(layout.Layout(&paragraph, &region, context), LayoutResult::kNormal);
+
+  ASSERT_GE(region.GetLineCount(), 2u);
+  EXPECT_EQ(region.GetLine(0)->GetEndCharPos(), 3u);
+  EXPECT_FLOAT_EQ(region.GetLine(0)->GetLineWidth(), 4.f);
+  EXPECT_EQ(region.GetLine(1)->GetStartCharPos(), 3u);
+}
+
 TEST_F(TextLayoutTest, KeepAllMovesCJKWordToNextLine) {
   auto paragraph = std::make_unique<ParagraphImpl>();
   Style style;

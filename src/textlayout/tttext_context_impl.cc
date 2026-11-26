@@ -6,10 +6,18 @@
 
 #include <textra/tttext_context.h>
 
+#include <algorithm>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <utility>
+
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#if TARGET_OS_OSX
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+#endif
 
 #include "src/textlayout/layout_position.h"
 namespace ttoffice {
@@ -31,6 +39,44 @@ class GlobalOptionStorage {
   GlobalOptionStorage(const GlobalOptionStorage&) = delete;
   GlobalOptionStorage& operator=(const GlobalOptionStorage&) = delete;
 };
+
+#if defined(__APPLE__) && TARGET_OS_OSX
+HyphenationLookup SystemHyphenationLookup() {
+  const auto current_locale = CFLocaleCopyCurrent();
+  if (!current_locale) return {};
+  auto locale = std::shared_ptr<const __CFLocale>(current_locale, CFRelease);
+  if (!CFStringIsHyphenationAvailableForLocale(locale.get())) return {};
+
+  return [locale = std::move(locale)](std::u32string_view word,
+                                      uint32_t before) -> uint32_t {
+    auto string = std::unique_ptr<const __CFString, decltype(&CFRelease)>(
+        CFStringCreateWithBytes(
+            kCFAllocatorDefault, reinterpret_cast<const UInt8*>(word.data()),
+            static_cast<CFIndex>(word.size() * sizeof(char32_t)),
+            kCFStringEncodingUTF32LE, false),
+        CFRelease);
+    if (!string) return 0;
+
+    CFIndex before_utf16 = 0;
+    before = static_cast<uint32_t>(std::min<size_t>(before, word.size()));
+    for (uint32_t index = 0; index < before; ++index) {
+      before_utf16 += word[index] > 0xffff ? 2 : 1;
+    }
+    const CFIndex result = CFStringGetHyphenationLocationBeforeIndex(
+        string.get(), before_utf16,
+        CFRangeMake(0, CFStringGetLength(string.get())), 0, locale.get(),
+        nullptr);
+    if (result <= 0) return 0;
+
+    CFIndex offset = 0;
+    for (uint32_t index = 0; index < before; ++index) {
+      if (offset == result) return index;
+      offset += word[index] > 0xffff ? 2 : 1;
+    }
+    return 0;
+  };
+}
+#endif
 
 }  // namespace
 
@@ -119,6 +165,17 @@ bool TTTextContext::IsAndroidMetricsRound() const {
 
 void TTTextContext::SetAndroidMetricsRound(bool enabled) {
   impl_->android_metrics_round_ = enabled;
+}
+
+void TTTextContext::SetHyphenation(HyphenationMode mode,
+                                   HyphenationLookup lookup) {
+#if defined(__APPLE__) && TARGET_OS_OSX
+  if (mode == HyphenationMode::kAuto && !lookup) {
+    lookup = SystemHyphenationLookup();
+  }
+#endif
+  impl_->hyphenation_mode_ = mode;
+  impl_->hyphenation_lookup_ = std::move(lookup);
 }
 
 void TTTextContext::EnableFeature(FeatureOption feature_option, bool value) {

@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "src/textlayout/layout_measurer.h"
+#include "src/textlayout/run/ghost_run.h"
 #include "src/textlayout/style/style_manager.h"
 #include "src/textlayout/text_line_impl.h"
 #include "src/textlayout/tt_shaper.h"
@@ -40,6 +41,8 @@ bool UsesExactTextLineBox(const ParagraphStyleImpl& para_style) {
          para_style.GetInlineVerticalAlignmentMode() ==
              InlineVerticalAlignmentMode::kLineBox;
 }
+
+constexpr char32_t kSoftHyphen = U'\u00ad';
 }  // namespace
 
 LayoutResult TextLayoutImpl::LayoutEx(Paragraph* i_para, LayoutRegion* page,
@@ -407,9 +410,39 @@ LayoutPosition TextLayoutImpl::AddBreakableRunsToLine(
             : paragraph.FindPrevBoundary(greedy_break_pos,
                                          BoundaryType::kLineBreakable);
     if (line_break_pos < pos) line_break_pos = pos;
+
+    std::unique_ptr<BaseRun> hyphen;
+    const auto hyphenation = context.GetImpl().GetHyphenationMode();
+    if (hyphenation != HyphenationMode::kUnspecified &&
+        !(is_last_line && has_ellipsis)) {
+      while (line_break_pos > pos) {
+        const auto offset = paragraph.LayoutPositionToCharPos(line_break_pos);
+        if (offset == 0 ||
+            paragraph.GetContent().GetUnicode(offset - 1) != kSoftHyphen) {
+          break;
+        }
+        line_break_pos =
+            std::max(pos, paragraph.FindPrevBoundary(
+                              paragraph.CharPosToLayoutPosition(offset - 1),
+                              BoundaryType::kLineBreakable));
+      }
+      if (hyphenation != HyphenationMode::kNone &&
+          *result == LayoutResult::kNormal && range_idx + 1 == range_lst_size) {
+        hyphen = FindDiscretionaryHyphen(
+            *line->GetParagraph(), pos, greedy_break_pos,
+            range->GetAvailableWidth(), context.GetImpl(), &line_break_pos);
+      }
+    }
+
     if (line_break_pos > pos) {
       auto d_height = AddWordListToRunRange(range.get(), paragraph, pos,
                                             line_break_pos, &metrics);
+      if (hyphen) {
+        range->AddWordRange(
+            std::make_unique<RunRange>(hyphen.get(), range.get(), 0, 1));
+        line->extra_contents_.emplace_back(std::move(hyphen));
+        *result = LayoutResult::kBreakLine;
+      }
       line->UpdateLine(line_break_pos, metrics.GetMaxAscent(),
                        metrics.GetMaxDescent(), d_height);
       line->AdjustInlineObjectLineBox();
@@ -476,6 +509,85 @@ LayoutPosition TextLayoutImpl::AddBreakableRunsToLine(
   *result = LayoutResult::kBreakLine;
   return break_pos;
 }
+
+std::unique_ptr<BaseRun> TextLayoutImpl::FindDiscretionaryHyphen(
+    ParagraphImpl& paragraph, const LayoutPosition& start,
+    const LayoutPosition& greedy, float available_width,
+    const TTTextContextImpl& context, LayoutPosition* line_break) {
+  if (greedy <= *line_break) return nullptr;
+  const auto content = paragraph.GetContent();
+  const auto limit = paragraph.LayoutPositionToCharPos(greedy);
+  const auto ordinary_break = paragraph.LayoutPositionToCharPos(*line_break);
+  auto word_start = paragraph.LayoutPositionToCharPos(
+      paragraph.FindPrevBoundary(greedy, BoundaryType::kWord));
+  while (word_start > 0 && content.GetUnicode(word_start - 1) == kSoftHyphen) {
+    word_start = paragraph.LayoutPositionToCharPos(paragraph.FindPrevBoundary(
+        paragraph.CharPosToLayoutPosition(word_start - 1),
+        BoundaryType::kWord));
+  }
+  auto word_end = paragraph.LayoutPositionToCharPos(
+      paragraph.FindNextBoundary(greedy, BoundaryType::kWord));
+  while (word_end > word_start && word_end < paragraph.GetCharCount() &&
+         content.GetUnicode(word_end - 1) == kSoftHyphen) {
+    const auto next_end =
+        paragraph.LayoutPositionToCharPos(paragraph.FindNextBoundary(
+            paragraph.CharPosToLayoutPosition(word_end), BoundaryType::kWord));
+    if (next_end <= word_end) break;
+    word_end = next_end;
+  }
+  if (word_start >= limit || word_end <= word_start) return nullptr;
+
+  const auto word =
+      paragraph.GetContent(word_start, word_end - word_start).ToUTF32();
+  const uint32_t last_candidate = std::min(limit, word_end - 1);
+  auto try_break = [&](uint32_t offset) -> std::unique_ptr<BaseRun> {
+    if (offset <= ordinary_break || offset <= word_start) return nullptr;
+    const auto previous = paragraph.CharPosToLayoutPosition(offset - 1);
+    const auto* run = paragraph.GetRun(previous.GetRunIdx());
+    if (!run || !run->IsTextRun()) return nullptr;
+    constexpr char32_t kHyphen = U'\u2010';
+    auto hyphen = std::make_unique<GhostRun>(&paragraph, run->GetLayoutStyle(),
+                                             offset - 1, &kHyphen, 1);
+    hyphen->Layout();
+    const float hyphen_width = hyphen->GetWidth(0);
+    if (hyphen_width <= 0 || FloatsLarger(hyphen_width, available_width)) {
+      return nullptr;
+    }
+    float remaining_width = available_width - hyphen_width;
+    LayoutResult result = LayoutResult::kNormal;
+    const auto fit =
+        FindBreakPosInWord(paragraph, start, &remaining_width, &result);
+    const auto position = paragraph.CharPosToLayoutPosition(offset);
+    if (fit < position) return nullptr;
+    *line_break = position;
+    return hyphen;
+  };
+
+  if (word.find(kSoftHyphen) != std::u32string::npos) {
+    for (uint32_t offset = last_candidate;
+         offset > ordinary_break && offset > word_start; --offset) {
+      if (content.GetUnicode(offset - 1) == kSoftHyphen) {
+        if (auto hyphen = try_break(offset)) return hyphen;
+      }
+    }
+    return nullptr;
+  }
+
+  const auto& lookup = context.GetHyphenationLookup();
+  if (context.GetHyphenationMode() == HyphenationMode::kAuto && lookup &&
+      last_candidate > word_start) {
+    uint32_t before = last_candidate - word_start + 1;
+    while (const uint32_t candidate = lookup(word, before)) {
+      if (candidate >= before || word_start + candidate <= ordinary_break) {
+        break;
+      }
+      if (auto hyphen = try_break(word_start + candidate)) return hyphen;
+      before = candidate;
+    }
+  }
+  return nullptr;
+}
+
 float TextLayoutImpl::TryAddRun(LayoutMetrics line_metrics,
                                 const BaseRun* run) {
   auto paragraph = run->GetParagraph();

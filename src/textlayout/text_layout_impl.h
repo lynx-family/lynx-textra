@@ -18,6 +18,7 @@ class Paragraph;
 class ParagraphImpl;
 class LayoutRegion;
 class TTTextContext;
+class TTTextContextImpl;
 class TTShaper;
 class TextLine;
 class TextLineImpl;
@@ -69,6 +70,11 @@ class TextLayoutImpl {
                                                LayoutRegion* region,
                                                TTTextContext& context,
                                                LayoutResult* result);
+
+  static std::unique_ptr<BaseRun> FindDiscretionaryHyphen(
+      ParagraphImpl& paragraph, const LayoutPosition& start,
+      const LayoutPosition& greedy, float available_width,
+      const TTTextContextImpl& context, LayoutPosition* line_break);
 
   static float TryAddRun(LayoutMetrics line_metrics, const BaseRun* run);
 
