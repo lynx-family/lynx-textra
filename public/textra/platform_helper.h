@@ -18,6 +18,12 @@ namespace tttext {
 class L_EXPORT PlatformHelper {
  public:
   static bool IsBackendAvailable(RenderingBackend backend);
+  // Select a host-drawn shaping backend, preferring kSkia or kSkity when
+  // SkShaper is compiled, then CoreText self-rendering when available.
+  // The host supplies compatible canvas and font adapters (including CoreText
+  // font access for the fallback). Other inputs or no compiled implementation
+  // return kInvalid. Explicit backend factories never apply this fallback.
+  static RenderingBackend GetSelfRenderingBackend(RenderingBackend preferred);
   // Concrete native backend compiled into this engine, or kInvalid.
   static RenderingBackend GetDefaultBackend();
   static FontManagerRef CreateFontManager(

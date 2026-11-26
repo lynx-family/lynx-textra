@@ -40,6 +40,17 @@ inline bool IsBackendCompiled(RenderingBackend backend) {
       return false;
   }
 }
+inline RenderingBackend GetSelfRenderingBackend(RenderingBackend preferred) {
+  if (preferred != RenderingBackend::kSkia &&
+      preferred != RenderingBackend::kSkity) {
+    return RenderingBackend::kInvalid;
+  }
+  if (IsBackendCompiled(preferred)) return preferred;
+  if (IsBackendCompiled(RenderingBackend::kSkityCoreText)) {
+    return RenderingBackend::kSkityCoreText;
+  }
+  return RenderingBackend::kInvalid;
+}
 }  // namespace internal
 }  // namespace tttext
 }  // namespace ttoffice

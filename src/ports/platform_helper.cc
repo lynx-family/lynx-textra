@@ -12,6 +12,10 @@ namespace tttext {
 bool PlatformHelper::IsBackendAvailable(RenderingBackend backend) {
   return internal::IsBackendCompiled(backend);
 }
+RenderingBackend PlatformHelper::GetSelfRenderingBackend(
+    RenderingBackend preferred) {
+  return internal::GetSelfRenderingBackend(preferred);
+}
 RenderingBackend PlatformHelper::GetDefaultBackend() {
 #if defined(TEXTRA_ENABLE_LVGL_BACKEND)
   return RenderingBackend::kLVGL;
