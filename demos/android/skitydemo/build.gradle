@@ -11,6 +11,22 @@ if (!skityReleaseAar.isFile()) {
     throw new GradleException('Run tools/hab sync . --target-only --target skity-android first')
 }
 
+// C handles do not cross a C++ STL boundary. Import the C library directly:
+// this release's Prefab metadata rejects all STL consumers, including C API users.
+def skityCapiDir = file("$buildDir/generated/skity-capi")
+def extractSkityCapi = tasks.register('extractSkityCapi', Sync) {
+    from(zipTree(skityReleaseAar)) {
+        include 'prefab/modules/skity-capi/include/**'
+        include 'jni/**'
+    }
+    from(zipTree(skityReleaseAar)) {
+        include 'jni/**/libskity.so'
+        include 'jni/**/libskity-codec.so'
+        into 'runtime'
+    }
+    into skityCapiDir
+}
+
 android {
     namespace 'com.lynx.textra.skitydemo'
 
@@ -25,7 +41,7 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++17 -DLOCAL_ARM_NEON=TRUE -Wl,-ldl -Wno-unused-command-line-argument"
-                arguments "-DANDROID_TOOLCHAIN=clang"
+                arguments "-DANDROID_TOOLCHAIN=clang", "-DSKITY_CAPI_ROOT=" + skityCapiDir.absolutePath
                 abiFilters = rootProject.ext.abiList
             }
         }
@@ -66,7 +82,7 @@ android {
     }
     sourceSets {
         main {
-            jniLibs.srcDirs = ['jni']
+            jniLibs.srcDirs = ['jni', new File(skityCapiDir, 'runtime/jni')]
         }
     }
     buildFeatures {
@@ -79,12 +95,14 @@ dependencies {
     implementation 'com.google.android.material:material:1.2.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation project(path: ':lynxtextra')
-    implementation files(skityReleaseAar)
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
 }
 
 tasks.configureEach { task ->
+    if (task.name == 'preBuild' || task.name.startsWith('generateJsonModel')) {
+        task.dependsOn(extractSkityCapi)
+    }
     if (task.name == 'generateJsonModelDebug') {
         task.dependsOn(':lynxtextra:prefabDebugPackage')
     } else if (task.name == 'generateJsonModelRelease') {

@@ -12,11 +12,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <skity/graphic/bitmap.hpp>
-#include <skity/render/canvas.hpp>
-#include <skity/text/typeface.hpp>
 #include <vector>
 
+#include "demos/capi/skity_capi_utils.hpp"
 #include "src/capi/textra_internal.h"
 
 #define CHECK(condition)                                                   \
@@ -34,8 +32,8 @@ inline void RunSkityCanvasCallbacksTest(
     textra_status_t(TEXTRA_CALL* initialize)(textra_canvas_options_t*),
     textra_rendering_backend_t backend) {
   CHECK(initialize(nullptr) == TEXTRA_STATUS_INVALID_ARGUMENT);
-  skity::Bitmap bitmap(32, 32);
-  auto native = skity::Canvas::MakeSoftwareCanvas(&bitmap);
+  auto bitmap = ttoffice::tttext::skity_c::MakeBitmap(32, 32);
+  auto native = ttoffice::tttext::skity_c::MakeCanvas(bitmap.get());
   CHECK(native);
   int userdata = 0;
   textra_canvas_options_t options{};
@@ -50,16 +48,20 @@ inline void RunSkityCanvasCallbacksTest(
   CHECK(options.native_canvas == native.get() && options.userdata == &userdata);
   CHECK(options.backend == backend && options.callbacks);
   CHECK(initialize(&options) == TEXTRA_STATUS_OK);
-  std::memset(bitmap.GetPixelAddr(), 0, bitmap.RowBytes() * bitmap.Height());
+  std::memset(static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get())), 0,
+              skity_bitmap_get_row_bytes(bitmap.get()) *
+                  skity_bitmap_get_height(bitmap.get()));
   CHECK(options.callbacks->draw_color(options.userdata, options.native_canvas,
                                       0xffff0000u) == TEXTRA_STATUS_OK);
-  CHECK(bitmap.GetPixelAddr()[0] || bitmap.GetPixelAddr()[3]);
+  CHECK(static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get()))[0] ||
+        static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get()))[3]);
   for (int i = 0; i < 2; ++i) {
     textra_layout_drawer_options_t draw{sizeof(draw), &options};
     textra_layout_drawer_t* drawer = nullptr;
     CHECK(textra_layout_drawer_create(&draw, &drawer) == TEXTRA_STATUS_OK);
     textra_layout_drawer_destroy(drawer);
-    native->DrawColor(0xff00ff00u);
+    skity_canvas_draw_color(native.get(), 0xff00ff00u,
+                            SKITY_BLEND_MODE_SRC_OVER);
   }
 }
 
@@ -71,7 +73,7 @@ inline int RunSkityBackendTest(
     textra_status_t(TEXTRA_CALL* initialize_canvas)(textra_canvas_options_t*),
     textra_rendering_backend_t backend) {
   CHECK(argc == 2);
-  auto hb_font = skity::Typeface::MakeFromFile(argv[1]);
+  auto hb_font = ttoffice::tttext::skity_c::LoadTypeface(argv[1]);
   CHECK(hb_font);
   auto ct_font = CTFontCreateWithName(CFSTR("Helvetica"), 20, nullptr);
   CHECK(ct_font);
@@ -93,6 +95,8 @@ inline int RunSkityBackendTest(
                        ? static_cast<const void*>(hb_font.get())
                        : ct_font;
   OK(initialize_face(&fo));
+  // The adapter must retain an imported C typeface after its host owner dies.
+  if (backend == TEXTRA_RENDERING_BACKEND_SKITY) hb_font.reset();
   textra_font_descriptor_t* descriptor = nullptr;
   OK(textra_font_descriptor_create(&descriptor));
   OK(textra_font_descriptor_set_typeface(descriptor, &fo));
@@ -117,8 +121,8 @@ inline int RunSkityBackendTest(
   textra_text_context_t* context = nullptr;
   OK(textra_text_context_create(&context));
   OK(textra_text_layout_layout_single_line(layout, paragraph, context));
-  skity::Bitmap bitmap(256, 80);
-  auto native_canvas = skity::Canvas::MakeSoftwareCanvas(&bitmap);
+  auto bitmap = ttoffice::tttext::skity_c::MakeBitmap(256, 80);
+  auto native_canvas = ttoffice::tttext::skity_c::MakeCanvas(bitmap.get());
   CHECK(native_canvas);
   textra_canvas_options_t co{};
   co.struct_size = sizeof(co);
@@ -128,17 +132,23 @@ inline int RunSkityBackendTest(
   textra_layout_drawer_options_t opt{sizeof(opt), &co};
   textra_layout_drawer_t* drawer = nullptr;
   OK(textra_layout_drawer_create(&opt, &drawer));
-  const size_t size = bitmap.RowBytes() * bitmap.Height();
-  std::memset(bitmap.GetPixelAddr(), 0, size);
+  const size_t size = skity_bitmap_get_row_bytes(bitmap.get()) *
+                      skity_bitmap_get_height(bitmap.get());
+  std::memset(static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get())), 0,
+              size);
   OK(textra_layout_drawer_draw_single_line(drawer, paragraph, 10, 40));
-  std::vector<unsigned char> pixels(bitmap.GetPixelAddr(),
-                                    bitmap.GetPixelAddr() + size);
+  std::vector<unsigned char> pixels(
+      static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get())),
+      static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get())) + size);
   bool nonzero = false;
   for (auto pixel : pixels) nonzero |= pixel != 0;
   CHECK(nonzero);
-  std::memset(bitmap.GetPixelAddr(), 0, size);
+  std::memset(static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get())), 0,
+              size);
   OK(textra_layout_drawer_draw_single_line(drawer, paragraph, 10, 40));
-  CHECK(!std::memcmp(pixels.data(), bitmap.GetPixelAddr(), size));
+  CHECK(!std::memcmp(
+      pixels.data(),
+      static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get())), size));
   // Explicit CTFont imports and manager matching both cover fallback scripts.
   const char* samples[] = {"office ffi", "中文字体回退", "مرحبا بالعالم",
                            "Latin 中文 مرحبا"};
@@ -151,15 +161,21 @@ inline int RunSkityBackendTest(
           fallback, explicit_font ? style : nullptr, sample,
           static_cast<uint32_t>(std::strlen(sample))));
       OK(textra_text_layout_layout_single_line(layout, fallback, context));
-      std::memset(bitmap.GetPixelAddr(), 0, size);
+      std::memset(static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get())),
+                  0, size);
       OK(textra_layout_drawer_draw_single_line(drawer, fallback, 10, 40));
-      pixels.assign(bitmap.GetPixelAddr(), bitmap.GetPixelAddr() + size);
+      pixels.assign(
+          static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get())),
+          static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get())) + size);
       nonzero = false;
       for (auto pixel : pixels) nonzero |= pixel != 0;
       CHECK(nonzero);
-      std::memset(bitmap.GetPixelAddr(), 0, size);
+      std::memset(static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get())),
+                  0, size);
       OK(textra_layout_drawer_draw_single_line(drawer, fallback, 10, 40));
-      CHECK(!std::memcmp(pixels.data(), bitmap.GetPixelAddr(), size));
+      CHECK(!std::memcmp(
+          pixels.data(),
+          static_cast<uint8_t*>(skity_bitmap_get_pixels(bitmap.get())), size));
       textra_paragraph_destroy(fallback);
     }
   }

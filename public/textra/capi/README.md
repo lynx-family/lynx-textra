@@ -209,30 +209,32 @@ layout options; optional sources are never silently promoted to the default.
 Native layouts construct their default manager through PlatformHelper. Callers
 provide valid construction options and compatible callback objects/SDK builds.
 
-## Host self-render callback examples
+## Private host rendering adapters
 
-`examples/capi/platform/skia` and `skity` contain SDK callback examples for host
-compilation. The separate Skity+CoreText directory supports both iOS and macOS;
+`public/textra/capi/platform/` contains private SDK adapter headers for explicit
+host use. These are packaged as private headers, not exported core C ABI headers. The separate Skity+CoreText directory supports both iOS and macOS;
 LVGL uses its original C++ implementations inside the engine. There are no duplicate native-platform C
 canvas/font/typeface implementations. The core does not link Skia or Skity.
 
 Host `*_callbacks_initialize` adapters fill callback records without creating
-engine I* handles. Headers contain only C declarations; compile/link the matching
-adapter target, with no implementation macro. CMake/GN targets and direct-source
-integration are described in the [host build guide](/examples/capi/platform/README.md).
+engine I* handles. Skity uses C11 header-only implementations; Skia is header-only for C++17
+hosts and requires the Skia C++ SDK. No adapter source or implementation macro
+is required. Exported core C ABI headers do not include these SDK adapters. CMake/GN targets and direct-source
+integration are described in the [host build guide](/public/textra/capi/platform/README.md).
 Returned tables have static lifetime. Before successful owner
 initialization, the host owns the native wrapper and releases it on failure.
 The standalone self-render demo borrows its records and clears shaped-font
 caches before releasing the native objects.
 
-SKITY_CORETEXT supplies matching font and CTFont conversion callbacks and uses
-the built-in CoreText self-render shaper. Ordinary SKIA/SKITY use HarfBuzz and
+SKITY_CORETEXT uses the built-in CoreText self-render shaper. The pinned Skity
+alpha.7 SDK lacks typeface-to-CTFontRef export, so its full font bridge returns
+`TEXTRA_STATUS_UNSUPPORTED`; canvas callbacks remain available. Ordinary SKIA/SKITY use HarfBuzz and
 require the font data, glyph and metrics callbacks needed by that shaper.
 SDK dependencies and required graphics libraries belong to the host.
 
 Skity Canvas initializers (`textra_skity_canvas_callbacks_initialize` and the
 `textra_skity_coretext_` variant) update one options record in
-place. Set `struct_size` and `native_canvas` to the borrowed `skity::Canvas*`;
+place. Set `struct_size` and `native_canvas` to the borrowed `skity_canvas`;
 the initializer fills its fixed backend and callback table, preserves userdata
 and the native pointer, and allocates no wrapper. Canvas destruction is a no-op;
 the host keeps the native Canvas alive until all drawers using it are destroyed.

@@ -1,15 +1,15 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0-alpha.7",
   "artifacts": {
     "apple": {
-      "filename": "skity.framework-v1.0.0.zip",
-      "url": "https://github.com/lynx-family/skity/releases/download/v1.0.0/skity.framework-v1.0.0.zip",
-      "sha256": "d952710049c872ba73eadb7c7a5dfb741402f73860f02dc9e24df00fa851ca9d"
+      "filename": "skity.framework-v1.1.0-alpha.7.zip",
+      "url": "https://github.com/lynx-family/skity/releases/download/v1.1.0-alpha.7/skity.framework-v1.1.0-alpha.7.zip",
+      "sha256": "c1a4510e91414f635621194329d6cefc9fc5b8c857c8530cb79ab6b899905635"
     },
     "android": {
-      "filename": "skity-native-1.0.0.aar",
-      "url": "https://repo.maven.apache.org/maven2/org/lynxsdk/lynx/skity-native/1.0.0/skity-native-1.0.0.aar",
-      "sha256": "0c9fc9460975142f33e1d941402115a024dc80ea3d7035231a663654d638a865"
+      "filename": "skity-native-1.1.0-alpha.7-20261124.045156-1.aar",
+      "url": "https://central.sonatype.com/repository/maven-snapshots/org/lynxsdk/lynx/skity-native/1.1.0-alpha.7-SNAPSHOT/skity-native-1.1.0-alpha.7-20261124.045156-1.aar",
+      "sha256": "6dabd55d9b7974650fc72225d6661379a68b5e4261d650e71968ceabadf9995f"
     }
   }
 }

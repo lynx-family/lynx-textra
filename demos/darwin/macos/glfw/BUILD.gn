@@ -27,7 +27,7 @@ executable("gl_app_demo") {
   ]
 
   deps = [
-    "$gl_app_root/examples/capi/platform:textra_capi_skity",
+    "$gl_app_root/public/textra/capi/platform:textra_capi_skity",
     "$gl_app_root/third_party/glfw:glfw",
   ]
 

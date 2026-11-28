@@ -1,11 +1,10 @@
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
+#include <textra/capi/platform/textra_capi_skity.h>
 #include <textra/fontmgr_collection.h>
 #include <textra/layout_drawer.h>
 #include <textra/layout_region.h>
-#include <textra/platform/skity/skity_canvas_helper.h>
-#include <textra/platform/skity/skity_font_manager.h>
-#include <textra/platform/skity/skity_typeface_helper.h>
+#include <textra/platform_helper.h>
 #include <textra/text_layout.h>
 
 #include "android_skity_render.hpp"
@@ -14,7 +13,11 @@ using namespace tttext;
 class AndroidGLExample : public Renderer {
  public:
   AndroidGLExample() {
-    font_manager_ = std::make_shared<SkityFontManager>();
+    textra_font_manager_options_t options{};
+    options.struct_size = sizeof(options);
+    if (textra_skity_font_manager_callbacks_initialize(&options)) return;
+    font_manager_ =
+        PlatformHelper::CreateFontManager(options, RenderingBackend::kSkity);
     collection_.SetDefaultFontManager(font_manager_);
     text_layout_ =
         std::make_unique<TextLayout>(&collection_, RenderingBackend::kSkity);
@@ -31,10 +34,14 @@ class AndroidGLExample : public Renderer {
   ~AndroidGLExample() override = default;
 
  protected:
-  void onDraw(skity::Canvas* canvas) override {
-    SkityCanvasHelper canvas_helper(canvas);
-    if (region_) {
-      LayoutDrawer drawer(&canvas_helper);
+  void onDraw(skity_canvas canvas) override {
+    textra_canvas_options_t options{};
+    options.struct_size = sizeof(options);
+    options.native_canvas = canvas;
+    if (textra_skity_canvas_callbacks_initialize(&options)) return;
+    auto canvas_helper = PlatformHelper::CreateCanvasHelper(options);
+    if (region_ && canvas_helper) {
+      LayoutDrawer drawer(canvas_helper.get());
       drawer.DrawLayoutPage(region_.get());
     }
   }

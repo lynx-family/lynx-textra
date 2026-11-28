@@ -35,10 +35,19 @@ typedef struct textra_backend_paint {
   uint32_t shadow_count;
   const textra_backend_gradient_view_t* gradient;
 } textra_backend_paint_t;
-/* Path kinds: 0=lines, 1=arc(start/mid/end + radius), 2=Bezier,
- * 3=move-to, 4=multi-path. All nodes and point arrays are call-borrowed. */
+/* Fixed-width path kind values, matching the existing C ABI. */
+typedef uint32_t textra_path_kind_t;
+#define TEXTRA_PATH_KIND_LINES ((textra_path_kind_t)0)
+#define TEXTRA_PATH_KIND_ARC ((textra_path_kind_t)1)
+#define TEXTRA_PATH_KIND_BEZIER ((textra_path_kind_t)2)
+#define TEXTRA_PATH_KIND_MOVE_TO ((textra_path_kind_t)3)
+#define TEXTRA_PATH_KIND_MULTI_PATH ((textra_path_kind_t)4)
+
+/* Arc paths use start/mid/end points plus radius. All nodes and point arrays
+ * are call-borrowed. */
 typedef struct textra_backend_path {
-  uint32_t struct_size, kind;
+  uint32_t struct_size;
+  textra_path_kind_t kind;
   const textra_point_t* points;
   uint32_t point_count;
   float radius;

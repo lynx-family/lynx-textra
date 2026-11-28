@@ -65,7 +65,7 @@ UIKit 的向下 Y 轴；比较图片可以直接显示，无需额外翻转。
 现有 macOS GLFW demo 支持：
 
 ```sh
-gl_app_demo --capi                       # 在原窗口通过 C API 绘制换行示例
+gl_app_demo --capi                       # C API 离屏绘制后在原 C++ 窗口展示
 gl_app_demo --capi-compare /tmp/textra-demo-parity/skity  # 软件画布逐像素比较
 ```
 
@@ -73,10 +73,13 @@ gl_app_demo --capi-compare /tmp/textra-demo-parity/skity  # 软件画布逐像�
 HarfBuzz 的核心库和宿主的 Skity 库，例如：
 
 ```sh
-clang++ -std=c++17 -mmacosx-version-min=14.0 -I. -Ipublic -Ithird_party/skity/include \
-  test/capi/skity_compare.cc examples/capi/platform/skity/textra_skity_backend.cc \
+clang++ -std=c++17 -mmacosx-version-min=15.0 -I. -Ipublic \
+  -Fthird_party/skity_release/apple/skity.xcframework/macos-arm64_x86_64 \
+  test/capi/skity_compare.cc \
   -Lout/rendering-backend-skity -Lout/mac \
-  -llynxtextra -lskity -framework CoreGraphics -framework CoreText -framework Foundation \
+  -llynxtextra -framework skity -framework CoreGraphics -framework CoreText \
+  -framework Foundation -framework AppKit -framework Metal -framework OpenGL \
+  -framework ImageIO -framework CoreServices \
   -Wl,-rpath,"$PWD/out/mac" -o /tmp/textra-skity-demo-compare
 (cd out/rendering-backend-skity && /tmp/textra-skity-demo-compare /tmp/textra-demo-parity/skity)
 ```
@@ -102,7 +105,7 @@ Android 另外执行 81 项接口检查，覆盖全部 27 个 Canvas 平台回�
 比较 Android Canvas 像素；原后端未实现的能力按 I* 接口检查无操作或默认值，
 回调错误不通过 I* 接口上报；这些对象没有直接操作的 C 入口。暂不补齐字体枚举、文件/字符查询、字体数据、glyph 映射、图片和原生
 Canvas 空实现。结果位于 `files/capi-comparison/interfaces/results.json`。
-详见 [Android 支持范围](../../examples/capi/platform/android/README.md)。
+详见 [Android 支持范围](../../test/capi/README.md#android-checks-and-benchmarks)。
 
 同一进程对照还验证了缓存隔离：ShapeKey 现在携带字体集合资源代际的身份，
 防止同一 RenderingBackend 下的 C++ 类型字体与 C 回调字体互相命中缓存。

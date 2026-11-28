@@ -21,7 +21,11 @@ target_include_directories(skity_demo PRIVATE
         ${textlayout_root_path}/public
 )
 
-find_package(skity-native REQUIRED CONFIG)
+add_library(skity_capi SHARED IMPORTED)
+set_target_properties(skity_capi PROPERTIES
+        IMPORTED_LOCATION "${SKITY_CAPI_ROOT}/jni/${ANDROID_ABI}/libskity-capi.so"
+        INTERFACE_INCLUDE_DIRECTORIES "${SKITY_CAPI_ROOT}/prefab/modules/skity-capi/include"
+)
 target_compile_definitions(skity_demo PRIVATE -DSKITY_JNI_PKG="com/lynx/textra/skitydemo")
 find_library( # Sets the name of the path variable.
         log-lib
@@ -48,7 +52,7 @@ target_link_libraries( # Specifies the target library.
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib}
-        skity-native::skity
+        skity_capi
         EGL
         GLESv2
         z)
