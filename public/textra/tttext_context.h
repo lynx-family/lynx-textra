@@ -9,8 +9,12 @@
 #include <textra/layout_definition.h>
 #include <textra/macro.h>
 
+#include <functional>
 #include <memory>
+#include <string_view>
 #include <utility>
+
+#define TEXTRA_HAS_HYPHENATION 1
 
 namespace ttoffice {
 namespace tttext {
@@ -18,6 +22,19 @@ class LayoutRegion;
 class LayoutPosition;
 class TextLayoutImpl;
 class TTTextContextImpl;
+
+/// Controls whether layout may insert a hyphen when breaking a line.
+enum class HyphenationMode {
+  kNone,         ///< Disallow discretionary breaks at soft hyphens.
+  kManual,       ///< Allow discretionary breaks at soft hyphens.
+  kAuto,         ///< Also allow dictionary-provided breaks.
+  kUnspecified,  ///< Keep the default line-breaking behavior.
+};
+
+// Return a UTF-32 break offset strictly before the given offset, or zero.
+using HyphenationLookup =
+    std::function<uint32_t(std::u32string_view, uint32_t)>;
+
 /**
  * @brief A class manages the text layout configurations and intermediate layout
  * states.
@@ -90,6 +107,10 @@ class L_EXPORT TTTextContext {
   void SetAndroidMetricsRound(bool enabled);
 
   void EnableFeature(FeatureOption feature_option, bool value);
+
+  /// Selects discretionary break behavior for subsequent layout.
+  /// Automatic mode uses the supplied lookup or the system dictionary on macOS.
+  void SetHyphenation(HyphenationMode mode, HyphenationLookup lookup = {});
 
   // Layout state getters/setters
  public:

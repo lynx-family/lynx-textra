@@ -215,6 +215,9 @@ textlayout_public_headers = [
 
 source_set("textlayout") {
   defines = []
+  if (is_mac) {
+    frameworks = [ "CoreFoundation.framework" ]
+  }
   deps = [
     ":backend",
     ":native_platform",

@@ -4,6 +4,8 @@
 
 #ifndef SRC_TEXTLAYOUT_TTTEXT_CONTEXT_IMPL_H_
 #define SRC_TEXTLAYOUT_TTTEXT_CONTEXT_IMPL_H_
+#include <textra/tttext_context.h>
+
 #include <memory>
 #include <string>
 
@@ -30,6 +32,10 @@ class TTTextContextImpl {
   bool IsAndroidMetricsRound() const { return android_metrics_round_; }
   bool IsShapeCacheDisabled() const { return disable_shape_cache_; }
   bool IsTrimLineTailSpace() const { return trim_line_tail_space_; }
+  HyphenationMode GetHyphenationMode() const { return hyphenation_mode_; }
+  const HyphenationLookup& GetHyphenationLookup() const {
+    return hyphenation_lookup_;
+  }
 
  private:
   friend class TTTextContext;
@@ -41,6 +47,8 @@ class TTTextContextImpl {
   bool enable_system_font_adjust_;
   bool android_metrics_round_;
   bool disable_shape_cache_;
+  HyphenationMode hyphenation_mode_ = HyphenationMode::kUnspecified;
+  HyphenationLookup hyphenation_lookup_;
   float layout_bottom_;
 };
 }  // namespace tttext
