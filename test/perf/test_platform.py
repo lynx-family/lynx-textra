@@ -5,6 +5,7 @@
 import json
 import hashlib
 import plistlib
+import runpy
 import tempfile
 import unittest
 from pathlib import Path
@@ -17,6 +18,17 @@ import run_platform
 
 
 class PlatformTest(unittest.TestCase):
+    def test_windows_ci_dependency_profile_preserves_every_used_pin(self):
+        source = Path(__file__).resolve().parents[2]
+        with mock.patch('os.getcwd',return_value=str(source)), \
+             mock.patch('platform.system',return_value='Windows'), \
+             mock.patch('platform.machine',return_value='AMD64'):
+            full = runpy.run_path(str(source/'DEPS'))['deps']
+            profile = runpy.run_path(str(source/'hab.ci/DEPS.windows-ci'))['deps']
+        self.assertEqual(set(profile), set(full)-{'buildtools/cmake'})
+        for name in profile:
+            self.assertEqual(profile[name], full[name], name)
+
     def test_ios_uses_available_device_type_for_owned_simulator(self):
         devices = {'runtime-ios': [dict(udid='existing',name='iPhone 17',
                                        deviceTypeIdentifier='type-iphone')]}

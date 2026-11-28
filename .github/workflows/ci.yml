@@ -460,7 +460,7 @@ jobs:
           $habitat = Join-Path $env:RUNNER_TEMP "hab.exe"
           Invoke-WebRequest "https://github.com/lynx-family/habitat/releases/download/0.3.151/hab.exe" -OutFile $habitat
           if ((Get-FileHash $habitat -Algorithm SHA256).Hash -ne "f40aa7efe0a92c6e536f6f9d0d7220e2a8d2c0e6326b262c40c0c08c2f3c3a0e") { throw "Habitat checksum mismatch" }
-          & $habitat sync .
+          & $habitat sync . --target windows-ci --target-only
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           "$env:GITHUB_WORKSPACE\buildtools\ninja" >> $env:GITHUB_PATH
       - name: Compare Windows SkShaper with fixed fonts

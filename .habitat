@@ -5,6 +5,7 @@ solutions = [
         'url': '',
         'target_deps_files': {
             'lvgl': 'hab.ci/DEPS.lvgl',
+            'windows-ci': 'hab.ci/DEPS.windows-ci',
         },
     }
 ]
