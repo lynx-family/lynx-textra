@@ -173,7 +173,9 @@ The runner supplies the same VS 2022 BuildTools and Windows SDK as Lynx Windows
 builds. The workflow exports the installation paths, installs CMake 3.31.6, and
 uses Python 3.11 with UTF-8 mode for the pinned GN scripts. Git LFS 3.7.1 and
 native Windows Habitat 0.3.151 are downloaded with fixed SHA-256 checksums; the
-Unix Habitat launcher is not used. Ninja is exposed to the Windows compiler
+Unix Habitat launcher is not used. The `windows-ci` Habitat target loads the
+root DEPS unchanged except for omitting the unused legacy CMake 3.18 download;
+`--target-only` prevents syncing that default package as well. Ninja is exposed to the Windows compiler
 wrappers. One Release Skity build and fixed font files are shared by both engines.
 Repository fonts are supplemented by the Noto files in `fonts.lock.json`, pinned
 to a full google/fonts commit and individual SHA-256 checksums. Missing Windows
