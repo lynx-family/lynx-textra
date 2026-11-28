@@ -10,6 +10,7 @@
 #include "src/textlayout/layout_position.h"
 namespace ttoffice {
 namespace tttext {
+struct ShaperCache;
 class TTTextContextImpl {
  public:
   TTTextContextImpl();
@@ -30,6 +31,7 @@ class TTTextContextImpl {
   bool IsAndroidMetricsRound() const { return android_metrics_round_; }
   bool IsShapeCacheDisabled() const { return disable_shape_cache_; }
   bool IsTrimLineTailSpace() const { return trim_line_tail_space_; }
+  ShaperCache* GetShaperCache() const { return shaper_cache_.get(); }
 
  private:
   friend class TTTextContext;
@@ -42,6 +44,7 @@ class TTTextContextImpl {
   bool android_metrics_round_;
   bool disable_shape_cache_;
   float layout_bottom_;
+  std::shared_ptr<ShaperCache> shaper_cache_;
 };
 }  // namespace tttext
 }  // namespace ttoffice

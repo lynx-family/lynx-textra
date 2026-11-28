@@ -28,6 +28,30 @@ TEXTRA_API void TEXTRA_CALL
 textra_text_context_destroy(textra_text_context_t* context);
 TEXTRA_API textra_status_t TEXTRA_CALL
 textra_text_context_reset(textra_text_context_t* context);
+
+/* A new context has no cache. Pass TEXTRA_FALSE for single-threaded use or
+ * TEXTRA_TRUE to share a cache across threads. Contexts still require
+ * external serialization. Share only with matching fonts, shaper and shaping
+ * settings. */
+TEXTRA_API textra_status_t TEXTRA_CALL textra_shaper_cache_create(
+    textra_bool_t thread_safe, textra_shaper_cache_t** out_cache);
+TEXTRA_API void TEXTRA_CALL
+textra_shaper_cache_destroy(textra_shaper_cache_t* cache);
+/* The context retains the cache across reset. Pass NULL to detach it.
+ * Configure before layout, or after reset and release of outstanding results.
+ * Changing the binding while the context is in use returns BUSY. */
+TEXTRA_API textra_status_t TEXTRA_CALL textra_text_context_set_shaper_cache(
+    textra_text_context_t* context, const textra_shaper_cache_t* cache);
+/* Returns an owned reference, or NOT_FOUND and NULL for an unbound context. */
+TEXTRA_API textra_status_t TEXTRA_CALL textra_text_context_get_shaper_cache(
+    const textra_text_context_t* context, textra_shaper_cache_t** out_cache);
+/* Clear shaping results or platform font entries independently for every
+ * context sharing this cache. Both succeed when no cache is attached. */
+TEXTRA_API textra_status_t TEXTRA_CALL
+textra_text_context_clear_shape_cache(textra_text_context_t* context);
+TEXTRA_API textra_status_t TEXTRA_CALL
+textra_text_context_clear_font_cache(textra_text_context_t* context);
+
 TEXTRA_API textra_status_t TEXTRA_CALL textra_text_context_set_feature(
     textra_text_context_t* context, textra_feature_t feature,
     textra_bool_t enabled);

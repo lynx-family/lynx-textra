@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <shared_mutex>
 #include <unordered_map>
 
 #include "src/textlayout/tt_shaper.h"
@@ -116,27 +115,24 @@ class ShapeCache final {
  public:
   using Epoch = uint64_t;
 
-  static ShapeCache& GetInstance() {
-    static ShapeCache* instance = new ShapeCache();
-    return *instance;
-  }
-
+  ~ShapeCache() = default;
   ShapeCache(const ShapeCache& other) = delete;
   void operator=(const ShapeCache& other) = delete;
 
  private:
-  ShapeCache() = default;
-  ~ShapeCache() = default;
+  friend struct ShaperCache;
+  explicit ShapeCache(bool thread_safe)
+      : mutex_(thread_safe ? std::make_unique<std::mutex>() : nullptr) {}
 
  public:
   void AddToCache(const ShapeKey& key, const ShapeResultRef& result) {
-    std::unique_lock lock(mutex_);
+    auto lock = Lock();
     AddToCacheLocked(key, result);
   }
 
   void AddToCache(const ShapeKey& key, const ShapeResultRef& result,
                   Epoch epoch) {
-    std::unique_lock lock(mutex_);
+    auto lock = Lock();
     // A font-manager update may clear the cache while shaping is in flight.
     // Do not let a result made with the old font set repopulate the cache.
     if (epoch != epoch_) {
@@ -147,7 +143,8 @@ class ShapeCache final {
 
   std::shared_ptr<ShapeResult> Find(const ShapeKey& key,
                                     Epoch* epoch = nullptr) {
-    std::shared_lock lock(mutex_);
+    // LRU lookups update recency and must also take an exclusive lock.
+    auto lock = Lock();
     if (epoch != nullptr) {
       *epoch = epoch_;
     }
@@ -161,18 +158,24 @@ class ShapeCache final {
   }
 
   void Clear() {
-    std::unique_lock lock(mutex_);
+    auto lock = Lock();
     shape_cache_.clear();
     ++epoch_;
   }
 
  private:
+  std::unique_lock<std::mutex> Lock() {
+    return mutex_ ? std::unique_lock<std::mutex>(*mutex_)
+                  : std::unique_lock<std::mutex>();
+  }
+
   void AddToCacheLocked(const ShapeKey& key, const ShapeResultRef& result) {
+    // Multiple shapers may finish the same key after concurrent misses.
 #ifdef USE_LRU_CACHE
-    TTASSERT(shape_cache_.get(key) == nullptr);
-    shape_cache_.put(key, result);
+    if (shape_cache_.get(key) == nullptr) {
+      shape_cache_.put(key, result);
+    }
 #else
-    TTASSERT(shape_cache_.find(key) == shape_cache_.end());
     shape_cache_.insert({key, result});
 #endif
   }
@@ -184,7 +187,7 @@ class ShapeCache final {
 #else
   std::unordered_map<const ShapeKey, ShapeResultRef> shape_cache_;
 #endif
-  mutable std::shared_mutex mutex_{};
+  std::unique_ptr<std::mutex> mutex_;
   Epoch epoch_ = 0;
 };
 }  // namespace tttext

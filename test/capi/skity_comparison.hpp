@@ -74,7 +74,6 @@ inline bool RunSkityComparison(const std::string& directory) {
     if (fonts.manager_callbacks)
       fonts.manager_callbacks->destroy(fonts.userdata,
                                        const_cast<void*>(fonts.font_manager));
-    textra_text_layout_clear_shape_cache();
     all &=
         old_ok && !status && pixels && repeat && metrics && nonempty && saved;
   }

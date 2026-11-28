@@ -32,6 +32,52 @@ textra_text_context_reset(textra_text_context_t* context) {
   return TEXTRA_STATUS_OK;
 }
 
+textra_status_t TEXTRA_CALL textra_shaper_cache_create(
+    textra_bool_t thread_safe, textra_shaper_cache_t** out_cache) {
+  if (!out_cache) return TEXTRA_STATUS_INVALID_ARGUMENT;
+  *out_cache = nullptr;
+  if (!Bool(thread_safe)) return TEXTRA_STATUS_INVALID_ARGUMENT;
+  *out_cache = new textra_shaper_cache{
+      tt::TTTextContext::CreateShaperCache(thread_safe != 0)};
+  return TEXTRA_STATUS_OK;
+}
+
+textra_status_t TEXTRA_CALL textra_text_context_set_shaper_cache(
+    textra_text_context_t* context, const textra_shaper_cache_t* cache) {
+  if (!context) return TEXTRA_STATUS_INVALID_ARGUMENT;
+  if (operation || context->active || context->used || *context->results)
+    return TEXTRA_STATUS_BUSY;
+  context->impl.SetShaperCache(cache ? cache->impl : nullptr);
+  return TEXTRA_STATUS_OK;
+}
+
+textra_status_t TEXTRA_CALL textra_text_context_get_shaper_cache(
+    const textra_text_context_t* context, textra_shaper_cache_t** out_cache) {
+  if (!out_cache) return TEXTRA_STATUS_INVALID_ARGUMENT;
+  *out_cache = nullptr;
+  if (!context) return TEXTRA_STATUS_INVALID_ARGUMENT;
+  auto cache = context->impl.GetShaperCache();
+  if (!cache) return TEXTRA_STATUS_NOT_FOUND;
+  *out_cache = new textra_shaper_cache{std::move(cache)};
+  return TEXTRA_STATUS_OK;
+}
+
+textra_status_t TEXTRA_CALL
+textra_text_context_clear_shape_cache(textra_text_context_t* context) {
+  if (!context) return TEXTRA_STATUS_INVALID_ARGUMENT;
+  if (operation || context->active) return TEXTRA_STATUS_BUSY;
+  tt::TextLayout::ClearShapeCache(context->impl);
+  return TEXTRA_STATUS_OK;
+}
+
+textra_status_t TEXTRA_CALL
+textra_text_context_clear_font_cache(textra_text_context_t* context) {
+  if (!context) return TEXTRA_STATUS_INVALID_ARGUMENT;
+  if (operation || context->active) return TEXTRA_STATUS_BUSY;
+  tt::TextLayout::ClearFontCache(context->impl);
+  return TEXTRA_STATUS_OK;
+}
+
 textra_status_t TEXTRA_CALL textra_text_context_set_feature(
     textra_text_context_t* context, textra_feature_t feature,
     textra_bool_t enabled) {
@@ -202,10 +248,6 @@ textra_text_layout_preload(textra_rendering_backend_t backend) {
   auto rendering_backend = static_cast<tt::RenderingBackend>(backend);
   return tt::TextLayout::Preload(rendering_backend) ? TEXTRA_STATUS_OK
                                                     : TEXTRA_STATUS_UNSUPPORTED;
-}
-
-void TEXTRA_CALL textra_text_layout_clear_shape_cache(void) {
-  tt::TextLayout::ClearShapeCache();
 }
 
 textra_status_t TEXTRA_CALL

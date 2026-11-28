@@ -7,6 +7,7 @@
 #include <cstdlib>
 
 #include "src/capi/textra_internal.h"
+#include "src/textlayout/single_line_paragraph_impl.h"
 using namespace ttoffice::tttext;
 #define CHECK(x)                                      \
   do {                                                \
@@ -47,7 +48,7 @@ textra_status_t TEXTRA_CALL MatchSource(void* userdata, void* manager,
   auto& state = *static_cast<FontSources*>(userdata);
   state.order.push_back(*static_cast<int*>(manager));
   state.last_family = family;
-  *out = nullptr;
+  *out = state.last_family == "copied-family" ? manager : nullptr;
   return TEXTRA_STATUS_OK;
 }
 void TestFontSources() {
@@ -62,6 +63,9 @@ void TestFontSources() {
   textra_backend_typeface_api_t faces{};
   faces.struct_size = sizeof(faces);
   faces.version = TEXTRA_TYPEFACE_API_VERSION;
+  // The test face borrows its manager token.
+  faces.destroy = [](void*, void*) {};
+  faces.font_style = FontStyleCallback;
   std::array<textra_font_manager_options_t, 4> configs;
   for (int i = 0; i < 4; ++i)
     configs[i] = {sizeof(configs[i]), &objects[i], &api, &faces, &state};
@@ -89,16 +93,16 @@ void TestFontSources() {
   configs = {};
   FontDescriptor descriptor;
   descriptor.font_family_list_.push_back("missing-family");
-  CHECK(layout->fonts.findTypefaces(descriptor).empty());
+  CHECK(layout->fonts.findTypefaces(descriptor).size() == 1);
   CHECK(state.order.size() >= 4);
   CHECK((std::vector<int>(state.order.begin(), state.order.begin() + 4) ==
          std::vector<int>{2, 1, 3, 0}));
   CHECK(state.last_family == "copied-family");
   const auto queried = state.order.size();
-  CHECK(layout->fonts.findTypefaces(descriptor).empty());
+  CHECK(layout->fonts.findTypefaces(descriptor).size() == 1);
   CHECK(state.order.size() == queried);
   OK(textra_text_layout_clear_font_cache(layout));
-  CHECK(layout->fonts.findTypefaces(descriptor).empty());
+  CHECK(layout->fonts.findTypefaces(descriptor).size() == 1);
   CHECK(state.order.size() > queried);
   auto retained = layout->fonts.GetDefaultFontManager();
   textra_text_layout_destroy(layout);
@@ -118,9 +122,47 @@ void TestFontSources() {
   CHECK(layout->fonts.getFontManagersCount() == 0);
   textra_text_layout_destroy(layout);
 }
+
+void TestSharedShaperCache() {
+  textra_text_layout_options_t options{};
+  options.struct_size = sizeof(options);
+  textra_text_layout_t* layout = nullptr;
+  OK(textra_text_layout_create(&options, &layout));
+  textra_text_context_t *first = nullptr, *second = nullptr;
+  OK(textra_text_context_create(&first));
+  OK(textra_text_context_create(&second));
+  textra_shaper_cache_t* cache = nullptr;
+  OK(textra_shaper_cache_create(TEXTRA_FALSE, &cache));
+  OK(textra_text_context_set_shaper_cache(first, cache));
+  OK(textra_text_context_set_shaper_cache(second, cache));
+  textra_shaper_cache_destroy(cache);
+
+  textra_paragraph_options_t single{sizeof(single),
+                                    TEXTRA_PARAGRAPH_TYPE_SINGLE_LINE};
+  textra_paragraph_t* paragraph = nullptr;
+  OK(textra_paragraph_create(&single, &paragraph));
+  OK(textra_paragraph_add_text_run(paragraph, nullptr, "cache", 5));
+  auto shape = [&](textra_text_context_t* context) {
+    OK(textra_text_context_reset(context));
+    OK(textra_text_layout_layout_single_line(layout, paragraph, context));
+    return static_cast<SingleLineParagraphImpl*>(paragraph->impl.get())->shaped;
+  };
+  auto result = shape(first);
+  CHECK(result && shape(second) == result);
+  OK(textra_text_context_clear_font_cache(first));
+  CHECK(shape(second) == result);
+  OK(textra_text_context_clear_shape_cache(first));
+  CHECK(shape(second) != result);
+
+  textra_paragraph_destroy(paragraph);
+  textra_text_context_destroy(second);
+  textra_text_context_destroy(first);
+  textra_text_layout_destroy(layout);
+}
 }  // namespace
 int main() {
   TestFontSources();
+  TestSharedShaperCache();
   auto manager = PlatformHelper::CreateFontManager(RenderingBackend::kMacOS);
   CHECK(manager);
   CHECK(PlatformHelper::GetDefaultBackend() == RenderingBackend::kMacOS);

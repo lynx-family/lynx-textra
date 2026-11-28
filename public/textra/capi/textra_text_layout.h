@@ -39,7 +39,7 @@ TEXTRA_API void TEXTRA_CALL
 textra_text_layout_destroy(textra_text_layout_t* layout);
 TEXTRA_API textra_status_t TEXTRA_CALL
 textra_text_layout_preload(textra_rendering_backend_t backend);
-TEXTRA_API void TEXTRA_CALL textra_text_layout_clear_shape_cache(void);
+/* Clears the layout's font-manager lookup cache. */
 TEXTRA_API textra_status_t TEXTRA_CALL
 textra_text_layout_clear_font_cache(textra_text_layout_t* layout);
 

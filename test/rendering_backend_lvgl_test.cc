@@ -163,7 +163,6 @@ Metrics RenderC(Bitmap& bitmap, const char* text, bool imported,
   textra_style_destroy(style);
   textra_font_descriptor_destroy(descriptor);
   textra_text_layout_destroy(layout);
-  textra_text_layout_clear_shape_cache();
   // The borrowed layer/buffer is still usable after all engine owners release.
   bitmap.Clear();
   std::memcpy(bitmap.buffer->data, first.data(), first.size());
@@ -217,7 +216,6 @@ int main() {
                           [](uint8_t p) { return p != 0; }));
         ++count;
       }
-  TextLayout::ClearShapeCache();
   std::printf(
       "Built-in LVGL factories, native font import and borrowed ownership "
       "passed; %d C++/C layout, pixel and repeat cases matched\n",

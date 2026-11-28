@@ -25,7 +25,7 @@
 #include "mocks.h"
 #include "src/textlayout/icu_substitute/bidi/algorithm/bidi.h"
 #include "src/textlayout/icu_substitute/bidi/bidi_wrapper.h"
-#include "src/textlayout/shape_cache.h"
+#include "src/textlayout/shaper_cache.h"
 #include "test_utils.h"
 
 using namespace ttoffice::tttext;
@@ -319,6 +319,11 @@ namespace ttoffice {
 namespace tttext {
 class ShaperCoreTextSelfRenderingTestAccess {
  public:
+  static CTFontRef GetOrCreateSafeFont(
+      const ShaperCoreTextSelfRendering& shaper) {
+    return shaper.GetOrCreateSafeFont(FontDescriptor(), 12.f);
+  }
+
   static CTFontDescriptorRef CopyFontDescriptorWithoutCascade(
       CTFontDescriptorRef descriptor) {
     return ShaperCoreTextSelfRendering::CopyFontDescriptorWithoutCascade(
@@ -338,14 +343,14 @@ class ShaperCoreTextSelfRenderingTestAccess {
   }
 
   static size_t CacheKeyHash(const FontDescriptor& descriptor) {
-    ShaperCoreTextSelfRendering::CachedSafeFontKey key{descriptor, 10.f};
-    return ShaperCoreTextSelfRendering::CachedSafeFontKey::Hasher()(key);
+    ShapeStyle key{descriptor, 10.f};
+    return std::hash<ShapeStyle>()(key);
   }
 
   static bool CacheKeysEqual(const FontDescriptor& lhs_descriptor,
                              const FontDescriptor& rhs_descriptor) {
-    ShaperCoreTextSelfRendering::CachedSafeFontKey lhs{lhs_descriptor, 10.f};
-    ShaperCoreTextSelfRendering::CachedSafeFontKey rhs{rhs_descriptor, 10.f};
+    ShapeStyle lhs{lhs_descriptor, 10.f};
+    ShapeStyle rhs{rhs_descriptor, 10.f};
     return lhs == rhs;
   }
 };
@@ -363,20 +368,52 @@ TEST(ShaperCoreTextSelfRendering, CacheKeyUsesFamilyOrder) {
 }
 
 TEST(ShaperCoreText, SafeFontCacheConfigurationRemainsIndependent) {
-  const size_t system_max_entries =
-      ShaperCoreText::GetSafeFontCacheMaxEntries();
-  const size_t self_rendering_max_entries =
-      ShaperCoreTextSelfRendering::GetSafeFontCacheMaxEntries();
+  auto cache = TTTextContext::CreateShaperCache();
+  cache->system_font_cache_.SetMaxEntries(17);
+  cache->font_cache_.SetMaxEntries(23);
 
-  ShaperCoreText::SetSafeFontCacheMaxEntries(17);
-  ShaperCoreTextSelfRendering::SetSafeFontCacheMaxEntries(23);
+  EXPECT_EQ(cache->system_font_cache_.GetMaxEntries(), 17u);
+  EXPECT_EQ(cache->font_cache_.GetMaxEntries(), 23u);
+}
 
-  EXPECT_EQ(ShaperCoreText::GetSafeFontCacheMaxEntries(), 17u);
-  EXPECT_EQ(ShaperCoreTextSelfRendering::GetSafeFontCacheMaxEntries(), 23u);
+TEST(ShaperCoreTextSelfRendering, FontCacheFollowsContext) {
+  TTTextContext first_context;
+  TTTextContext second_context;
+  first_context.SetShaperCache(TTTextContext::CreateShaperCache());
+  second_context.SetShaperCache(TTTextContext::CreateShaperCache());
+  FontmgrCollection font_collection(nullptr);
+  ShaperCoreTextSelfRendering shaper(font_collection);
+  const ShapeStyle key(FontDescriptor(), 12.f);
+  CoreTextFontCache::Epoch epoch = 0;
 
-  ShaperCoreText::SetSafeFontCacheMaxEntries(system_max_entries);
-  ShaperCoreTextSelfRendering::SetSafeFontCacheMaxEntries(
-      self_rendering_max_entries);
+  shaper.SetContext(first_context);
+  CTFontRef first =
+      ShaperCoreTextSelfRenderingTestAccess::GetOrCreateSafeFont(shaper);
+  ASSERT_NE(first, nullptr);
+  CTFontRef cached =
+      first_context.GetShaperCache()->font_cache_.Find(key, &epoch);
+  EXPECT_EQ(cached, first);
+  CFRelease(cached);
+  EXPECT_EQ(second_context.GetShaperCache()->font_cache_.Find(key, &epoch),
+            nullptr);
+
+  shaper.SetContext(second_context);
+  CTFontRef second =
+      ShaperCoreTextSelfRenderingTestAccess::GetOrCreateSafeFont(shaper);
+  ASSERT_NE(second, nullptr);
+  cached = second_context.GetShaperCache()->font_cache_.Find(key, &epoch);
+  EXPECT_EQ(cached, second);
+  CFRelease(cached);
+
+  TextLayout::ClearFontCache(second_context);
+  EXPECT_EQ(second_context.GetShaperCache()->font_cache_.Find(key, &epoch),
+            nullptr);
+  cached = first_context.GetShaperCache()->font_cache_.Find(key, &epoch);
+  EXPECT_EQ(cached, first);
+  CFRelease(cached);
+  EXPECT_FLOAT_EQ(CTFontGetSize(second), 12.f);
+  CFRelease(second);
+  CFRelease(first);
 }
 
 TEST(ShaperCoreTextSelfRendering, BuildsInverseMapsForMixedDirectionText) {

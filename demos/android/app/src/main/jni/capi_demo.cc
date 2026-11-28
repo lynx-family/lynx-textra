@@ -28,7 +28,6 @@ Java_com_lynx_textra_demo_CapiDemoActivity_nativeRender(JNIEnv* env, jclass,
       status = textra_demo_render_config(
           TEXTRA_RENDERING_BACKEND_ANDROID, nullptr, nullptr, &canvas, case_id,
           320, 200, &metrics, rounded ? TEXTRA_TRUE : TEXTRA_FALSE, font_size);
-    textra_text_layout_clear_shape_cache();
   } else {
     auto manager = PlatformHelper::CreateFontManager();
     auto canvas = PlatformHelper::CreateCanvasHelper(native_canvas, manager);

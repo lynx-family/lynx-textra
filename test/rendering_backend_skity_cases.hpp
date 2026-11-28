@@ -170,7 +170,6 @@ inline int RunSkityBackendTest(
   textra_style_destroy(style);
   textra_font_descriptor_destroy(descriptor);
   CFRelease(ct_font);
-  textra_text_layout_clear_shape_cache();
   std::puts(backend == TEXTRA_RENDERING_BACKEND_SKITY
                 ? "Skity/HarfBuzz layout and repeated draw tests passed"
                 : "Skity/CoreText layout and repeated draw tests passed");

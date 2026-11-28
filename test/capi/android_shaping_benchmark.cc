@@ -51,6 +51,7 @@ struct Slot {
     fonts = std::make_unique<FontmgrCollection>(manager);
     shaper = TTShaper::CreateShaper(fonts.get(), RenderingBackend::kAndroid);
     if (!shaper) return false;
+    context.SetShaperCache(TTTextContext::CreateShaperCache());
     context.SetAndroidMetricsRound(rounded);
     shaper->SetContext(context);
     setup = Micros(start, Clock::now());
@@ -156,7 +157,6 @@ Java_com_lynx_textra_demo_CapiDemoActivity_nativeShapingBenchmark(
                                 Measure(capi[policy], input, 32, 1));
     } while (Clock::now() < until);
   }
-  TextLayout::ClearShapeCache();
   const size_t rotation = static_cast<size_t>((workload_rotation % 5 + 5) % 5);
   std::rotate(cases.begin(), cases.begin() + rotation, cases.end());
   std::string json =
@@ -232,7 +232,6 @@ Java_com_lynx_textra_demo_CapiDemoActivity_nativeShapingBenchmark(
             capi_cleanup.push_back(y.cleanup / batch);
           }
         }
-        TextLayout::ClearShapeCache();
         valid &= equal;
         const char* modes[]{"platform_shape", "engine_cache_miss",
                             "engine_cache_hit", "first_shape_fresh_manager"};
@@ -259,7 +258,6 @@ Java_com_lynx_textra_demo_CapiDemoActivity_nativeShapingBenchmark(
         json += '}';
       }
     }
-  TextLayout::ClearShapeCache();
   status = TEXTRA_STATUS_OK;
   json += "],\"results_equal\":" +
           (valid && status == 0 ? std::string("true") : std::string("false")) +
@@ -332,7 +330,7 @@ Java_com_lynx_textra_demo_CapiDemoActivity_nativeFontPolicyTest(JNIEnv* env,
     }
     cpp.context.EnableFeature(kDisableShapeCache, false);
     capi.context.EnableFeature(kDisableShapeCache, false);
-    TextLayout::ClearShapeCache();
+    TextLayout::ClearShapeCache(capi.context);
     auto raw = shape(capi, U"cached 中文", 9, 24.5f, false);
     auto rounded = shape(capi, U"cached 中文", 9, 24.5f, true);
     auto hit = shape(capi, U"cached 中文", 9, 24.5f, true);
@@ -361,7 +359,6 @@ Java_com_lynx_textra_demo_CapiDemoActivity_nativeFontPolicyTest(JNIEnv* env,
     if (cls) env->DeleteLocalRef(cls);
     textra_font_descriptor_destroy(descriptor);
   }
-  TextLayout::ClearShapeCache();
   json += ']';
   return env->NewStringUTF(json.c_str());
 }

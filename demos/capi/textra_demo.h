@@ -33,7 +33,7 @@ typedef struct textra_demo_metrics {
 } textra_demo_metrics_t;
 
 /* The host supplies borrowed native callback records. face may be NULL.
- * This example releases every engine owner and clears shaped-font caches before
+ * This example uses an uncached context and releases every engine owner before
  * returning, so the host can then release its borrowed native resources. */
 static inline void TEXTRA_CALL textra_demo_borrowed_destroy(void* userdata,
                                                             void* object) {
@@ -161,7 +161,6 @@ cleanup:
   textra_style_destroy(style);
   textra_font_descriptor_destroy(descriptor);
   textra_text_layout_destroy(engine);
-  textra_text_layout_clear_shape_cache();
 #undef TEXTRA_DEMO_TRY
   return status;
 }

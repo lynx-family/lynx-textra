@@ -9,11 +9,7 @@
 #import <CoreText/CoreText.h>
 #include <textra/text_layout.h>
 
-#include <cstddef>
-#include <list>
-#include <mutex>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "src/textlayout/tt_shaper.h"
@@ -42,12 +38,6 @@ class ShaperCoreTextSelfRendering : public TTShaper {
                           WriteDirection write_direction, uint32_t* visual_map,
                           uint32_t* logical_map, uint8_t* dir_vec) override;
   void OnShapeText(const ShapeKey& key, ShapeResult* result) const override;
-  static void SetSafeFontCacheMaxEntries(size_t max_entries);
-  static size_t GetSafeFontCacheMaxEntries();
-  // Releases every cached safe font. Callers of GetOrCreateSafeFont own the
-  // reference they received, so dropping the cache's own reference here cannot
-  // invalidate a shaping run that is already in flight.
-  static void ClearSafeFontCache();
 
  private:
   static CTFontDescriptorRef CopyFontDescriptorWithoutCascade(
@@ -56,53 +46,6 @@ class ShaperCoreTextSelfRendering : public TTShaper {
       const std::vector<CTFontDescriptorRef>& font_descriptors);
   static bool FontCoversStringRangeExactly(CTFontRef font, CFStringRef string,
                                            CFRange range);
-
-  struct CachedSafeFontKey {
-    FontDescriptor font_descriptor_;
-    float text_size_ = 0.0f;
-
-    struct Hasher {
-      size_t operator()(const CachedSafeFontKey& key) const {
-        size_t seed = 0;
-        const auto hash_combine = [&seed](size_t value) {
-          seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        };
-        for (const auto& family : key.font_descriptor_.font_family_list_) {
-          hash_combine(std::hash<std::string>()(family));
-        }
-        hash_combine(
-            std::hash<int32_t>()(key.font_descriptor_.font_style_.Value()));
-        hash_combine(
-            std::hash<uint64_t>()(key.font_descriptor_.platform_font_));
-        for (const auto& [tag, value] :
-             key.font_descriptor_.font_feature_settings_) {
-          hash_combine(std::hash<std::string_view>()(std::string_view(tag, 4)));
-          hash_combine(std::hash<int32_t>()(value));
-        }
-        hash_combine(std::hash<float>()(key.text_size_));
-        return seed;
-      }
-    };
-
-    bool operator==(const CachedSafeFontKey& rhs) const {
-      return font_descriptor_ == rhs.font_descriptor_ &&
-             text_size_ == rhs.text_size_;
-    }
-  };
-
-  struct CachedSafeFontEntry {
-    CTFontRef safe_font_ = nullptr;
-    std::list<CachedSafeFontKey>::iterator lru_it_;
-  };
-
-  struct SafeFontCacheState {
-    std::unordered_map<CachedSafeFontKey, CachedSafeFontEntry,
-                       CachedSafeFontKey::Hasher>
-        cache_;
-    std::list<CachedSafeFontKey> lru_;
-    std::mutex mutex_;
-    size_t max_entries_ = 256;
-  };
 
   CFAttributedStringRef GenerateAttributeString(const char16_t* content,
                                                 uint32_t length,
@@ -119,8 +62,6 @@ class ShaperCoreTextSelfRendering : public TTShaper {
       const FontDescriptor& fd) const;
   CTFontRef GetOrCreateSafeFont(const FontDescriptor& fd,
                                 float text_size) const;
-  static SafeFontCacheState& GetSafeFontCacheState();
-  static void TrimSafeFontCacheLocked(SafeFontCacheState& state);
 
  private:
   mutable uint32_t tmp_buf_[SELF_RENDERING_SHAPER_BUFF_SIZE];
