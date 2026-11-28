@@ -1,7 +1,7 @@
 // Copyright 2026 The Lynx Authors. All rights reserved.
 // Licensed under the Apache License Version 2.0.
-#ifndef EXAMPLES_CAPI_PLATFORM_TEXTRA_NATIVE_SUPPORT_HPP_
-#define EXAMPLES_CAPI_PLATFORM_TEXTRA_NATIVE_SUPPORT_HPP_
+#ifndef PUBLIC_TEXTRA_CAPI_PLATFORM_SKIA_TEXTRA_SKIA_SUPPORT_HPP_
+#define PUBLIC_TEXTRA_CAPI_PLATFORM_SKIA_TEXTRA_SKIA_SUPPORT_HPP_
 #include <textra/capi/textra_platform.h>
 
 #include <algorithm>
@@ -11,6 +11,7 @@
 #include <new>
 #include <vector>
 namespace textra_native {
+namespace skia_backend {
 inline float Channel(uint32_t color, int shift) {
   return static_cast<float>((color >> shift) & 255) / 255.f;
 }
@@ -101,5 +102,6 @@ inline textra_status_t InitializeTypeface(
   options->callbacks = &api;
   return TEXTRA_STATUS_OK;
 }
+}  // namespace skia_backend
 }  // namespace textra_native
-#endif  // EXAMPLES_CAPI_PLATFORM_TEXTRA_NATIVE_SUPPORT_HPP_
+#endif  // PUBLIC_TEXTRA_CAPI_PLATFORM_SKIA_TEXTRA_SKIA_SUPPORT_HPP_

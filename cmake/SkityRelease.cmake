@@ -3,7 +3,7 @@
 
 get_filename_component(textra_skity_root "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 set(skity_release_dir "${textra_skity_root}/third_party/skity_release/apple")
-if(NOT EXISTS "${skity_release_dir}/skity.xcframework/Info.plist")
+if(NOT EXISTS "${skity_release_dir}/skity.xcframework/macos-arm64_x86_64/skity.framework/Headers/c/skity.h")
     message(FATAL_ERROR "Run tools/hab sync . --target-only --target skity-macos before configuring Skity tests/demos")
 endif()
 

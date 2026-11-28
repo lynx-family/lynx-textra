@@ -3,7 +3,7 @@
 // Standalone host test; no graphics SDK or engine library is needed.
 #include <cstdio>
 #include <cstdlib>
-#include <examples/capi/platform/textra_native_support.hpp>
+#include <textra/capi/platform/skia/textra_skia_support.hpp>
 #include <type_traits>
 
 #define CHECK(x)            \
@@ -92,15 +92,15 @@ int main() {
   CheckOwnership<textra_font_manager_options_t>(
       &textra_font_manager_options_t::font_manager,
       [&](textra_font_manager_options_t* options) {
-        auto status =
-            textra_native::InitializeManager(options, manager, face, Create);
+        auto status = textra_native::skia_backend::InitializeManager(
+            options, manager, face, Create);
         if (!status) CHECK(options->typeface_callbacks == &face);
         return status;
       });
   CheckOwnership<textra_typeface_options_t>(
       &textra_typeface_options_t::native_font,
       [&](textra_typeface_options_t* options) {
-        return textra_native::InitializeTypeface(
+        return textra_native::skia_backend::InitializeTypeface(
             options, TEXTRA_RENDERING_BACKEND_SKITY, face, Import);
       });
   std::puts(

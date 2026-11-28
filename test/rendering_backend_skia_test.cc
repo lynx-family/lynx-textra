@@ -1,8 +1,8 @@
 // Copyright 2026 The Lynx Authors. All rights reserved.
 // Licensed under the Apache License Version 2.0.
 // Standalone host test: link Skia and a Textra core with HarfBuzz enabled.
-#include <examples/capi/platform/skia/textra_skia_backend.h>
 #include <include/core/SkFontMgr.h>
+#include <textra/capi/platform/textra_capi_skia.h>
 #include <textra/capi/textra.h>
 #include <textra/platform/skia/skia_canvas_helper.h>
 

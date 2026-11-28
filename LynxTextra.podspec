@@ -20,7 +20,8 @@ Pod::Spec.new do |s|
 
   s.subspec "LynxTextra" do |sp|
     sp.header_mappings_dir    = "public"
-    sp.preserve_paths         = "public/textra/platform/**/*.h"
+    sp.preserve_paths         = "public/textra/platform/**/*.h",
+                                "public/textra/capi/platform/**/*"
     sp.public_header_files    = "public/textra/capi/*.h",
                                 "public/textra/font_info.h",
                                 "public/textra/fontmgr_collection.h",
@@ -48,7 +49,8 @@ Pod::Spec.new do |s|
                                 "public/textra/tt_path.h",
                                 "public/textra/tttext_context.h"
 
-    sp.private_header_files   = "public/textra/platform/skia/*.{h,hpp}",
+    sp.private_header_files   = "public/textra/capi/platform/**/*.{h,hpp}",
+                                "public/textra/platform/skia/*.{h,hpp}",
                                 "public/textra/platform/skity/*.{h,hpp}",
                                 "src/capi/*.h",
                                 "src/ports/native/*.h",
@@ -64,6 +66,7 @@ Pod::Spec.new do |s|
                                 "src/textlayout/utils/*.{h,hpp}"
 
     sp.source_files           = "public/textra/capi/*.h",
+                                "public/textra/capi/platform/**/*.{h,hpp}",
                                 "src/capi/*.{cc,h}",
                                 "src/ports/native/native_helpers.h",
                                 "src/ports/native/ios.mm",

@@ -1,0 +1,51 @@
+# Copyright 2026 The Lynx Authors. All rights reserved.
+# Licensed under the Apache License Version 2.0.
+
+# Optional host adapters. The host links its matching SDK library; Textra core
+# does not depend on these targets.
+config("host_adapter_headers") {
+  include_dirs = [
+    "//",
+    "//public",
+  ]
+}
+
+source_set("textra_capi_skia") {
+  sources = [
+    "skia/textra_skia_backend.h",
+    "skia/textra_skia_canvas_impl.hpp",
+    "skia/textra_skia_font_manager_impl.hpp",
+    "skia/textra_skia_gradient_impl.hpp",
+    "skia/textra_skia_paint_impl.hpp",
+    "skia/textra_skia_support.hpp",
+    "skia/textra_skia_typeface_impl.hpp",
+    "textra_capi_skia.h",
+  ]
+  public_configs = [ ":host_adapter_headers" ]
+}
+
+skity_canvas_headers = [
+  "skity_common/textra_skity_canvas_impl.h",
+  "skity_common/textra_skity_common.h",
+  "skity_common/textra_skity_paint_impl.h",
+  "skity_common/textra_skity_typeface_impl.h",
+]
+
+source_set("textra_capi_skity") {
+  sources = skity_canvas_headers + [
+              "skity/textra_skity_backend.h",
+              "skity_common/textra_skity_font_manager_impl.h",
+              "textra_capi_skity.h",
+            ]
+  public_configs = [ ":host_adapter_headers" ]
+}
+
+if (is_ios || is_mac) {
+  source_set("textra_capi_skity_coretext") {
+    sources = skity_canvas_headers + [
+                "skity_coretext/textra_skity_coretext_backend.h",
+                "textra_capi_skity_coretext.h",
+              ]
+    public_configs = [ ":host_adapter_headers" ]
+  }
+}

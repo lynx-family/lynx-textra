@@ -5,7 +5,7 @@
 #include <android/log.h>
 #include <jni.h>
 
-#include <skity/gpu/gpu_context_gl.hpp>
+#include <cstdlib>
 
 static const char* kTAG = "SkityGL";
 #define LOGI(...) \
@@ -18,20 +18,33 @@ static const char* kTAG = "SkityGL";
 void Renderer::init(int w, int h, int d) {
   init_gl();
 
-  ctx_ = skity::GLContextCreate((void*)eglGetProcAddress);
+  skity_context context = nullptr;
+  if (skity_context_create_gl(
+          [](const char* name) -> void* {
+            return reinterpret_cast<void*>(eglGetProcAddress(name));
+          },
+          &context) != SKITY_SUCCESS)
+    std::abort();
+  ctx_ = ttoffice::tttext::skity_c::Take(context, skity_context_destroy);
 
-  skity::GPUSurfaceDescriptorGL desc{};
-  desc.backend = skity::GPUBackendType::kOpenGL;
+  skity_surface_create_info_gl gl{};
+  gl.s_type = SKITY_STRUCTURE_TYPE_SURFACE_CREATE_INFO_GL;
+  gl.surface_type = SKITY_GL_SURFACE_TYPE_FRAMEBUFFER;
+  skity_surface_create_info desc{};
+  desc.s_type = SKITY_STRUCTURE_TYPE_SURFACE_CREATE_INFO;
+  desc.p_next = &gl;
   desc.width = w;
   desc.height = h;
   desc.content_scale = 1.f;
   desc.sample_count = 4;
 
-  desc.surface_type = skity::GLSurfaceType::kFramebuffer;
-  desc.gl_id = 0;
-  desc.has_stencil_attachment = false;
+  gl.gl_id = 0;
+  gl.has_stencil = false;
 
-  m_surface = ctx_->CreateSurface(&desc);
+  skity_surface surface = nullptr;
+  if (skity_surface_create(ctx_.get(), &desc, &surface) != SKITY_SUCCESS)
+    std::abort();
+  m_surface = ttoffice::tttext::skity_c::Take(surface, skity_surface_destroy);
 
   m_width = w;
   m_height = h;
@@ -40,22 +53,22 @@ void Renderer::init(int w, int h, int d) {
 void Renderer::draw() {
   glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-  m_canvas = m_surface->LockCanvas();
+  m_canvas = skity_surface_lock_canvas(m_surface.get(), 0);
 
-  m_canvas->DrawColor(m_clear_color, skity::BlendMode::kSrc);
+  skity_canvas_draw_color4f(m_canvas, m_clear_color, SKITY_BLEND_MODE_SRC);
 
   onDraw(m_canvas);
 
-  m_canvas->Flush();
+  skity_canvas_flush(m_canvas);
 
-  m_surface->Flush();
+  skity_surface_flush(m_surface.get());
 
   m_canvas = nullptr;
 }
 
 void Renderer::init_gl() {
-  glClearColor(m_clear_color.r, m_clear_color.g, m_clear_color.b,
-               m_clear_color.a);
+  glClearColor(m_clear_color.x, m_clear_color.y, m_clear_color.z,
+               m_clear_color.w);
   glClearStencil(0x0);
   glStencilMask(0xFF);
   glEnable(GL_STENCIL_TEST);

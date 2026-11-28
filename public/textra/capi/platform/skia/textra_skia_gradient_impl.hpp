@@ -1,9 +1,9 @@
-#ifndef EXAMPLES_CAPI_PLATFORM_SKIA_TEXTRA_SKIA_GRADIENT_IMPL_HPP_
-#define EXAMPLES_CAPI_PLATFORM_SKIA_TEXTRA_SKIA_GRADIENT_IMPL_HPP_
+#ifndef PUBLIC_TEXTRA_CAPI_PLATFORM_SKIA_TEXTRA_SKIA_GRADIENT_IMPL_HPP_
+#define PUBLIC_TEXTRA_CAPI_PLATFORM_SKIA_TEXTRA_SKIA_GRADIENT_IMPL_HPP_
 #include <include/core/SkMatrix.h>
 #include <include/effects/SkGradientShader.h>
 
-#include <examples/capi/platform/textra_native_support.hpp>
+#include <textra/capi/platform/skia/textra_skia_support.hpp>
 namespace textra_native {
 namespace skia_backend {
 inline sk_sp<SkShader> MakeSkiaGradient(const Gradient& fill) {
@@ -38,4 +38,4 @@ inline sk_sp<SkShader> MakeSkiaGradient(const Gradient& fill) {
 }
 }  // namespace skia_backend
 }  // namespace textra_native
-#endif  // EXAMPLES_CAPI_PLATFORM_SKIA_TEXTRA_SKIA_GRADIENT_IMPL_HPP_
+#endif  // PUBLIC_TEXTRA_CAPI_PLATFORM_SKIA_TEXTRA_SKIA_GRADIENT_IMPL_HPP_

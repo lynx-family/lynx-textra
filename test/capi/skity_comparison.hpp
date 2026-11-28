@@ -2,6 +2,7 @@
 // Licensed under the Apache License Version 2.0.
 #ifndef TEST_CAPI_SKITY_COMPARISON_HPP_
 #define TEST_CAPI_SKITY_COMPARISON_HPP_
+#include "demos/capi/skity_capi_utils.hpp"
 #include "demos/capi/textra_skity_demo.hpp"
 
 namespace textra_demo {
@@ -26,14 +27,21 @@ inline bool RunSkityComparison(const std::string& directory) {
   bool all = true;
   auto manager = std::make_shared<SkityFontManager>();
   for (uint32_t i = 0; i < TEXTRA_DEMO_CASE_COUNT; ++i) {
-    skity::Bitmap a(320, 200), b(320, 200), r(320, 200);
-    auto old = skity::Canvas::MakeSoftwareCanvas(&a),
-         current = skity::Canvas::MakeSoftwareCanvas(&b),
-         repeated = skity::Canvas::MakeSoftwareCanvas(&r);
+    skity::Bitmap a(320, 200);
+    auto old = skity::Canvas::MakeSoftwareCanvas(&a);
+    auto b = skity_c::MakeBitmap(320, 200), r = skity_c::MakeBitmap(320, 200);
+    auto current = skity_c::MakeCanvas(b.get()),
+         repeated = skity_c::MakeCanvas(r.get());
     size_t size = a.RowBytes() * a.Height();
+    if (skity_bitmap_get_row_bytes(b.get()) *
+            skity_bitmap_get_height(b.get()) !=
+        size) {
+      fclose(report);
+      return false;
+    }
     memset(a.GetPixelAddr(), 0, size);
-    memset(b.GetPixelAddr(), 0, size);
-    memset(r.GetPixelAddr(), 0, size);
+    memset(static_cast<uint8_t*>(skity_bitmap_get_pixels(b.get())), 0, size);
+    memset(static_cast<uint8_t*>(skity_bitmap_get_pixels(r.get())), 0, size);
     textra_demo_metrics_t ma{}, mb{}, mr{};
     SkityCanvasHelper helper(old.get());
     bool old_ok = RenderCpp(RenderingBackend::kSkity, manager, nullptr, &helper,
@@ -54,8 +62,10 @@ inline bool RunSkityComparison(const std::string& directory) {
                                &canvas, i, 320, 200, pass ? &mr : &mb);
     }
     std::vector<uint8_t> pa(a.GetPixelAddr(), a.GetPixelAddr() + size),
-        pb(b.GetPixelAddr(), b.GetPixelAddr() + size),
-        pr(r.GetPixelAddr(), r.GetPixelAddr() + size);
+        pb(static_cast<uint8_t*>(skity_bitmap_get_pixels(b.get())),
+           static_cast<uint8_t*>(skity_bitmap_get_pixels(b.get())) + size),
+        pr(static_cast<uint8_t*>(skity_bitmap_get_pixels(r.get())),
+           static_cast<uint8_t*>(skity_bitmap_get_pixels(r.get())) + size);
     bool pixels = pa == pb, repeat = pb == pr,
          metrics = EqualMetrics(ma, mb) && EqualMetrics(mb, mr),
          nonempty = std::any_of(pb.begin(), pb.end(),

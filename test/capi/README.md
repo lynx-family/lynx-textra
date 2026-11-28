@@ -3,7 +3,7 @@
 This directory contains the C API unit tests, rendering comparison helpers,
 Android font checks and performance tooling. The demonstration renderers and
 application entry points remain in `demos/`; renderer adapters remain in
-`examples/capi/platform/`.
+`public/textra/capi/platform/`.
 
 ## Unit tests
 

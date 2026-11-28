@@ -540,9 +540,10 @@ jobs:
           source tools/envsetup.sh
           tools/hab sync . --target-only --target skia-linux
           buildtools/cmake/bin/cmake -DCMAKE_C_COMPILER="$PWD/buildtools/llvm/bin/clang" -DCMAKE_CXX_COMPILER="$PWD/buildtools/llvm/bin/clang++" -DCMAKE_BUILD_TYPE=Release -DTEXTRA_ENABLE_SKIA=ON -G Ninja -S . -B cmake-build-release
-          buildtools/cmake/bin/cmake --build cmake-build-release -t ttreaderdemo SkiaPrebuiltSmoke GradientSkiaTest
+          buildtools/cmake/bin/cmake --build cmake-build-release -t ttreaderdemo SkiaPrebuiltSmoke GradientSkiaTest SkiaHeaderOnlyTest
           cmake-build-release/demos/darwin/macos/ttreaderdemo/SkiaPrebuiltSmoke fonts/Inter/Inter-VariableFont_opsz,wght.ttf skia-smoke.png
           cmake-build-release/test/GradientSkiaTest
+          cmake-build-release/test/SkiaHeaderOnlyTest fonts/Inter/Inter-VariableFont_opsz,wght.ttf
     if: github.event_name == 'pull_request'
     needs: protocol-tests
   linux-lvgl:
