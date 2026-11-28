@@ -141,6 +141,9 @@ lifecycle supports current iOS runtimes. Requests and responses use app-sandbox
 JSON files; transport/activation time is excluded from timing. `--device UDID`
 can use an existing simulator for local verification; such a simulator is not
 deleted. This is simulator performance, not physical-iPhone performance.
+The iOS launch command has a separate 30-second control timeout for the first
+SpringBoard launch after boot. Response polling and the outer gate keep their
+existing timeouts; launch failures are not retried or exempted.
 
 ### Android
 

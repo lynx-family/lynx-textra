@@ -51,6 +51,34 @@ class PlatformTest(unittest.TestCase):
             app_adapter.call(['adb','shell','cat'],input=b'request')
             self.assertNotIn('stdin',run.call_args.kwargs)
 
+    def test_ios_cold_launch_has_separate_control_timeout(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            documents = root/'Documents'
+            documents.mkdir()
+            response = dict(request_id='current')
+            # A stale previous response must be removed before launching.
+            (documents/'response.json').write_text('{"request_id":"stale"}')
+            def call(argv, **kwargs):
+                if argv[2] == 'get_app_container':
+                    return str(root)
+                self.assertEqual(argv[2], 'launch')
+                self.assertEqual(kwargs['timeout'], 30)
+                self.assertFalse((documents/'response.json').exists())
+                self.assertEqual(json.loads((documents/'request.json').read_text()), response)
+                (documents/'response.json').write_text(json.dumps(response))
+            with mock.patch('app_adapter.call', side_effect=call) as command:
+                self.assertEqual(app_adapter.ios('device','package',response,1),response)
+                self.assertEqual(command.call_count, 2)
+
+    def test_ios_launch_timeout_fails_without_retry(self):
+        with tempfile.TemporaryDirectory() as temp:
+            failure = app_adapter.subprocess.TimeoutExpired(['simctl','launch'], 30)
+            with mock.patch('app_adapter.call', side_effect=[temp, failure]) as command:
+                with self.assertRaises(app_adapter.subprocess.TimeoutExpired):
+                    app_adapter.ios('device','package',dict(request_id='current'),1)
+                self.assertEqual(command.call_count, 2)
+
     def test_font_lock_validates_download_and_cache(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);manifest=root/'lock.json';data=b'font data';pin='a'*40

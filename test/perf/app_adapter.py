@@ -56,7 +56,10 @@ def ios(device, package, request, timeout):
     temporary = directory/('request-'+uuid.uuid4().hex+'.tmp')
     temporary.write_text(json.dumps(request))
     temporary.replace(directory/'request.json')
-    call(['xcrun','simctl','launch',device,package], text=True)
+    # SpringBoard's first launch after simulator boot can exceed the generic
+    # command limit. Startup is outside measured shaping and response polling;
+    # keep it bounded without retrying a request that may already be running.
+    call(['xcrun','simctl','launch',device,package], text=True, timeout=30)
     deadline = time.monotonic()+timeout
     while time.monotonic() < deadline:
         if output.exists():
